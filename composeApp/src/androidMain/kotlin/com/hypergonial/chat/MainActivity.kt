@@ -1,0 +1,67 @@
+package com.hypergonial.chat
+
+import android.os.Build
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
+
+        setContent {
+            AppTheme {
+                App()
+            }
+        }
+    }
+
+
+}
+
+private val lightColorScheme = lightColorScheme(
+    primary = Color(0xFF476810),
+    onPrimary = Color(0xFF476810),
+    primaryContainer = Color(0xFFC7F089),
+    onPrimaryContainer = Color(0xFFC7F089),
+)
+private val darkColorScheme = darkColorScheme(
+    primary = Color(0xFFACD370),
+    onPrimary = Color(0xFF213600),
+    primaryContainer = Color(0xFF324F00),
+    onPrimaryContainer = Color(0xFF324F00),
+)
+
+/// Adaptive theming depending on system theme.
+@Composable
+fun AppTheme(
+    useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit
+) {
+    // Material You is only supported on Android 12+
+    val supportsDynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+    val colorScheme = when {
+        supportsDynamicColor && useDarkTheme -> dynamicDarkColorScheme(LocalContext.current)
+        supportsDynamicColor && !useDarkTheme -> dynamicLightColorScheme(LocalContext.current)
+        useDarkTheme -> darkColorScheme
+        else -> lightColorScheme
+    }
+
+    CompositionLocalProvider(LocalUsingDarkTheme provides useDarkTheme) {
+        MaterialTheme(
+            colorScheme = colorScheme, content = content
+        )
+    }
+}

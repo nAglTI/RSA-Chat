@@ -27,8 +27,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-
 }
 
 private val lightColorScheme = lightColorScheme(

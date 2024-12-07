@@ -1,6 +1,6 @@
 [versions]
 accompanistPermissions = "0.36.0"
-agp = "8.5.2"
+agp = "8.7.3"
 android-compileSdk = "34"
 android-minSdk = "26"
 android-targetSdk = "34"
@@ -23,6 +23,7 @@ kotlinx-coroutines = "1.9.0"
 kamelImage = "1.0.1"
 ktor = "3.0.2"
 kotlinLogging = "7.0.3"
+detekt = "1.23.7"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
@@ -60,3 +61,4 @@ composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-mu
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }

@@ -1,0 +1,37 @@
+config:
+    validation: true
+    warningsAsErrors: false
+    excludes: ''
+
+naming:
+    MatchingDeclarationName:
+        active: false
+    FunctionNaming:
+        ignoreAnnotated:
+            - 'Composable'
+
+    TopLevelPropertyNaming:
+        constantPattern: '[A-Z][A-Za-z0-9]*'
+
+complexity:
+    active: false
+
+
+style:
+    ThrowsCount:
+        active:
+            false
+
+    MaxLineLength:
+        active: true
+        maxLineLength: 120
+
+    MagicNumber:
+        active: false
+
+    ForbiddenComment:
+        active: false
+
+    UnusedPrivateMember:
+        ignoreAnnotated:
+            - 'Preview'

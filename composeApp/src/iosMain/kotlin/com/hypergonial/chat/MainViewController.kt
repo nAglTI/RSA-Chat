@@ -40,4 +40,5 @@ fun AppTheme(
     }
 }
 
+@Suppress("FunctionNaming")
 fun MainViewController() = ComposeUIViewController { AppTheme {App() } }

@@ -11,10 +11,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withLink
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.sp
 
 /**
  * A text that can contain hyperlinks. Shamelessly stolen from https://gist.github.com/stevdza-san/ff9dbec0e072d8090e1e6d16e6b73c91

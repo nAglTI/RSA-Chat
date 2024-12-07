@@ -66,6 +66,8 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
+            // Needed for splash screen
+            implementation(libs.androidx.material)
             // HTTP and coroutine impl
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.android)

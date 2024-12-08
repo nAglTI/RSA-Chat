@@ -13,7 +13,7 @@ import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.ApplicationLifecycle
 import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
-import com.hypergonial.chat.components.DefaultRootComponent
+import com.hypergonial.chat.view.components.DefaultRootComponent
 
 private val lightColorScheme = lightColorScheme(
     primary = Color(0xFF476810),

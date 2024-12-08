@@ -1,4 +1,4 @@
-package com.hypergonial.chat.components
+package com.hypergonial.chat.view.components
 
 import com.arkivanov.decompose.ComponentContext
 

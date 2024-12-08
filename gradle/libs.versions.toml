@@ -19,7 +19,7 @@ kotlin = "2.0.21"
 kotlinx = "1.9.0"
 kotlinxSerializationJson = "1.7.3"
 kotlinxDatetime = "0.6.1"
-lifecycle = "2.3.0"
+essenty = "2.3.0"
 startupRuntime = "1.2.0"
 kotlinx-coroutines = "1.9.0"
 kamelImage = "1.0.1"
@@ -31,10 +31,10 @@ slf4j = "2.0.16"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
-back-handler = { module = "com.arkivanov.essenty:back-handler", version.ref = "lifecycle" }
+back-handler = { module = "com.arkivanov.essenty:back-handler", version.ref = "essenty" }
 decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
 decompose-extensions-compose = { module = "com.arkivanov.decompose:extensions-compose", version.ref = "decompose" }
-instance-keeper = { module = "com.arkivanov.essenty:instance-keeper", version.ref = "lifecycle" }
+instance-keeper = { module = "com.arkivanov.essenty:instance-keeper", version.ref = "essenty" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -61,8 +61,9 @@ ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "kto
 ktor-utils = { module = "io.ktor:ktor-utils", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 kotlin-logging = { module = "io.github.oshai:kotlin-logging", version.ref = "kotlinLogging" }
-lifecycle = { module = "com.arkivanov.essenty:lifecycle", version.ref = "lifecycle" }
-state-keeper = { module = "com.arkivanov.essenty:state-keeper", version.ref = "lifecycle" }
+lifecycle = { module = "com.arkivanov.essenty:lifecycle", version.ref = "essenty" }
+lifecycle-coroutines = { module = "com.arkivanov.essenty:lifecycle-coroutines", version.ref = "essenty" }
+state-keeper = { module = "com.arkivanov.essenty:state-keeper", version.ref = "essenty" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref= "slf4j" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref= "slf4j" }
 

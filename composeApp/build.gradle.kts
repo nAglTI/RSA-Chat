@@ -111,6 +111,7 @@ kotlin {
             implementation(libs.decompose.extensions.compose)
             // Utils for navigation library
             implementation(libs.lifecycle)
+            implementation(libs.lifecycle.coroutines)
             implementation(libs.state.keeper)
             implementation(libs.instance.keeper)
             implementation(libs.back.handler)

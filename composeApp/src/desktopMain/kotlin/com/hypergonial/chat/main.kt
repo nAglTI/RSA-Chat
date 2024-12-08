@@ -15,7 +15,7 @@ import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
-import com.hypergonial.chat.components.DefaultRootComponent
+import com.hypergonial.chat.view.components.DefaultRootComponent
 import java.io.File
 
 private const val SAVED_STATE_FILE_NAME = "state.dat"

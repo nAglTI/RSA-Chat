@@ -16,7 +16,7 @@ import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.lifecycle.resume
 import com.arkivanov.essenty.lifecycle.stop
 import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
-import com.hypergonial.chat.components.DefaultRootComponent
+import com.hypergonial.chat.view.components.DefaultRootComponent
 import kotlinx.browser.document
 import kotlinx.browser.window
 

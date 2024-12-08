@@ -16,7 +16,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.arkivanov.decompose.defaultComponentContext
-import com.hypergonial.chat.components.DefaultRootComponent
+import com.hypergonial.chat.view.components.DefaultRootComponent
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

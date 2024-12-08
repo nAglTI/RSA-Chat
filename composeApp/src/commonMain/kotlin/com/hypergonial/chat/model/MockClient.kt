@@ -1,13 +1,14 @@
 package com.hypergonial.chat.model
 
 import com.hypergonial.chat.model.exceptions.AuthorizationFailedException
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 
-class MockClient(override var token: Secret<String>? = null) : Client {
-    init {
-        println("Client created, is logged in: ${isLoggedIn()}")
+class MockClient : Client {
+    override fun isLoggedIn(): Boolean {
+        return token != null
     }
+
+    private var token = settings.getToken()?.let { Secret(it) }
 
     /** Try logging in with the provided credentials */
     override suspend fun login(username: String, password: Secret<String>) {
@@ -15,6 +16,7 @@ class MockClient(override var token: Secret<String>? = null) : Client {
 
         if (username == "admin" && password.expose() == "admin") {
             token = Secret("test")
+            settings.setToken(token!!.expose())
             return
         }
 
@@ -23,6 +25,7 @@ class MockClient(override var token: Secret<String>? = null) : Client {
 
     override fun logout() {
         token = null
+        settings.setToken("")
     }
 
     override fun onDestroy() {

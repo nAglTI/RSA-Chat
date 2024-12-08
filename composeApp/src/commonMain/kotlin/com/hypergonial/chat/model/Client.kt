@@ -6,11 +6,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 
 interface Client : InstanceKeeper.Instance {
-    var token: Secret<String>?
-
-    fun isLoggedIn(): Boolean {
-        return token != null
-    }
+    fun isLoggedIn(): Boolean
 
     /** Try logging in with the provided credentials */
     suspend fun login(username: String, password: Secret<String>)

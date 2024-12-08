@@ -15,11 +15,9 @@ import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.instancekeeper.retainedInstance
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.MockClient
-import com.hypergonial.chat.model.Secret
 import com.hypergonial.chat.view.withFallbackValue
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.serializer
 
 
 interface RootComponent : BackHandlerOwner {
@@ -50,7 +48,7 @@ class DefaultRootComponent(
     private val logger = KotlinLogging.logger {}
 
     private val client: Client = retainedInstance {
-        MockClient(token = stateKeeper.consume(key = "TOKEN", strategy = serializer<Secret<String>>()))
+        MockClient()
     }
 
     private val nav = StackNavigation<Config>()
@@ -80,10 +78,6 @@ class DefaultRootComponent(
             getPath = Companion::getPathForConfig,
             getConfiguration = Companion::getConfigForPath,
         )
-
-        stateKeeper.register(key = "TOKEN", strategy = serializer<Secret<String>>()) {
-            client.token
-        }
     }
 
     private fun getDefaultConfig(): Config {

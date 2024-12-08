@@ -1,5 +1,6 @@
 package com.hypergonial.chat
 
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -17,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.defaultComponentContext
+import com.hypergonial.chat.model.AndroidSettings
+import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.view.components.DefaultRootComponent
 
 class MainActivity : ComponentActivity() {
@@ -24,6 +27,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        initializeStorage()
         val root = DefaultRootComponent(defaultComponentContext())
 
 
@@ -33,6 +37,19 @@ class MainActivity : ComponentActivity() {
                 App(root)
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        initializeStorage()
+    }
+
+    private fun initializeStorage() {
+        if (settings !is AndroidSettings) {
+            return
+        }
+
+        settings.initialize(getSharedPreferences("settings", Context.MODE_PRIVATE))
     }
 }
 

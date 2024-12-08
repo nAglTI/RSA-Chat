@@ -1,9 +1,12 @@
 package com.hypergonial.chat.model
 
-class ChatClient(override var token: Secret<String>? = null): Client {
+class ChatClient: Client {
+    private var token: Secret<String>? = settings.getToken()?.let { Secret(it) }
+
     override fun isLoggedIn(): Boolean {
-        TODO("Not yet implemented")
+        return token != null
     }
+
 
     override suspend fun login(username: String, password: Secret<String>) {
         TODO("Not yet implemented")

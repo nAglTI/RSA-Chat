@@ -94,6 +94,9 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
+            // Settings Handling
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.coroutines)
             // JSON Serialization
             implementation(libs.kotlinx.serialization.json)
             // HTTP

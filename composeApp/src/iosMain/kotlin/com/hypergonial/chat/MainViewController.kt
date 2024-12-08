@@ -8,6 +8,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.window.ComposeUIViewController
+import com.arkivanov.decompose.DefaultComponentContext
+import com.arkivanov.decompose.ExperimentalDecomposeApi
+import com.arkivanov.essenty.backhandler.BackDispatcher
+import com.arkivanov.essenty.lifecycle.ApplicationLifecycle
+import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
+import com.hypergonial.chat.components.DefaultRootComponent
 
 private val lightColorScheme = lightColorScheme(
     primary = Color(0xFF476810),
@@ -40,5 +46,19 @@ fun AppTheme(
     }
 }
 
+@OptIn(ExperimentalDecomposeApi::class)
 @Suppress("FunctionNaming")
-fun MainViewController() = ComposeUIViewController { AppTheme {App() } }
+fun MainViewController() {
+    val stateKeeper = StateKeeperDispatcher()
+    val backDispatcher = BackDispatcher()
+
+    val root = DefaultRootComponent(
+        ctx = DefaultComponentContext(
+            lifecycle = ApplicationLifecycle(),
+            stateKeeper = stateKeeper,
+            backHandler = backDispatcher
+        )
+    )
+
+    ComposeUIViewController { AppTheme {App(root) } }
+}

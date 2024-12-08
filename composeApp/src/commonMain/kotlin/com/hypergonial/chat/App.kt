@@ -21,26 +21,22 @@ import org.jetbrains.compose.resources.painterResource
 
 import chat.composeapp.generated.resources.Res
 import chat.composeapp.generated.resources.compose_multiplatform
+import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.DefaultComponentContext
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.hypergonial.chat.components.RootComponent
 import com.hypergonial.chat.view.ChatTheme
 
 val LocalUsingDarkTheme = compositionLocalOf { false }
 
 @Composable
-fun App() {
+fun App(root: RootComponent) {
+    val state by root.data.subscribeAsState()
+
     ChatTheme {
-        var showContent by remember { mutableStateOf(false) }
         Scaffold(Modifier.fillMaxSize()) { padding ->
             Column(Modifier.fillMaxWidth().padding(padding), horizontalAlignment = Alignment.CenterHorizontally) {
-                Button(onClick = { showContent = !showContent }) {
-                    Text("Click me!")
-                }
-                AnimatedVisibility(showContent) {
-                    val greeting = remember { Greeting().greet() }
-                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Image(painterResource(Res.drawable.compose_multiplatform), null)
-                        Text("Compose: $greeting")
-                    }
-                }
+                Text("Down for maintenance")
             }
         }
     }

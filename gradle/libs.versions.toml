@@ -13,20 +13,28 @@ androidx-lifecycle = "2.8.4"
 androidx-material = "1.12.0"
 androidx-test-junit = "1.2.1"
 compose-multiplatform = "1.7.1"
+decompose = "3.2.2"
 junit = "4.13.2"
 kotlin = "2.0.21"
 kotlinx = "1.9.0"
 kotlinxSerializationJson = "1.7.3"
 kotlinxDatetime = "0.6.1"
+lifecycle = "2.3.0"
 startupRuntime = "1.2.0"
 kotlinx-coroutines = "1.9.0"
 kamelImage = "1.0.1"
 ktor = "3.0.2"
 kotlinLogging = "7.0.3"
 detekt = "1.23.7"
+kotlinParcelize = "2.1.0"
+slf4j = "2.0.16"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
+back-handler = { module = "com.arkivanov.essenty:back-handler", version.ref = "lifecycle" }
+decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
+decompose-extensions-compose = { module = "com.arkivanov.decompose:extensions-compose", version.ref = "decompose" }
+instance-keeper = { module = "com.arkivanov.essenty:instance-keeper", version.ref = "lifecycle" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -53,6 +61,10 @@ ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "kto
 ktor-utils = { module = "io.ktor:ktor-utils", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 kotlin-logging = { module = "io.github.oshai:kotlin-logging", version.ref = "kotlinLogging" }
+lifecycle = { module = "com.arkivanov.essenty:lifecycle", version.ref = "lifecycle" }
+state-keeper = { module = "com.arkivanov.essenty:state-keeper", version.ref = "lifecycle" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref= "slf4j" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref= "slf4j" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -62,3 +74,4 @@ composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "k
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlinParcelize" }

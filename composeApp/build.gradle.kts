@@ -31,6 +31,12 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+
+            export(libs.decompose)
+            export(libs.lifecycle)
+
+            // Optional, only if you need state preservation on Darwin (Apple) targets
+            export(libs.state.keeper)
         }
     }
 
@@ -100,10 +106,20 @@ kotlin {
             implementation(libs.kotlin.logging)
             // Datetime
             implementation(libs.kotlinx.datetime)
+            // Navigation
+            implementation(libs.decompose)
+            implementation(libs.decompose.extensions.compose)
+            // Utils for navigation library
+            implementation(libs.lifecycle)
+            implementation(libs.state.keeper)
+            implementation(libs.instance.keeper)
+            implementation(libs.back.handler)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
+            implementation(libs.slf4j.api)
+            implementation(libs.slf4j.simple)
         }
     }
 }
@@ -162,6 +178,13 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.hypergonial.chat"
             packageVersion = "1.0.0"
+        }
+
+        buildTypes.release.proguard {
+            configurationFiles.from("proguard-desktop-rules.pro")
+            joinOutputJars = true
+            optimize = true
+            obfuscate = true
         }
     }
 }

@@ -9,6 +9,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
+import com.arkivanov.decompose.DefaultComponentContext
+import com.arkivanov.decompose.ExperimentalDecomposeApi
+import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
+import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
+import com.hypergonial.chat.components.DefaultRootComponent
+import java.io.File
+
+private const val SAVED_STATE_FILE_NAME = "state.dat"
 
 private val lightColorScheme = lightColorScheme(
     primary = Color(0xFF476810),
@@ -41,13 +51,37 @@ fun AppTheme(
     }
 }
 
-fun main() = application {
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "Chat",
-    ) {
-        AppTheme {
-            App()
+
+
+@OptIn(ExperimentalDecomposeApi::class)
+fun main() {
+    val lifecycle = LifecycleRegistry()
+    // Deserialize state from state file
+    val stateKeeper = StateKeeperDispatcher((File(SAVED_STATE_FILE_NAME).readToSerializableContainer()))
+
+    val root = runOnUiThread {
+        DefaultRootComponent(
+            ctx = DefaultComponentContext(lifecycle, stateKeeper)
+        )
+    }
+
+
+    application {
+        val windowState = rememberWindowState()
+        LifecycleController(lifecycle, windowState)
+
+        Window(
+            onCloseRequest = {
+                // Save state when closing the window
+                stateKeeper.save().writeToFile(File(SAVED_STATE_FILE_NAME))
+                exitApplication()
+            },
+            title = "Chat",
+            state = windowState
+        ) {
+            AppTheme {
+                App(root)
+            }
         }
     }
 }

@@ -9,7 +9,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.window.ComposeViewport
+import com.arkivanov.decompose.DefaultComponentContext
+import com.arkivanov.decompose.ExperimentalDecomposeApi
+import com.arkivanov.decompose.router.stack.webhistory.DefaultWebHistoryController
+import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.arkivanov.essenty.lifecycle.resume
+import com.arkivanov.essenty.lifecycle.stop
+import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
+import com.hypergonial.chat.components.DefaultRootComponent
 import kotlinx.browser.document
+import kotlinx.browser.window
 
 private val lightColorScheme = lightColorScheme(
     primary = Color(0xFF476810),
@@ -24,7 +33,17 @@ private val darkColorScheme = darkColorScheme(
     onPrimaryContainer = Color(0xFF324F00),
 )
 
+/** Change the app's lifecycle based on the document's visibility. */
+private fun LifecycleRegistry.attachToDocument() {
+    val onVisibilityChanged = { if (document.hasFocus()) resume() else stop() }
+
+    onVisibilityChanged()
+
+    document.addEventListener(type = "visibilitychange", callback = { onVisibilityChanged() })
+}
+
 /// Adaptive theming depending on system theme.
+@OptIn(ExperimentalDecomposeApi::class)
 @Composable
 fun AppTheme(
     useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit
@@ -42,11 +61,24 @@ fun AppTheme(
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalDecomposeApi::class)
 fun main() {
+    val lifecycle = LifecycleRegistry()
+    val stateKeeper = StateKeeperDispatcher()
+
+    val history = DefaultWebHistoryController()
+
+    val root = DefaultRootComponent(
+        ctx = DefaultComponentContext(lifecycle, stateKeeper),
+        webHistoryController = history,
+        deepLink = DefaultRootComponent.DeepLink.Web(path = window.location.pathname)
+    )
+
+    lifecycle.attachToDocument()
+
     ComposeViewport(document.body!!) {
         AppTheme {
-            App()
+            App(root)
         }
     }
 }

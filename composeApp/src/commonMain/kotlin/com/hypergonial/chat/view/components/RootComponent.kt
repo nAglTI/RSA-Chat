@@ -7,22 +7,18 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.popTo
-import com.arkivanov.decompose.router.stack.popToFirst
-import com.arkivanov.decompose.router.stack.pushNew
+import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.router.stack.webhistory.WebHistoryController
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
-import com.arkivanov.essenty.instancekeeper.getOrCreate
 import com.arkivanov.essenty.instancekeeper.retainedInstance
-import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.MockClient
 import com.hypergonial.chat.model.Secret
 import com.hypergonial.chat.view.withFallbackValue
-import kotlinx.serialization.KSerializer
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.serializer
 
 
@@ -45,30 +41,31 @@ interface RootComponent : BackHandlerOwner {
 
 @OptIn(ExperimentalDecomposeApi::class)
 class DefaultRootComponent(
-    val ctx: ComponentContext,
-    deepLink: DeepLink = DeepLink.None,
-    webHistoryController: WebHistoryController? = null
+    val ctx: ComponentContext, deepLink: DeepLink = DeepLink.None, webHistoryController: WebHistoryController? = null
 ) : RootComponent, ComponentContext by ctx {
     override val data = MutableValue(
         RootComponent.RootData()
     )
 
+    private val logger = KotlinLogging.logger {}
+
     private val client: Client = retainedInstance {
         MockClient(token = stateKeeper.consume(key = "TOKEN", strategy = serializer<Secret<String>>()))
     }
-
-    private val coroutineScope = ctx.coroutineScope()
 
     private val nav = StackNavigation<Config>()
 
     private val _stack = childStack(
         source = nav,
         serializer = Config.serializer().withFallbackValue(getDefaultConfig()),
+        handleBackButton = true,
         initialStack = {
-            var stack = getInitialStack(webHistoryPaths = webHistoryController?.historyPaths, deepLink = deepLink)
-            if (stack.isEmpty()) stack = listOf(getDefaultConfig())
-            stack
-            },
+            getInitialStack(
+                webHistoryPaths = webHistoryController?.historyPaths,
+                deepLink = deepLink,
+                isLoggedIn = client.isLoggedIn()
+            )
+        },
         childFactory = ::child,
     )
 
@@ -98,18 +95,19 @@ class DefaultRootComponent(
 
     /** The child factory for the root component's childStack. */
     private fun child(config: Config, componentContext: ComponentContext): RootComponent.Child = when (config) {
-        is Config.Login -> RootComponent.Child.LoginChild(DefaultLoginComponent(ctx = componentContext, client = client,
-            onLogin = { nav.popToFirst() }))
+        is Config.Login -> RootComponent.Child.LoginChild(
+            DefaultLoginComponent(ctx = componentContext, client = client, onLogin = { nav.replaceAll(Config.Home) })
+        )
 
         Config.NotFound -> RootComponent.Child.NotFoundChild(
             DefaultNotFoundComponent(
                 ctx = componentContext,
             )
         )
+
         Config.Home -> RootComponent.Child.HomeChild(DefaultHomeComponent(ctx = componentContext, onLogout = {
             client.logout()
-            nav.popToFirst()
-            nav.pushNew(Config.Login)
+            nav.replaceAll(Config.Login)
         }))
     }
 
@@ -126,12 +124,25 @@ class DefaultRootComponent(
         private const val WEB_PATH_LOGIN = "login"
         private const val WEB_PATH_NOT_FOUND = "not_found"
 
-        private fun getInitialStack(webHistoryPaths: List<String>?, deepLink: DeepLink): List<Config> =
-            webHistoryPaths?.takeUnless(List<*>::isEmpty)?.map(Companion::getConfigForPath) ?: getInitialStack(deepLink)
+        private fun getInitialStack(
+            webHistoryPaths: List<String>?,
+            deepLink: DeepLink,
+            isLoggedIn: Boolean
+        ): List<Config> =
+            webHistoryPaths?.takeUnless(List<*>::isEmpty)?.map(Companion::getConfigForPath) ?: getInitialStack(
+                deepLink,
+                isLoggedIn
+            )
 
-        private fun getInitialStack(deepLink: DeepLink): List<Config> = when (deepLink) {
-            is DeepLink.None -> listOf(Config.Home)
-            is DeepLink.Web -> listOf(Config.Home, getConfigForPath(deepLink.path)).distinct()
+        private fun getInitialStack(deepLink: DeepLink, isLoggedIn: Boolean): List<Config> {
+            if (!isLoggedIn) {
+                return listOf(Config.Login)
+            }
+
+            return when (deepLink) {
+                is DeepLink.None -> listOf(Config.Home)
+                is DeepLink.Web -> listOf(Config.Home, getConfigForPath(deepLink.path)).distinct()
+            }
         }
 
         private fun getPathForConfig(config: Config): String = when (config) {
@@ -158,8 +169,10 @@ class DefaultRootComponent(
     private sealed class Config {
         @Serializable
         data object Home : Config()
+
         @Serializable
         data object Login : Config()
+
         @Serializable
         data object NotFound : Config()
     }

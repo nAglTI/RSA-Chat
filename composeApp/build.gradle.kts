@@ -81,6 +81,9 @@ kotlin {
             implementation(libs.accompanist.permissions)
             // Please don't kill my resources folder
             implementation(libs.androidx.startup.runtime)
+            // SLF4J
+            implementation(libs.slf4j.api)
+            implementation(libs.slf4j.simple)
         }
         commonMain.dependencies {
             implementation(compose.runtime)

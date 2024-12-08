@@ -5,15 +5,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 
 class MockClient(override var token: Secret<String>? = null) : Client {
-    private val logger = KotlinLogging.logger {}
-
     init {
-        println("Client created with token $token")
-    }
-
-
-    override fun isLoggedIn(): Boolean {
-        return token != null
+        println("Client created, is logged in: ${isLoggedIn()}")
     }
 
     /** Try logging in with the provided credentials */

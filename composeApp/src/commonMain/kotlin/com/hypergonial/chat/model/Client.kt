@@ -8,7 +8,9 @@ import kotlinx.coroutines.delay
 interface Client : InstanceKeeper.Instance {
     var token: Secret<String>?
 
-    fun isLoggedIn(): Boolean
+    fun isLoggedIn(): Boolean {
+        return token != null
+    }
 
     /** Try logging in with the provided credentials */
     suspend fun login(username: String, password: Secret<String>)

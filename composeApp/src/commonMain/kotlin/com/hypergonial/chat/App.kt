@@ -48,8 +48,6 @@ fun App(root: RootComponent) {
                     onBack = root::onBackClicked,
                 )
             ) { c ->
-                println("c.instance: ${c.instance}")
-
                 when (val child = c.instance) {
                     is RootComponent.Child.LoginChild -> LoginContent(child.component)
                     is RootComponent.Child.HomeChild -> HomeContent(child.component)

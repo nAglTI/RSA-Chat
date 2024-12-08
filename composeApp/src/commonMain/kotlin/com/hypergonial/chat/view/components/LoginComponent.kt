@@ -34,6 +34,7 @@ class DefaultLoginComponent(val ctx: ComponentContext, val client: Client, val o
     override val data = MutableValue(LoginComponent.Data())
     private val coroutineScope = ctx.coroutineScope()
 
+    /** Query if the login button can be enabled */
     private fun queryCanLogin(): Boolean {
         return data.value.username.isNotEmpty() && data.value.password.expose().isNotEmpty()
     }
@@ -60,7 +61,6 @@ class DefaultLoginComponent(val ctx: ComponentContext, val client: Client, val o
                 onLogin()
             }
             catch (e: AuthorizationFailedException) {
-                println(e)
                 data.value = data.value.copy(isLoggingIn = false, loginFailed = true)
             }
 

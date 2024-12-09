@@ -72,10 +72,7 @@ class DefaultLoginComponent(
             } catch (e: AuthorizationFailedException) {
                 data.value = data.value.copy(isLoggingIn = false, loginFailed = true)
             }
-
         }
-
-
     }
 
     override fun onRegisterRequested() {

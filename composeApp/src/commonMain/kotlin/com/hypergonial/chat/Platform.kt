@@ -1,7 +1,20 @@
 package com.hypergonial.chat
 
+enum class PlatformType {
+    JVM,
+    WEB,
+    ANDROID,
+    IOS,
+    UNKNOWN;
+
+    fun needsBackButton(): Boolean {
+        return this != ANDROID
+    }
+}
+
 interface Platform {
+    val platformType: PlatformType
     val name: String
 }
 
-expect fun getPlatform(): Platform
+expect val platform: Platform

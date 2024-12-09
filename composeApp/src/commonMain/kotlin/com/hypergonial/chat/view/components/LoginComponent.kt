@@ -29,7 +29,12 @@ interface LoginComponent {
     )
 }
 
-class DefaultLoginComponent(val ctx: ComponentContext, val client: Client, val onLogin: () -> Unit) : LoginComponent,
+class DefaultLoginComponent(
+    val ctx: ComponentContext,
+    val client: Client,
+    val onLogin: () -> Unit,
+    val onRegisterRequest: () -> Unit,
+) : LoginComponent,
     ComponentContext by ctx {
     override val data = MutableValue(LoginComponent.Data())
     private val coroutineScope = ctx.coroutineScope()
@@ -52,15 +57,19 @@ class DefaultLoginComponent(val ctx: ComponentContext, val client: Client, val o
         val username = data.value.username.trim()
         val password = data.value.password.map { it.trim() }
 
-        data.value = data.value.copy(password = Secret(""), isLoggingIn = true, loginFailed = false, canLogin = false)
+        data.value = data.value.copy(
+            password = Secret(""),
+            isLoggingIn = true,
+            loginFailed = false,
+            canLogin = false
+        )
 
         coroutineScope.launch {
             try {
                 client.login(username, password)
                 data.value = data.value.copy(isLoggingIn = false, loginFailed = false)
                 onLogin()
-            }
-            catch (e: AuthorizationFailedException) {
+            } catch (e: AuthorizationFailedException) {
                 data.value = data.value.copy(isLoggingIn = false, loginFailed = true)
             }
 
@@ -70,7 +79,7 @@ class DefaultLoginComponent(val ctx: ComponentContext, val client: Client, val o
     }
 
     override fun onRegisterRequested() {
-        TODO("Not yet implemented")
+        onRegisterRequest()
     }
 
 }

@@ -7,6 +7,7 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.popTo
+import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.router.stack.webhistory.WebHistoryController
 import com.arkivanov.decompose.value.MutableValue
@@ -32,6 +33,7 @@ interface RootComponent : BackHandlerOwner {
 
     sealed class Child {
         class LoginChild(val component: LoginComponent) : Child()
+        class RegisterChild(val component: RegisterComponent) : Child()
         class HomeChild(val component: HomeComponent) : Child()
         class NotFoundChild(val component: NotFoundComponent) : Child()
     }
@@ -39,7 +41,9 @@ interface RootComponent : BackHandlerOwner {
 
 @OptIn(ExperimentalDecomposeApi::class)
 class DefaultRootComponent(
-    val ctx: ComponentContext, deepLink: DeepLink = DeepLink.None, webHistoryController: WebHistoryController? = null
+    val ctx: ComponentContext,
+    deepLink: DeepLink = DeepLink.None,
+    webHistoryController: WebHistoryController? = null
 ) : RootComponent, ComponentContext by ctx {
     override val data = MutableValue(
         RootComponent.RootData()
@@ -88,22 +92,45 @@ class DefaultRootComponent(
     }
 
     /** The child factory for the root component's childStack. */
-    private fun child(config: Config, componentContext: ComponentContext): RootComponent.Child = when (config) {
-        is Config.Login -> RootComponent.Child.LoginChild(
-            DefaultLoginComponent(ctx = componentContext, client = client, onLogin = { nav.replaceAll(Config.Home) })
-        )
-
-        Config.NotFound -> RootComponent.Child.NotFoundChild(
-            DefaultNotFoundComponent(
-                ctx = componentContext,
+    private fun child(config: Config, componentContext: ComponentContext): RootComponent.Child =
+        when (config) {
+            is Config.Login -> RootComponent.Child.LoginChild(
+                DefaultLoginComponent(
+                    ctx = componentContext,
+                    client = client,
+                    onLogin = { nav.replaceAll(Config.Home) },
+                    onRegisterRequest = {
+                        nav.pushNew(Config.Register)
+                    })
             )
-        )
 
-        Config.Home -> RootComponent.Child.HomeChild(DefaultHomeComponent(ctx = componentContext, onLogout = {
-            client.logout()
-            nav.replaceAll(Config.Login)
-        }))
-    }
+            Config.Register -> RootComponent.Child.RegisterChild(
+                DefaultRegisterComponent(
+                    ctx = componentContext,
+                    client = client,
+                    onRegister = {
+                        nav.replaceAll(Config.Login)
+                    },
+                    onBack = {
+                        nav.pop()
+                    }),
+            )
+
+            Config.NotFound -> RootComponent.Child.NotFoundChild(
+                DefaultNotFoundComponent(
+                    ctx = componentContext,
+                )
+            )
+
+            Config.Home -> RootComponent.Child.HomeChild(
+                DefaultHomeComponent(
+                    ctx = componentContext,
+                    onLogout = {
+                        client.logout()
+                        nav.replaceAll(Config.Login)
+                    })
+            )
+        }
 
     override fun onBackClicked() {
         nav.pop()
@@ -117,16 +144,18 @@ class DefaultRootComponent(
     private companion object {
         private const val WEB_PATH_LOGIN = "login"
         private const val WEB_PATH_NOT_FOUND = "not_found"
+        private const val WEB_PATH_REGISTER = "register"
 
         private fun getInitialStack(
             webHistoryPaths: List<String>?,
             deepLink: DeepLink,
             isLoggedIn: Boolean
         ): List<Config> =
-            webHistoryPaths?.takeUnless(List<*>::isEmpty)?.map(Companion::getConfigForPath) ?: getInitialStack(
-                deepLink,
-                isLoggedIn
-            )
+            webHistoryPaths?.takeUnless(List<*>::isEmpty)?.map(Companion::getConfigForPath)
+                ?: getInitialStack(
+                    deepLink,
+                    isLoggedIn
+                )
 
         private fun getInitialStack(deepLink: DeepLink, isLoggedIn: Boolean): List<Config> {
             if (!isLoggedIn) {
@@ -142,11 +171,13 @@ class DefaultRootComponent(
         private fun getPathForConfig(config: Config): String = when (config) {
             Config.Home -> ""
             Config.Login -> "/$WEB_PATH_LOGIN"
+            Config.Register -> "/$WEB_PATH_REGISTER"
             Config.NotFound -> "/$WEB_PATH_NOT_FOUND"
         }
 
         private fun getConfigForPath(path: String): Config = when (path.removePrefix("/")) {
             "" -> Config.Home
+            WEB_PATH_REGISTER -> Config.Register
             WEB_PATH_LOGIN -> Config.Login
             else -> Config.NotFound
         }
@@ -166,6 +197,9 @@ class DefaultRootComponent(
 
         @Serializable
         data object Login : Config()
+
+        @Serializable
+        data object Register : Config()
 
         @Serializable
         data object NotFound : Config()

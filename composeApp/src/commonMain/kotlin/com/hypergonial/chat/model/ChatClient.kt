@@ -12,6 +12,10 @@ class ChatClient: Client {
         TODO("Not yet implemented")
     }
 
+    override suspend fun register(username: String, password: Secret<String>) {
+        TODO("Not yet implemented")
+    }
+
     override fun logout() {
         TODO("Not yet implemented")
     }

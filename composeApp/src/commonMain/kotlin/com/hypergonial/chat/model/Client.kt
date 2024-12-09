@@ -11,6 +11,8 @@ interface Client : InstanceKeeper.Instance {
     /** Try logging in with the provided credentials */
     suspend fun login(username: String, password: Secret<String>)
 
+    suspend fun register(username: String, password: Secret<String>)
+
     fun logout()
 
     override fun onDestroy()

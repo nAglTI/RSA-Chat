@@ -23,6 +23,10 @@ class MockClient : Client {
         throw AuthorizationFailedException("Login failed")
     }
 
+    override suspend fun register(username: String, password: Secret<String>) {
+        delay(1000)
+    }
+
     override fun logout() {
         token = null
         settings.setToken("")

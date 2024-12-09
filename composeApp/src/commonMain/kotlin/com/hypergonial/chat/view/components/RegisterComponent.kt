@@ -16,7 +16,7 @@ interface RegisterComponent {
 
     fun onPasswordChange(password: String)
 
-    fun onPasswordConfirmChange(password: String)
+    fun onPasswordConfirmChange(passwordConfirm: String)
 
     fun onRegisterAttempt()
 
@@ -48,38 +48,48 @@ class DefaultRegisterComponent(
         return data.value.username.isNotEmpty() &&
             data.value.password.expose().isNotEmpty() &&
             data.value.passwordConfirm.expose().isNotEmpty() &&
-            queryPasswordErrors().isEmpty()
+            queryPasswordErrors(data.value.password, data.value.passwordConfirm).isEmpty()
     }
 
-    private fun queryPasswordErrors(): List<String> {
-        if (data.value.password.expose() != data.value.passwordConfirm.expose()) {
+    private fun queryPasswordErrors(
+        password: Secret<String>,
+        passwordConfirm: Secret<String>
+    ): List<String> {
+        if (
+            passwordConfirm.expose().isNotEmpty() &&
+            password.expose() != passwordConfirm.expose()
+        ) {
+            println("Passwords do not match")
+            println(password.expose())
+            println(passwordConfirm.expose())
+            println(password.expose() == passwordConfirm.expose())
             return listOf("Passwords do not match")
         }
 
         val errors = mutableListOf<String>()
 
-        if (data.value.password.expose().length < 8) {
+        if (password.expose().length < 8) {
             errors.add("Password must be at least 8 characters")
         }
 
         // One for the pass-phrase people
-        if (data.value.password.expose().split(" ").size > 20) {
+        if (password.expose().split(" ").size > 20) {
             return errors
         }
 
-        if (!data.value.password.expose().any { it.isDigit() }) {
+        if (!password.expose().any { it.isDigit() }) {
             errors.add("Password must contain at least one number")
         }
 
-        if (!data.value.password.expose().any { it.isUpperCase() }) {
+        if (!password.expose().any { it.isUpperCase() }) {
             errors.add("Password must contain at least one uppercase letter")
         }
 
-        if (!data.value.password.expose().any { it.isLowerCase() }) {
+        if (!password.expose().any { it.isLowerCase() }) {
             errors.add("Password must contain at least one lowercase letter")
         }
 
-        if (!data.value.password.expose().any { !it.isLetterOrDigit() }) {
+        if (!password.expose().any { !it.isLetterOrDigit() }) {
             errors.add("Password must contain at least one special character")
         }
 
@@ -94,15 +104,21 @@ class DefaultRegisterComponent(
         data.value = data.value.copy(
             password = Secret(password.trim()),
             canRegister = queryCanRegister(),
-            passwordErrors = queryPasswordErrors()
+            passwordErrors = queryPasswordErrors(
+                Secret(password.trim()),
+                data.value.passwordConfirm
+            )
         )
     }
 
-    override fun onPasswordConfirmChange(password: String) {
+    override fun onPasswordConfirmChange(passwordConfirm: String) {
         data.value = data.value.copy(
-            passwordConfirm = Secret(password.trim()),
+            passwordConfirm = Secret(passwordConfirm.trim()),
             canRegister = queryCanRegister(),
-            passwordErrors = queryPasswordErrors()
+            passwordErrors = queryPasswordErrors(
+                data.value.password,
+                Secret(passwordConfirm.trim())
+            )
         )
     }
 

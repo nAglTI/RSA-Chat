@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.components.RegisterComponent
+import com.hypergonial.chat.view.composables.FullScreenSpinner
 import com.hypergonial.chat.view.composables.PasswordTextField
 
 @Composable
@@ -65,87 +66,90 @@ fun RegisterContent(component: RegisterComponent) {
     val state by component.data.subscribeAsState()
     val focusManager = LocalFocusManager.current
 
-    Scaffold(topBar = { RegisterTopBar(component) }) {
-        Column(
-            Modifier.fillMaxWidth().fillMaxHeight().safeDrawingPadding(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                "Register an account",
-                fontSize = 24.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 60.dp)
-            )
-
-            OutlinedTextField(
-                value = state.username,
-                modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
-                singleLine = true,
-                onValueChange = { component.onUsernameChange(it) },
-                label = { Text("Username*") },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.AccountCircle, contentDescription = "Username"
-                    )
-                },
-                keyboardOptions = KeyboardOptions(
-                    autoCorrectEnabled = false,
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Next
-                ),
-                keyboardActions = KeyboardActions(onNext = {
-                    focusManager.moveFocus(FocusDirection.Down)
-                })
-            )
-
-            PasswordTextField(
-                value = state.password.expose(),
-                label = { Text("Password*") },
-                onValueChange = { component.onPasswordChange(password = it) },
-                isError = state.passwordErrors.isNotEmpty(),
-                errorComposable = {
-                    for (error in state.passwordErrors) {
-                        Row {
-                            Text(
-                                error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                },
-                keyboardActions = KeyboardActions(onNext = {
-                    focusManager.moveFocus(FocusDirection.Down)
-                }),
-                keyboardOptions = KeyboardOptions(
-                    autoCorrectEnabled = false,
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Next
-                ),
-                modifier = Modifier.width(300.dp).padding(0.dp, 5.dp)
-            )
-
-            PasswordTextField(
-                value = state.passwordConfirm.expose(),
-                label = { Text("Confirm Password*") },
-                isError = state.passwordErrors.isNotEmpty(),
-                onValueChange = { component.onPasswordConfirmChange(it) },
-                keyboardOptions = KeyboardOptions(
-                    autoCorrectEnabled = false,
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Go
-                ),
-                keyboardActions = KeyboardActions(onGo = {
-                    focusManager.clearFocus()
-                }),
-                modifier = Modifier.width(300.dp).padding(0.dp, 5.dp)
-            )
-
-            Button(
-                modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),
-                onClick = { component.onRegisterAttempt() },
-                enabled = state.canRegister
+    FullScreenSpinner(state.isRegistering, "Creating account...") {
+        Scaffold(topBar = { RegisterTopBar(component) }) {
+            Column(
+                Modifier.fillMaxWidth().fillMaxHeight().safeDrawingPadding(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Register")
+                Text(
+                    "Register an account",
+                    fontSize = 24.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 60.dp)
+                )
+
+                OutlinedTextField(
+                    value = state.username,
+                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
+                    singleLine = true,
+                    onValueChange = { component.onUsernameChange(it) },
+                    label = { Text("Username*") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.AccountCircle, contentDescription = "Username"
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(onNext = {
+                        focusManager.moveFocus(FocusDirection.Down)
+                    })
+                )
+
+                PasswordTextField(
+                    value = state.password.expose(),
+                    label = { Text("Password*") },
+                    onValueChange = { component.onPasswordChange(password = it) },
+                    isError = state.passwordErrors.isNotEmpty(),
+                    errorComposable = {
+                        for (error in state.passwordErrors) {
+                            Row {
+                                Text(
+                                    error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    },
+                    keyboardActions = KeyboardActions(onNext = {
+                        focusManager.moveFocus(FocusDirection.Down)
+                    }),
+                    keyboardOptions = KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next
+                    ),
+                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp)
+                )
+
+                PasswordTextField(
+                    value = state.passwordConfirm.expose(),
+                    label = { Text("Confirm Password*") },
+                    isError = state.passwordErrors.isNotEmpty(),
+                    onValueChange = { component.onPasswordConfirmChange(it) },
+                    keyboardOptions = KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Go
+                    ),
+                    keyboardActions = KeyboardActions(onGo = {
+                        focusManager.clearFocus()
+                    }),
+                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp)
+                )
+
+                Button(
+                    modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp)
+                        .height(45.dp),
+                    onClick = { component.onRegisterAttempt() },
+                    enabled = state.canRegister
+                ) {
+                    Text("Register")
+                }
             }
         }
     }

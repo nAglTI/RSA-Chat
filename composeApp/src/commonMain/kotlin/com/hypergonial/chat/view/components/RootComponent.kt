@@ -125,6 +125,7 @@ class DefaultRootComponent(
             Config.Home -> RootComponent.Child.HomeChild(
                 DefaultHomeComponent(
                     ctx = componentContext,
+                    client = client,
                     onLogout = {
                         client.logout()
                         nav.replaceAll(Config.Login)

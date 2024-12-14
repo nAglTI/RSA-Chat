@@ -2,7 +2,7 @@ package com.hypergonial.chat.model.payloads
 
 import kotlinx.datetime.Instant
 
-class Message(val id: Snowflake, val content: String? = null, val author: PartialUser) {
+data class Message(val id: Snowflake, val content: String? = null, val author: PartialUser, val nonce: String? = null) {
     val createdAt: Instant
         get() = id.createdAt
 }

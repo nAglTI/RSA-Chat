@@ -1,4 +1,4 @@
-package com.hypergonial.chat.view
+package com.hypergonial.chat
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.KSerializer
@@ -38,3 +38,25 @@ class FallbackSerializer<T>(
  * @param default The default value to return if deserialization fails
  * */
 fun <T>KSerializer<T>.withFallbackValue(default: T): KSerializer<T> = FallbackSerializer(this, default)
+
+val IntRange.end: Int get() =
+    last + 1
+
+/** Get a sublist of the list from the given range
+ *
+ * @param range The range of elements to get
+ * */
+fun <T> MutableList<T>.subList(range: IntRange) =
+    subList(range.first, range.end)
+
+/** Remove a range of elements from the list
+ *
+ * @param range The range of elements to remove
+ * */
+fun <T> MutableList<T>.removeRange(range: IntRange) =
+    subList(range).clear()
+
+fun genNonce(): String {
+    val chars = ('a'..'z') + ('A'..'Z') + ('0'..'9')
+    return (1..16).map { chars.random() }.joinToString("")
+}

@@ -12,7 +12,11 @@ import kotlinx.serialization.encoding.Encoder
 private const val EPOCH: ULong = 1_672_531_200_000u
 
 @Serializable(with = SnowflakeSerializer::class)
-data class Snowflake(val inner: ULong) {
+data class Snowflake(val inner: ULong) : Comparable<Snowflake> {
+    override fun compareTo(other: Snowflake): Int {
+        return inner.compareTo(other.inner)
+    }
+
     override fun toString(): String = "Snowflake($inner)"
 
     /** The timestamp of the snowflake in milliseconds */

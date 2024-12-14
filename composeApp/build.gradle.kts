@@ -86,6 +86,7 @@ kotlin {
             implementation(libs.slf4j.simple)
         }
         commonMain.dependencies {
+            implementation(kotlin("reflect"))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -105,7 +106,16 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.kotlinx.coroutines.core)
             // Async Image Loading from URL
-            implementation(libs.kamel.image)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
+            implementation(libs.coil.svg)
+            // TODO: Add GIF support when it is merged: https://github.com/coil-kt/coil/pull/2594
+            implementation(libs.coil.network.cache.control)
+            // Markdown Rendering
+            implementation(libs.multiplatform.markdown.renderer)
+            implementation(libs.multiplatform.markdown.renderer.m3)
+            implementation(libs.multiplatform.markdown.renderer.coil3)
+            implementation(libs.multiplatform.markdown.renderer.code)
             // Base64
             implementation(libs.ktor.utils)
             // Logging
@@ -126,7 +136,11 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.slf4j.api)
+            implementation(libs.ktor.client.okhttp)
             implementation(libs.slf4j.simple)
+        }
+        wasmJsMain.dependencies {
+            implementation(libs.ktor.client.js)
         }
     }
 }

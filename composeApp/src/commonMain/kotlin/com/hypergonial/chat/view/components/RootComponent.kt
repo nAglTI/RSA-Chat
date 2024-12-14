@@ -16,7 +16,7 @@ import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.instancekeeper.retainedInstance
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.MockClient
-import com.hypergonial.chat.view.withFallbackValue
+import com.hypergonial.chat.withFallbackValue
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
 

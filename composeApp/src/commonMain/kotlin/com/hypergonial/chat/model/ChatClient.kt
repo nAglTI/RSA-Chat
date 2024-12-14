@@ -6,6 +6,10 @@ import com.hypergonial.chat.model.payloads.Snowflake
 class ChatClient: Client {
     private var token: Secret<String>? = settings.getToken()?.let { Secret(it) }
 
+    override val eventManager = EventManager()
+    override val cache: Cache
+        get() = TODO("Not yet implemented")
+
     override fun isLoggedIn(): Boolean {
         return token != null
     }
@@ -28,6 +32,10 @@ class ChatClient: Client {
         TODO("Not yet implemented")
     }
 
+    override suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String?) {
+        TODO("Not yet implemented")
+    }
+
     override fun logout() {
         TODO("Not yet implemented")
     }
@@ -35,4 +43,6 @@ class ChatClient: Client {
     override fun onDestroy() {
         TODO("Not yet implemented")
     }
+
+
 }

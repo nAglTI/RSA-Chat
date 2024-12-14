@@ -5,17 +5,33 @@ import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.User
 import com.hypergonial.chat.model.payloads.Snowflake
 import kotlinx.coroutines.delay
-import kotlin.random.Random
-import kotlin.random.nextULong
 
 class MockClient : Client {
-    private var batchId = 0
+
+    private val messages by lazy {
+        (0 until 4000).map {
+            Message(
+                Snowflake(31557600000u + it.toULong()),
+                "Message $it: among us",
+                User(Snowflake(it.toULong()), "user_$it", displayName = "User $it")
+            )
+        }.reversed().toMutableList()
+    }
+
+    override val eventManager = EventManager()
+
+    override val cache = Cache()
+
+    private var token = settings.getToken()?.let { Secret(it) }
+
+    init {
+        cache.ownUser = User(Snowflake(0u), "user_0", displayName = "User 0")
+    }
 
     override fun isLoggedIn(): Boolean {
         return token != null
     }
 
-    private var token = settings.getToken()?.let { Secret(it) }
 
     /** Try logging in with the provided credentials */
     override suspend fun login(username: String, password: Secret<String>) {
@@ -34,21 +50,66 @@ class MockClient : Client {
         delay(1000)
     }
 
+    /** Fetch a batch of messages from the given channel.
+     *
+     * @param channelId The channel to fetch messages from.
+     * @param before Fetch messages before this message.
+     * @param after Fetch messages after this message.
+     * @param limit The maximum number of messages to fetch.
+     *
+     * @return A list of messages.
+     *
+     * @throws IllegalArgumentException If both before and after are set.
+     * */
     override suspend fun fetchMessages(
-        channelId: Snowflake,
-        before: Snowflake?,
-        after: Snowflake?,
-        limit: UInt
+        channelId: Snowflake, before: Snowflake?, after: Snowflake?, limit: UInt
     ): List<Message> {
-        delay(1000)
-        batchId += 1
-        return (0 until limit.toInt()).map {
-            Message(
-                Snowflake(Random.nextULong(31557600000u, ULong.MAX_VALUE)),
-                "Message $it - Batch $batchId",
-                User(Snowflake(it.toULong()), "user_$it", displayName = "User $it")
-            )
+        delay(500)
+        println("Fetching messages before $before after $after limit $limit")
+
+        require(before == null || after == null) { "Only one of before or after can be set" }
+
+        var start = if (before != null) {
+            messages.indexOfFirst { it.id == before } + 1
+        } else if (after != null) {
+            messages.indexOfFirst { it.id == after } - 1
+        } else {
+            0
         }
+
+        var end = if (before != null) {
+            start + limit.toInt()
+        } else if (after != null) {
+            start - limit.toInt()
+        } else {
+            start + limit.toInt()
+        }
+
+        if (end < start) {
+            // swap start and end
+            start = end.also { end = start }
+        }
+
+
+        println("Fetching messages from $start to $end")
+
+        return messages.subList(
+            start.coerceAtLeast(0).coerceAtMost(messages.size),
+            end.coerceAtLeast(0).coerceAtMost(messages.size)
+        ).reversed()
+    }
+
+    override suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String?) {
+        delay(500)
+        val message = Message(
+            Snowflake(31557600000u + messages.size.toULong()),
+            content,
+            User(Snowflake(0u), "user_0", displayName = "User 0"),
+            nonce,
+        )
+
+        messages.add(0, message)
+        eventManager.dispatch(MessageCreateEvent(message))
     }
 
     override fun logout() {

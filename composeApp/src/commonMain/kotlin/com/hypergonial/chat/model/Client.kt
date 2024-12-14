@@ -7,7 +7,7 @@ import com.hypergonial.chat.model.payloads.Snowflake
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 
-interface Client : InstanceKeeper.Instance {
+interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     fun isLoggedIn(): Boolean
 
     /** Try logging in with the provided credentials */
@@ -23,6 +23,8 @@ interface Client : InstanceKeeper.Instance {
         after: Snowflake? = null,
         limit: UInt = 100u
     ): List<Message>
+
+    suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String? = null)
 
     fun logout()
 

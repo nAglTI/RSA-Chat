@@ -31,4 +31,6 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     override fun onDestroy() {
         // TODO: Close http client
     }
+
+    suspend fun editMessage(channelId: Snowflake, messageId: Snowflake, content: String? = null)
 }

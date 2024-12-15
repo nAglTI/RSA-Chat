@@ -44,5 +44,9 @@ class ChatClient: Client {
         TODO("Not yet implemented")
     }
 
+    override suspend fun editMessage(channelId: Snowflake, messageId: Snowflake, content: String?) {
+        TODO("Not yet implemented")
+    }
+
 
 }

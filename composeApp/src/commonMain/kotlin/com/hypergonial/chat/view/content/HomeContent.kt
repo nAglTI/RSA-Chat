@@ -31,7 +31,7 @@ fun HomeContent(component: HomeComponent) {
             }
 
             MessageList(
-                features = state.messages,
+                features = state.messageEntries,
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 listState = state.listState,
                 isCruising = state.isCruising,
@@ -44,8 +44,6 @@ fun HomeContent(component: HomeComponent) {
                 onSend = component::onMessageSend,
                 modifier = Modifier.fillMaxWidth()
             )
-
-
         }
     }
 }

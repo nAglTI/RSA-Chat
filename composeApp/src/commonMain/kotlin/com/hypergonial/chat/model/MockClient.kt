@@ -2,8 +2,8 @@ package com.hypergonial.chat.model
 
 import com.hypergonial.chat.model.exceptions.AuthorizationFailedException
 import com.hypergonial.chat.model.payloads.Message
-import com.hypergonial.chat.model.payloads.User
 import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.model.payloads.User
 import kotlinx.coroutines.delay
 
 class MockClient : Client {
@@ -25,7 +25,12 @@ class MockClient : Client {
     private var token = settings.getToken()?.let { Secret(it) }
 
     init {
-        cache.ownUser = User(Snowflake(0u), "user_0", displayName = "User 0")
+        cache.ownUser = User(
+            Snowflake(0u),
+            "user_0",
+            displayName = "User 0",
+            avatarUrl = "https://cdn.discordapp.com/avatars/163979124820541440/bff16568c763679ab394da1e1c893263.png?size=512"
+        )
     }
 
     override fun isLoggedIn(): Boolean {
@@ -104,7 +109,7 @@ class MockClient : Client {
         val message = Message(
             Snowflake(31557600000u + messages.size.toULong()),
             content,
-            User(Snowflake(0u), "user_0", displayName = "User 0"),
+            cache.ownUser!!,
             nonce,
         )
 
@@ -119,5 +124,19 @@ class MockClient : Client {
 
     override fun onDestroy() {
         println("MockClient destroyed")
+    }
+
+    override suspend fun editMessage(channelId: Snowflake, messageId: Snowflake, content: String?) {
+        for (message in messages) {
+            if (message.id != messageId)
+                continue
+
+            val index = messages.indexOf(message)
+            val newMessage = message.copy(content = content ?: message.content)
+            messages[index] = newMessage
+            eventManager.dispatch(MessageUpdateEvent(newMessage))
+            return
+        }
+        throw IllegalArgumentException("Message not found")
     }
 }

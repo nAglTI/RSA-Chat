@@ -1,8 +1,14 @@
 package com.hypergonial.chat
 
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import coil3.ImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
+import coil3.request.crossfade
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
@@ -22,7 +28,14 @@ val LocalUsingDarkTheme = compositionLocalOf { false }
 @OptIn(ExperimentalDecomposeApi::class)
 @Composable
 fun App(root: RootComponent) {
+    setSingletonImageLoaderFactory { context ->
+        ImageLoader.Builder(context)
+            .crossfade(true)
+            .build()
+    }
+
     ChatTheme {
+        // Drop the focus if the user clicks anywhere on the screen that is not clickable
         Surface {
             Children(
                 stack = root.stack,

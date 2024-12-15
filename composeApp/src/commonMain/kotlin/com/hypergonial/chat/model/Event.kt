@@ -7,3 +7,5 @@ open class Event
 open class MessageEvent(val message: Message) : Event()
 
 class MessageCreateEvent(message: Message) : MessageEvent(message)
+
+class MessageUpdateEvent(message: Message) : MessageEvent(message)

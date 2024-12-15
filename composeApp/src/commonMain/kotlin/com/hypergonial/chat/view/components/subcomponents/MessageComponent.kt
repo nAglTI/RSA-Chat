@@ -14,9 +14,11 @@ interface MessageComponent {
         val isBeingEdited: Boolean = false
     )
 
+
     val data: Value<MessageUIState>
 
-    fun getKey(): String = data.value.message.id.toString()
+    fun getKey(): String
+
     fun onPendingChanged(isPending: Boolean)
     fun onEditRequested()
     fun onEditFinished()
@@ -32,6 +34,13 @@ class DefaultMessageComponent(
     isEdited: Boolean = false,
 ) : MessageComponent {
     override val data = MutableValue(MessageComponent.MessageUIState(message, isPending, isEdited))
+    private val wasCreatedAsPending = isPending
+
+    override fun getKey(): String {
+        return if (!wasCreatedAsPending) data.value.message.id.toString() else {
+            data.value.message.nonce.toString()
+        }
+    }
 
     override fun onPendingChanged(isPending: Boolean) {
         data.value = data.value.copy(isPending = isPending)

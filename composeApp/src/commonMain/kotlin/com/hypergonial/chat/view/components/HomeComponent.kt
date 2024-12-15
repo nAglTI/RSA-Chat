@@ -79,16 +79,17 @@ class DefaultHomeComponent(
             // Prepend messages to the list
             currentFeatures.addAll(0, features)
 
-            currentFeatures.first().endIndicator = LoadMoreMessagesIndicator(isAtTop = true)
+            currentFeatures.first().endIndicator =
+                if (isEnd) EndOfMessages else LoadMoreMessagesIndicator(isAtTop = true)
 
-            // Drop elements from the top beyond 300 messages
+            // Drop elements from the bottom beyond 300 messages
             if (currentFeatures.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
-                println("Dropping ${currentFeatures.size.toUInt() - MESSAGE_BATCH_SIZE} messages from top")
+                println("Dropping ${currentFeatures.size.toUInt() - MESSAGE_BATCH_SIZE} messages from bottom")
                 currentFeatures.removeRange(
                     currentFeatures.size - MESSAGE_BATCH_SIZE.toInt() until currentFeatures.size
                 )
                 currentFeatures.last().endIndicator = LoadMoreMessagesIndicator(isAtTop = false)
-                data.value = data.value.copy(messages = currentFeatures)
+                data.value = data.value.copy(messages = currentFeatures, isCruising = true)
             } else {
                 data.value = data.value.copy(messages = currentFeatures)
             }
@@ -114,9 +115,9 @@ class DefaultHomeComponent(
                 return@launch
             }
 
-            val features = createMessageFeatures(messages)
+            val isEnd = messages.size.toUInt() < MESSAGE_BATCH_SIZE
 
-            println("Fetched ${messages.size} messages")
+            val features = createMessageFeatures(messages)
 
             // Remove the EOF/LoadMore indicator
             currentFeatures.last().endIndicator = null
@@ -124,20 +125,19 @@ class DefaultHomeComponent(
             // Append messages to the list
             currentFeatures.addAll(features)
             // If not at end yet, add a loading indicator
-            if (messages.size.toUInt() == MESSAGE_BATCH_SIZE) currentFeatures.last().endIndicator =
+            if (!isEnd) currentFeatures.last().endIndicator =
                 LoadMoreMessagesIndicator(isAtTop = false)
 
-            // Drop elements beyond from the bottom 300 messages to prevent memory leaks
+            // Drop elements beyond from the top 300 messages to prevent memory leaks
             if (currentFeatures.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
-                println("Dropping ${currentFeatures.size.toUInt() - MESSAGE_BATCH_SIZE * 3u} messages from bottom")
+                println("Dropping ${currentFeatures.size.toUInt() - MESSAGE_BATCH_SIZE * 3u} messages from top")
 
                 currentFeatures.removeRange(0 until currentFeatures.size - MESSAGE_BATCH_SIZE.toInt() * 3)
                 // Add a new loading indicator at the top to allow scrolling up
                 currentFeatures.first().endIndicator = LoadMoreMessagesIndicator(isAtTop = true)
-                data.value = data.value.copy(messages = currentFeatures, isCruising = true)
+                data.value = data.value.copy(messages = currentFeatures, isCruising = data.value.isCruising && !isEnd)
             } else {
-                println("Adding ${features.size} messages to the top")
-                data.value = data.value.copy(messages = currentFeatures)
+                data.value = data.value.copy(messages = currentFeatures, isCruising = data.value.isCruising && !isEnd)
             }
         }
     }
@@ -150,19 +150,25 @@ class DefaultHomeComponent(
         }
     }
 
+    /** Add a new message to the list of message entries.
+     *
+     * @param newMessage The message to add to the list.
+     * @param isPending Whether the message is pending or not.
+     * A pending message was sent by the user but not yet received by the server.
+     */
     private fun addMessage(newMessage: Message, isPending: Boolean = false) {
+        if (data.value.isCruising) return
+
         val currentFeatures = ArrayDeque(data.value.messages)
         val lastMessage = currentFeatures.lastOrNull()?.messages?.lastOrNull()?.message
-        println("Current features: ${currentFeatures.size}")
-        println("Last message entry: ${currentFeatures.lastOrNull()}")
-        println("Last message: ${lastMessage?.content}")
 
         // If we just received the message we recently sent, mark it as not pending
         if (newMessage.author.id == client.cache.ownUser?.id && !isPending) {
             for (feature in currentFeatures) {
                 for ((i, message) in feature.messages.withIndex()) {
                     if (message.message.nonce == newMessage.nonce) {
-                        feature.messages[i] = feature.messages[i].copy(message = newMessage, isPending = false)
+                        feature.messages[i] =
+                            feature.messages[i].copy(message = newMessage, isPending = false)
                     }
                 }
             }
@@ -181,8 +187,7 @@ class DefaultHomeComponent(
                 MessageEntry(
                     mutableStateListOf(
                         MessageUIState(
-                            newMessage,
-                            isPending = isPending
+                            newMessage, isPending = isPending
                         )
                     )
                 )
@@ -202,6 +207,7 @@ class DefaultHomeComponent(
 
     /** Invoked when a new message is created on the server. */
     suspend fun onMessageCreate(event: MessageCreateEvent) {
+        println("Received message create event")
         // If the user is so high up that the messages at the bottom aren't even loaded, just don't bother
         if (data.value.isCruising) {
             // TODO: Implement a way to notify the user that new messages are available
@@ -223,8 +229,11 @@ class DefaultHomeComponent(
 
     /** Invoked when the user hits the message send button. */
     override fun onMessageSend() {
+        val content = data.value.chatBarValue.text.trim()
+
+        if (content.isBlank()) return
+
         scope.launch {
-            val content = data.value.chatBarValue.text.trim()
             val nonce = genNonce()
             data.value = data.value.copy(chatBarValue = data.value.chatBarValue.copy(text = ""))
             createPendingMessage(content, nonce)
@@ -284,8 +293,7 @@ data class MessageUIState(val message: Message, val isPending: Boolean = false) 
 
 /** A single message entry consists of multiple subsequent messages by the same author. */
 class MessageEntry(
-    val messages: SnapshotStateList<MessageUIState>,
-    var endIndicator: EndIndicator? = null
+    val messages: SnapshotStateList<MessageUIState>, var endIndicator: EndIndicator? = null
 ) {
     fun getKey(): String = messages.firstOrNull()?.getKey() ?: "null"
 }

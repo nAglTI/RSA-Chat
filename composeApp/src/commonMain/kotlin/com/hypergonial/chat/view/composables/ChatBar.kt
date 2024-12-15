@@ -6,20 +6,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 
 @Composable
@@ -38,9 +32,8 @@ fun ChatBar(
                 // Insert a newline at cursor position
                 val cursorPosition = value.selection.start
                 val newText = value.text.insert(cursorPosition, "\n")
-                    .removeRange(value.selection.start until value.selection.end)
-                //val newSelection = TextRange(cursorPosition + 1, cursorPosition + 1)
-                onTextChange(value.copy(text = newText))
+                val newSelection = TextRange(cursorPosition + 1, cursorPosition + 1)
+                onTextChange(value.copy(text = newText, selection = newSelection))
             } else if (value.text.isNotBlank()) {
                 onSend()
             }
@@ -58,13 +51,4 @@ fun ChatBar(
     })
 }
 
-private fun String.insert(index: Int, s: String): String {
-    return this.substring(0, index) + s + this.substring(index)
-}
-
-private fun String.removeRange(range: IntRange): String {
-    if (range.first == -1 || range.last == -1) return this
-    if (range.first == range.last) return this
-
-    return this.substring(0, range.first) + this.substring(range.last)
-}
+private fun String.insert(index: Int, s: String): String = this.substring(0, index) + s + this.substring(index)

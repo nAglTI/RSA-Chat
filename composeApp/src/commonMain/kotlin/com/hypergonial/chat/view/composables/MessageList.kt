@@ -40,11 +40,6 @@ fun MessageList(
         (listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) >= features.size - 2
 
     LaunchedEffect(features) {
-        println("isAtBottom: $isAtBottom")
-        println("isCruising: $isCruising")
-
-        println("features.size: ${features.size}")
-        println("listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index: ${listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index}")
         if (isAtBottom && !isCruising) {
             println("Scrolling to bottom")
             listState.requestScrollToItem(features.size - 1)
@@ -87,14 +82,16 @@ fun Entry(item: MessageEntry, onEndReached: (Boolean) -> Unit) {
 
     item.messages.forEach { entry ->
         Row(Modifier.fillMaxWidth()) {
-            Text(entry.message.content ?: "TODO: No content - HANDLEME", color = if (entry.isPending) Color.Gray else Color.Unspecified)
+            Text(
+                entry.message.content ?: "TODO: No content - HANDLEME",
+                color = if (entry.isPending) Color.Gray else Color.Unspecified
+            )
         }
     }
 
     if (endIndicator is LoadMoreMessagesIndicator && !endIndicator.isAtTop) {
         LoadingIndicator(endIndicator, onSeen = { onEndReached(false) })
     }
-
 
 
 }

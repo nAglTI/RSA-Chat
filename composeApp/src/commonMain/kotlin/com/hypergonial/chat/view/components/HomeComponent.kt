@@ -75,18 +75,17 @@ class DefaultHomeComponent(
     private fun messageComponent(
         message: Message, isPending: Boolean = false, isEdited: Boolean = false
     ): MessageComponent {
-        val childCtx =
-            childContext(key = "message-" + if (!isPending) message.id.toString() else message.nonce.toString())
-        return DefaultMessageComponent(childCtx, client, message, isPending, isEdited)
+        /*val childCtx =
+            childContext(key = "message-" + if (!isPending) message.id.toString() else message.nonce.toString())*/
+        return DefaultMessageComponent(ctx, client, message, isPending, isEdited)
     }
 
     private fun messageEntryComponent(
         messages: SnapshotStateList<MessageComponent>, endIndicator: EndIndicator? = null
     ): MessageEntryComponent {
-        val firstKey = messages.firstOrNull()?.getKey()
-
-        val childCtx = childContext(key = "message-entry-$firstKey")
-        return DefaultMessageEntryComponent(childCtx, client, messages, endIndicator)
+        /*val firstKey = messages.firstOrNull()?.getKey()
+        val childCtx = childContext(key = "message-entry-$firstKey")*/
+        return DefaultMessageEntryComponent(ctx, client, messages, endIndicator)
     }
 
     private fun requestMessagesScrollingUp(lastMessage: Snowflake? = null) {
@@ -136,10 +135,14 @@ class DefaultHomeComponent(
     }
 
     private fun requestMessagesScrollingDown(lastMessage: Snowflake? = null) {
+        println("Requesting messages scrolling down after $lastMessage")
+
         scope.launch {
             val messages = client.fetchMessages(
                 channelId = Snowflake(0u), after = lastMessage, limit = MESSAGE_BATCH_SIZE
             )
+
+            println("Received ${messages.size} messages with the first having id ${messages.firstOrNull()?.id}")
 
             val currentFeatures = data.value.messageEntries
 

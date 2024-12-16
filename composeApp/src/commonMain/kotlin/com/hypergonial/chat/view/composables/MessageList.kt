@@ -19,8 +19,11 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -28,8 +31,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.window.core.layout.WindowSizeClass
 import chat.composeapp.generated.resources.Res
 import chat.composeapp.generated.resources.avatar_placeholder
 import coil3.compose.AsyncImage
@@ -44,10 +49,10 @@ import com.hypergonial.chat.view.components.subcomponents.EndOfMessages
 import com.hypergonial.chat.view.components.subcomponents.LoadMoreMessagesIndicator
 import com.hypergonial.chat.view.components.subcomponents.MessageComponent
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
-import com.mikepenz.markdown.coil3.Coil3ImageTransformerImpl
 import com.mikepenz.markdown.compose.components.markdownComponents
 import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeBlock
 import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeFence
+import com.mikepenz.markdown.compose.elements.MarkdownText
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
@@ -57,6 +62,8 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 
+
+val LocalHighlights = compositionLocalOf { Highlights.Builder() }
 
 /**
  * Composable that lazily displays a list of chat messages, requesting more as the user scrolls up.
@@ -74,17 +81,33 @@ fun MessageList(
     listState: LazyListState = rememberLazyListState(),
     onMessagesLimitReach: (Snowflake?, Boolean) -> Unit
 ) {
-    LazyColumn(
-        modifier,
-        state = listState,
-    ) {
-        itemsIndexed(features, key = { _, item -> item.getKey() }) { _, item ->
-            Entry(item, onEndReached = onMessagesLimitReach)
+    val isDarkTheme = LocalUsingDarkTheme.current
+    val highlightsBuilder = remember(isDarkTheme) {
+        Highlights.Builder().theme(SyntaxThemes.monokai(darkMode = isDarkTheme))
+    }
+
+    CompositionLocalProvider(LocalHighlights provides highlightsBuilder) {
+        LazyColumn(
+            modifier,
+            state = listState,
+        ) {
+            itemsIndexed(features, key = { _, item -> item.getKey() }) { _, item ->
+                SelectionContainer { Entry(item, onEndReached = onMessagesLimitReach) }
+
+            }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/**
+ * Composable that displays (potentially) a grouping of messages from the same user.
+ *
+ * @param component The message entry to display.
+ * @param onEndReached The callback that is called when the user scrolled to the end of the list
+ * and we need to load more messages. This is only called if the entry contains a LoadMoreMessagesIndicator.
+ * The first parameter is the ID of the message to fetch more messages before or after, and the second
+ * parameter is whether the message is at the top of the list or not.
+ */
 @Composable
 fun Entry(
     component: MessageEntryComponent,
@@ -98,79 +121,99 @@ fun Entry(
     val firstItem = state.messages.firstOrNull()
     val lastItem = state.messages.lastOrNull()
 
-    val highlightsBuilder = remember(isDarkTheme) {
-        Highlights.Builder().theme(SyntaxThemes.monokai(darkMode = isDarkTheme))
-    }
 
-
-    if (state.endIndicator is EndOfMessages) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            Text("End of messages", color = Color.Red)
+    Column {
+        if (state.endIndicator is EndOfMessages) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                Text("End of messages", color = Color.Red)
+            }
         }
-    }
 
-    if (endIndicator is LoadMoreMessagesIndicator && endIndicator.isAtTop) {
-        LoadingIndicator(endIndicator, onSeen = { onEndReached(firstItem?.data?.value?.message?.id, true) })
-    }
-
-
-
-    if (firstItem != null) {
-        Row(Modifier.padding(vertical = 10.dp)) {
-            Column {
-                val imageModifier =
-                    Modifier.padding(vertical = 6.dp, horizontal = 14.dp).clip(CircleShape)
-                        .height(40.dp).width(40.dp)
-
-                if (firstItem.data.value.message.author.avatarUrl == null) {
-                    Image(
-                        painter = painterResource(Res.drawable.avatar_placeholder),
-                        contentDescription = "User avatar",
-                        modifier = imageModifier,
-                        colorFilter = if (isDarkTheme) ColorFilter.tint(Color.White) else null
-                    )
-                } else {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalPlatformContext.current)
-                            .data(firstItem.data.value.message.author.avatarUrl).crossfade(true).build(),
-                        contentDescription = "Avatar of ${firstItem.data.value.message.author.displayName}",
-                        contentScale = ContentScale.Crop,
-                        modifier = imageModifier,
-                    )
-                }
+        if (endIndicator is LoadMoreMessagesIndicator && endIndicator.isAtTop) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                LoadingIndicator(endIndicator, onSeen = { onEndReached(firstItem?.data?.value?.message?.id, true) })
             }
 
-            Column {
-                Row {
-                    Text(firstItem.data.value.message.author.displayName, Modifier.padding(end = 8.dp))
-                    Text(
-                        firstItem.data.value.message.createdAt.toLocalDateTime(TimeZone.currentSystemDefault())
-                            .toString(), fontSize = 10.sp, color = Color.Gray
-                    )
+        }
+
+
+
+        if (firstItem != null) {
+            Row(Modifier.padding(vertical = 10.dp)) {
+                // Avatar
+                Column {
+                    val imageModifier =
+                        Modifier.padding(vertical = 6.dp, horizontal = 14.dp).clip(CircleShape)
+                            .height(40.dp).width(40.dp)
+
+                    if (firstItem.data.value.message.author.avatarUrl == null) {
+                        Image(
+                            painter = painterResource(Res.drawable.avatar_placeholder),
+                            contentDescription = "User avatar",
+                            modifier = imageModifier,
+                            colorFilter = if (isDarkTheme) ColorFilter.tint(Color.White) else null
+                        )
+                    } else {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalPlatformContext.current)
+                                .data(firstItem.data.value.message.author.avatarUrl).crossfade(true).build(),
+                            contentDescription = "Avatar of ${firstItem.data.value.message.author.displayName}",
+                            contentScale = ContentScale.Crop,
+                            modifier = imageModifier,
+                        )
+                    }
                 }
 
-                state.messages.forEach { msgcomp ->
-                    Row(Modifier.fillMaxWidth()
-                        .combinedClickable(onDoubleClick = { /* TODO: Edit logic */ }) { },
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        MessageContent(msgcomp, highlightsBuilder)
+                Column {
+                    MessageWithHeader(firstItem)
+
+                    state.messages.drop(1).forEach { msgcomp ->
+                        MessageWithoutHeader(msgcomp)
                     }
                 }
             }
         }
+
+        if (endIndicator is LoadMoreMessagesIndicator && !endIndicator.isAtTop) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                LoadingIndicator(endIndicator, onSeen = { onEndReached(lastItem?.data?.value?.message?.id, false) })
+            }
+        }
     }
-
-    if (endIndicator is LoadMoreMessagesIndicator && !endIndicator.isAtTop) {
-        LoadingIndicator(endIndicator, onSeen = { onEndReached(lastItem?.data?.value?.message?.id, false) })
-    }
-
-
 }
 
+/** A message with a username and timestamp attached to it. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun MessageWithHeader(component: MessageComponent) {
+    Column(Modifier.combinedClickable {  }) {
+        Row(Modifier.fillMaxWidth()) {
+            Text(component.data.value.message.author.displayName, Modifier.padding(end = 8.dp))
+            Text(
+                component.data.value.message.createdAt.toLocalDateTime(TimeZone.currentSystemDefault())
+                    .toString(), fontSize = 10.sp, color = Color.Gray
+            )
+        }
+        MessageContent(component, Modifier.padding(end=40.dp))
+    }
+}
+
+/** A message without a username and timestamp attached to it. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun MessageWithoutHeader(component: MessageComponent) {
+    Row(Modifier.fillMaxWidth()
+        .combinedClickable(onDoubleClick = { /* TODO: Edit logic */ }) { },
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        MessageContent(component, Modifier.padding(end=40.dp))
+    }
+}
+
+/** The content of a message in markdown. */
 @Composable
 fun MessageContent(
-    component: MessageComponent, highlights: Highlights.Builder, modifier: Modifier = Modifier
+    component: MessageComponent, modifier: Modifier = Modifier
 ) {
     val state by component.data.subscribeAsState()
 
@@ -183,7 +226,6 @@ fun MessageContent(
         )*/
     }
 
-    SelectionContainer {
         Markdown(
             state.message.content ?: "TODO: No content - HANDLEME",
             colors = markdownColor(
@@ -191,16 +233,18 @@ fun MessageContent(
             ),
             imageTransformer = ChatImageTransformer,
             components = markdownComponents(
-                codeBlock = { MarkdownHighlightedCodeBlock(it.content, it.node, highlights) },
-                codeFence = { MarkdownHighlightedCodeFence(it.content, it.node, highlights) },
+                codeBlock = { MarkdownHighlightedCodeBlock(it.content, it.node, LocalHighlights.current) },
+                codeFence = { MarkdownHighlightedCodeFence(it.content, it.node, LocalHighlights.current) },
+                // Ignore horizontal lines
+                horizontalRule = { MarkdownText(it.content) }
             ),
             modifier = modifier,
             typography = markdownTypography(
-                text = MaterialTheme.typography.bodyMedium,
-                paragraph = MaterialTheme.typography.bodyMedium
+                text = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                paragraph = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                quote = MaterialTheme.typography.bodyMedium.copy(color = Color.LightGray, fontWeight = FontWeight.Thin),
             ),
         )
-    }
 
 }
 

@@ -39,6 +39,7 @@ import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.LocalUsingDarkTheme
 import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.view.ChatImageTransformer
 import com.hypergonial.chat.view.components.subcomponents.EndOfMessages
 import com.hypergonial.chat.view.components.subcomponents.LoadMoreMessagesIndicator
 import com.hypergonial.chat.view.components.subcomponents.MessageComponent
@@ -46,6 +47,7 @@ import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import com.mikepenz.markdown.coil3.Coil3ImageTransformerImpl
 import com.mikepenz.markdown.compose.components.markdownComponents
 import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeBlock
+import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeFence
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
@@ -85,13 +87,14 @@ fun MessageList(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Entry(
-    item: MessageEntryComponent,
+    component: MessageEntryComponent,
     onEndReached: (Snowflake?, Boolean) -> Unit,
 ) {
-    val state by item.data.subscribeAsState()
+    val state by component.data.subscribeAsState()
+    val isDarkTheme = LocalUsingDarkTheme.current
+
 
     val endIndicator = state.endIndicator
-    val isDarkTheme = LocalUsingDarkTheme.current
     val firstItem = state.messages.firstOrNull()
     val lastItem = state.messages.lastOrNull()
 
@@ -130,7 +133,7 @@ fun Entry(
                     AsyncImage(
                         model = ImageRequest.Builder(LocalPlatformContext.current)
                             .data(firstItem.data.value.message.author.avatarUrl).crossfade(true).build(),
-                        contentDescription = "User avatar",
+                        contentDescription = "Avatar of ${firstItem.data.value.message.author.displayName}",
                         contentScale = ContentScale.Crop,
                         modifier = imageModifier,
                     )
@@ -146,12 +149,12 @@ fun Entry(
                     )
                 }
 
-                state.messages.forEach { entry ->
+                state.messages.forEach { msgcomp ->
                     Row(Modifier.fillMaxWidth()
                         .combinedClickable(onDoubleClick = { /* TODO: Edit logic */ }) { },
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        MessageContent(entry, highlightsBuilder)
+                        MessageContent(msgcomp, highlightsBuilder)
                     }
                 }
             }
@@ -186,10 +189,10 @@ fun MessageContent(
             colors = markdownColor(
                 text = if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground
             ),
-            imageTransformer = Coil3ImageTransformerImpl,
+            imageTransformer = ChatImageTransformer,
             components = markdownComponents(
                 codeBlock = { MarkdownHighlightedCodeBlock(it.content, it.node, highlights) },
-                codeFence = { MarkdownHighlightedCodeBlock(it.content, it.node, highlights) },
+                codeFence = { MarkdownHighlightedCodeFence(it.content, it.node, highlights) },
             ),
             modifier = modifier,
             typography = markdownTypography(

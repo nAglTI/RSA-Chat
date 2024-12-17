@@ -6,7 +6,6 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.childContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
@@ -74,16 +73,14 @@ class DefaultHomeComponent(
 
     private fun messageComponent(
         message: Message, isPending: Boolean = false, isEdited: Boolean = false
-    ): MessageComponent {
-        /*val childCtx =
+    ): MessageComponent {/*val childCtx =
             childContext(key = "message-" + if (!isPending) message.id.toString() else message.nonce.toString())*/
         return DefaultMessageComponent(ctx, client, message, isPending, isEdited)
     }
 
     private fun messageEntryComponent(
         messages: SnapshotStateList<MessageComponent>, endIndicator: EndIndicator? = null
-    ): MessageEntryComponent {
-        /*val firstKey = messages.firstOrNull()?.getKey()
+    ): MessageEntryComponent {/*val firstKey = messages.firstOrNull()?.getKey()
         val childCtx = childContext(key = "message-entry-$firstKey")*/
         return DefaultMessageEntryComponent(ctx, client, messages, endIndicator)
     }
@@ -103,33 +100,25 @@ class DefaultHomeComponent(
             val isEnd = messages.size.toUInt() < MESSAGE_BATCH_SIZE
 
             // Remove the EOF/LoadMore indicator
-            currentFeatures.first().setEndIndicator(null)
+            currentFeatures.last().setEndIndicator(null)
             if (lastMessage == null) {
                 // Remove the placeholder feature that is added when opening a channel
-                currentFeatures.removeFirst()
+                currentFeatures.removeLast()
             }
 
             // Prepend messages to the list
-            currentFeatures.addAll(0, features)
+            currentFeatures.addAll(features)
 
-            currentFeatures.first().setEndIndicator(
+            currentFeatures.last().setEndIndicator(
                 if (isEnd) EndOfMessages else LoadMoreMessagesIndicator(isAtTop = true)
             )
 
             // Drop elements from the bottom beyond 300 messages
             if (currentFeatures.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
                 println("Dropping ${currentFeatures.size.toUInt() - MESSAGE_BATCH_SIZE} messages from bottom")
-                currentFeatures.removeRange(
-                    currentFeatures.size - MESSAGE_BATCH_SIZE.toInt() until currentFeatures.size
-                )
-                currentFeatures.last().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = false))
+                currentFeatures.removeRange(0 until currentFeatures.size - MESSAGE_BATCH_SIZE.toInt() * 3)
+                currentFeatures.first().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = false))
                 data.value = data.value.copy(isCruising = true)
-            } else {
-                //data.value = data.value.copy(messageEntries = currentFeatures)
-            }
-            if (lastMessage == null) {
-                // Start at the bottom if we just opened the channel
-                data.value.listState.requestScrollToItem(features.size - 1, Int.MAX_VALUE)
             }
         }
     }
@@ -148,7 +137,7 @@ class DefaultHomeComponent(
 
             // If we can't fetch more, then drop the loading indicator that triggered this request
             if (messages.isEmpty()) {
-                currentFeatures.last().setEndIndicator(null)
+                currentFeatures.first().setEndIndicator(null)
                 data.value = data.value.copy(isCruising = false)
                 return@launch
             }
@@ -158,26 +147,26 @@ class DefaultHomeComponent(
             val features = createMessageFeatures(messages)
 
             // Remove the EOF/LoadMore indicator
-            currentFeatures.last().setEndIndicator(null)
+            currentFeatures.first().setEndIndicator(null)
 
             // Append messages to the list
-            currentFeatures.addAll(features)
+            currentFeatures.addAll(0, features)
             // If not at end yet, add a loading indicator
-            if (!isEnd) currentFeatures.last().setEndIndicator(
+            if (!isEnd) currentFeatures.first().setEndIndicator(
                 LoadMoreMessagesIndicator(isAtTop = false)
             )
 
             // Drop elements beyond from the top 300 messages to prevent memory leaks
             if (currentFeatures.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
                 println("Dropping ${currentFeatures.size.toUInt() - MESSAGE_BATCH_SIZE * 3u} messages from top")
-
-                currentFeatures.removeRange(0 until currentFeatures.size - MESSAGE_BATCH_SIZE.toInt() * 3)
+                currentFeatures.removeRange(
+                    currentFeatures.size - MESSAGE_BATCH_SIZE.toInt() until currentFeatures.size
+                )
                 // Add a new loading indicator at the top to allow scrolling up
-                currentFeatures.first().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = true))
-                data.value = data.value.copy(isCruising = data.value.isCruising && !isEnd)
-            } else {
-                data.value = data.value.copy(isCruising = data.value.isCruising && !isEnd)
+                currentFeatures.last().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = true))
             }
+
+            data.value = data.value.copy(isCruising = data.value.isCruising && !isEnd)
         }
     }
 
@@ -199,7 +188,7 @@ class DefaultHomeComponent(
         if (data.value.isCruising) return
 
         val currentFeatures = data.value.messageEntries
-        val lastMessage = currentFeatures.lastOrNull()?.lastMessage()?.data?.value?.message
+        val lastMessage = currentFeatures.firstOrNull()?.lastMessage()?.data?.value?.message
 
         // If we just received the message we recently sent, mark it as not pending
         if (newMessage.author.id == client.cache.ownUser?.id && !isPending) {
@@ -212,14 +201,13 @@ class DefaultHomeComponent(
                 }
             }
             println("Marked message as not pending")
-            //data.value = data.value.copy(messageEntries = currentFeatures)
             return
         }
 
         // Group messages by author
         if (lastMessage?.author?.id == newMessage.author.id) {
             println("Appending message to last message entry")
-            currentFeatures.last().pushMessage(
+            currentFeatures.first().pushMessage(
                 messageComponent(
                     newMessage, isPending = isPending
                 )
@@ -227,7 +215,7 @@ class DefaultHomeComponent(
         } else {
             println("Creating new message entry")
             currentFeatures.add(
-                messageEntryComponent(
+                0, messageEntryComponent(
                     mutableStateListOf(
                         messageComponent(
                             newMessage, isPending = isPending
@@ -237,15 +225,13 @@ class DefaultHomeComponent(
             )
         }
 
-        val isAtBottom = (data.value.listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
-            ?: 0) >= data.value.messageEntries.size - 2
+        val isAtBottom =
+            data.value.listState.firstVisibleItemIndex == 0 && data.value.listState.firstVisibleItemScrollOffset == 0
 
         // If we just got a message and the UI is at the bottom, keep it there
         // Also if we just sent a message, scroll the UI down
         if (isAtBottom || newMessage.author.id == client.cache.ownUser?.id && !data.value.isCruising) {
-            data.value.listState.requestScrollToItem(
-                data.value.messageEntries.size - 1, Int.MAX_VALUE
-            )
+            data.value.listState.requestScrollToItem(0, 0)
         }
     }
 

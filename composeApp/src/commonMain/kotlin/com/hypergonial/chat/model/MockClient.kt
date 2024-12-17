@@ -101,7 +101,7 @@ class MockClient : Client {
         return messages.subList(
             start.coerceAtLeast(0).coerceAtMost(messages.size),
             end.coerceAtLeast(0).coerceAtMost(messages.size)
-        ).reversed()
+        )
     }
 
     override suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String?) {

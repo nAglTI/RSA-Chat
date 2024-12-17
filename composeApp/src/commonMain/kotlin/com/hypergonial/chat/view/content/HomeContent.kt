@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -21,15 +22,16 @@ import com.hypergonial.chat.view.composables.MessageList
 fun HomeContent(component: HomeComponent) {
     val state by component.data.subscribeAsState()
 
-    Scaffold { padding ->
+    Scaffold {
         Column(
-            Modifier.padding(padding).consumeWindowInsets(padding).fillMaxSize(),
+            Modifier.safeDrawingPadding().fillMaxSize(),
             verticalArrangement = Arrangement.Bottom
         ) {
             Button(onClick = component::onLogoutClicked) {
                 Text("Logout")
             }
 
+            // Is a LazyColumn wrapped in a custom composable
             MessageList(
                 features = state.messageEntries,
                 modifier = Modifier.fillMaxWidth().weight(1f),

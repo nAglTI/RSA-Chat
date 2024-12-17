@@ -90,6 +90,7 @@ fun MessageList(
         LazyColumn(
             modifier,
             state = listState,
+            reverseLayout = true,
         ) {
             itemsIndexed(features, key = { _, item -> item.getKey() }) { _, item ->
                 SelectionContainer { Entry(item, onEndReached = onMessagesLimitReach) }

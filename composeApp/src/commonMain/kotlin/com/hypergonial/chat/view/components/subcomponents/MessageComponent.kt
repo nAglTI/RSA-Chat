@@ -81,7 +81,6 @@ class DefaultMessageComponent(
     }
 
     override fun onPendingEnd(message: Message) {
-        println("Pending state ended, got ID from backend: ${message.id}")
         data.value = data.value.copy(isPending = false, message = message)
     }
 

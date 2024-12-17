@@ -12,6 +12,7 @@ class MockClient : Client {
         (0 until 4000).map {
             Message(
                 Snowflake(31557600000u + it.toULong()),
+                Snowflake(0u),
                 "Message $it: among us",
                 User(Snowflake(it.toULong()), "user_$it", displayName = "User $it")
             )
@@ -108,6 +109,7 @@ class MockClient : Client {
         delay(500)
         val message = Message(
             Snowflake(31557600000u + messages.size.toULong()),
+            Snowflake(0u),
             content,
             cache.ownUser!!,
             nonce,
@@ -127,16 +129,16 @@ class MockClient : Client {
     }
 
     override suspend fun editMessage(channelId: Snowflake, messageId: Snowflake, content: String?) {
-        for (message in messages) {
+        delay(500)
+        messages.forEachIndexed { i, message ->
             if (message.id != messageId)
-                continue
+                return@forEachIndexed
 
-            val index = messages.indexOf(message)
             val newMessage = message.copy(content = content ?: message.content)
-            messages[index] = newMessage
+            messages[i] = newMessage
             eventManager.dispatch(MessageUpdateEvent(newMessage))
             return
         }
-        throw IllegalArgumentException("Message not found")
+        throw IllegalArgumentException("Message not found: $messageId")
     }
 }

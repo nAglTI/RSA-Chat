@@ -2,10 +2,8 @@ package com.hypergonial.chat.view.content
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
@@ -42,9 +40,10 @@ fun HomeContent(component: HomeComponent) {
 
             ChatBar(
                 value = state.chatBarValue,
-                onTextChange = component::onChatBarContentChanged,
-                onSend = component::onMessageSend,
-                modifier = Modifier.fillMaxWidth()
+                onValueChange = component::onChatBarContentChanged,
+                onEditLastRequested = component::onEditLastMessage,
+                onSubmit = component::onMessageSend,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }

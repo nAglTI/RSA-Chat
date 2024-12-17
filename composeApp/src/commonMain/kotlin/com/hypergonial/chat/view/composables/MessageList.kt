@@ -16,10 +16,14 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.DoneOutline
+import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -34,7 +38,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.window.core.layout.WindowSizeClass
 import chat.composeapp.generated.resources.Res
 import chat.composeapp.generated.resources.avatar_placeholder
 import coil3.compose.AsyncImage
@@ -187,7 +190,7 @@ fun Entry(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageWithHeader(component: MessageComponent) {
-    Column(Modifier.combinedClickable {  }) {
+    Column(Modifier.combinedClickable(onDoubleClick = { component.onEditStart() }) { }) {
         Row(Modifier.fillMaxWidth()) {
             Text(component.data.value.message.author.displayName, Modifier.padding(end = 8.dp))
             Text(
@@ -204,7 +207,7 @@ fun MessageWithHeader(component: MessageComponent) {
 @Composable
 fun MessageWithoutHeader(component: MessageComponent) {
     Row(Modifier.fillMaxWidth()
-        .combinedClickable(onDoubleClick = { /* TODO: Edit logic */ }) { },
+        .combinedClickable(onDoubleClick = { component.onEditStart() }) { },
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         MessageContent(component, Modifier.padding(end=40.dp))
@@ -219,33 +222,52 @@ fun MessageContent(
     val state by component.data.subscribeAsState()
 
     if (state.isBeingEdited) {
-        /*ChatBar(
-            value = state.editingContent,
-            onTextChange = { state.editingContent = it },
-            onSend = { state.isBeingEdited = false },
-            modifier = modifier
-        )*/
+        ChatBar(
+            value = state.editorState,
+            onValueChange = { component.onEditorStateChanged(it) },
+            onSubmit = { component.onEditFinish() },
+            onFocusLoss = { component.onEditCancel() },
+            shouldGrabFocus = true,
+            modifier = modifier.fillMaxWidth(),
+            trailingIcon = { Icon(Icons.Filled.Done, contentDescription = "Done") }
+        )
+        return
     }
 
-        Markdown(
-            state.message.content ?: "TODO: No content - HANDLEME",
-            colors = markdownColor(
-                text = if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground
-            ),
-            imageTransformer = ChatImageTransformer,
-            components = markdownComponents(
-                codeBlock = { MarkdownHighlightedCodeBlock(it.content, it.node, LocalHighlights.current) },
-                codeFence = { MarkdownHighlightedCodeFence(it.content, it.node, LocalHighlights.current) },
-                // Ignore horizontal lines
-                horizontalRule = { MarkdownText(it.content) }
-            ),
-            modifier = modifier,
-            typography = markdownTypography(
-                text = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
-                paragraph = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
-                quote = MaterialTheme.typography.bodyMedium.copy(color = Color.LightGray, fontWeight = FontWeight.Thin),
-            ),
-        )
+        Row(modifier = modifier) {
+            Markdown(
+                state.message.content ?: "TODO: No content - HANDLEME",
+                colors = markdownColor(
+                    text = if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground
+                ),
+                imageTransformer = ChatImageTransformer,
+                components = markdownComponents(
+                    codeBlock = { MarkdownHighlightedCodeBlock(it.content, it.node, LocalHighlights.current) },
+                    codeFence = { MarkdownHighlightedCodeFence(it.content, it.node, LocalHighlights.current) },
+                    // Ignore horizontal lines
+                    horizontalRule = { MarkdownText(it.content) }
+                ),
+                typography = markdownTypography(
+                    text = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                    paragraph = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                    quote = MaterialTheme.typography.bodyMedium.copy(
+                        color = Color.LightGray, fontWeight = FontWeight.Thin
+                    ),
+                ),
+            )
+            if (state.isEdited) {
+                Icon(
+                    Icons.Filled.Done,
+                    contentDescription = "Edited",
+                    tint = Color.Gray,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+                //Text(if (state.isEdited) "(edited)" else "", fontSize = 10.sp, color = Color.Gray)
+            }
+        }
+
+
+
 
 }
 

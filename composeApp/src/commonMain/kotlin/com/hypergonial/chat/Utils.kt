@@ -1,5 +1,7 @@
 package com.hypergonial.chat
 
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -59,4 +61,14 @@ fun <T> MutableList<T>.removeRange(range: IntRange) =
 fun genNonce(): String {
     val chars = ('a'..'z') + ('A'..'Z') + ('0'..'9')
     return (1..16).map { chars.random() }.joinToString("")
+}
+
+/** Sanitize the text in the chat bar. */
+fun TextFieldValue.sanitized(): TextFieldValue {
+    // TODO: If editor perf becomes a problem, consider doing the tab count and replacement in one pass
+    val tabCount = this.text.count { it == '\t' }
+    val text = this.text.replace("\t", "    ")
+    val selection =
+        TextRange(this.selection.start + 3 * tabCount, this.selection.end + 3 * tabCount)
+    return this.copy(text = text, selection = selection)
 }

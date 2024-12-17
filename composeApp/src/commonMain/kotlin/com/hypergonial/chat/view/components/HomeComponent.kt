@@ -3,7 +3,6 @@ package com.hypergonial.chat.view.components
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
@@ -12,9 +11,11 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.genNonce
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.MessageCreateEvent
+import com.hypergonial.chat.model.MessageUpdateEvent
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.removeRange
+import com.hypergonial.chat.sanitized
 import com.hypergonial.chat.view.components.subcomponents.DefaultMessageComponent
 import com.hypergonial.chat.view.components.subcomponents.DefaultMessageEntryComponent
 import com.hypergonial.chat.view.components.subcomponents.EndIndicator
@@ -32,12 +33,13 @@ interface HomeComponent {
     fun onLogoutClicked()
     fun onMoreMessagesRequested(lastMessage: Snowflake? = null, isAtTop: Boolean)
     fun onMessageSend()
+    fun onEditLastMessage()
     fun onChatBarContentChanged(value: TextFieldValue)
     fun onMessageDelete(messageId: Snowflake)
 
 
     data class HomeState(
-        val currentChannelId: Snowflake? = null,
+        val currentChannelId: Snowflake? = Snowflake(0u),
         // The value of the chat bar
         val chatBarValue: TextFieldValue = TextFieldValue(),
         // The list of message entries to display
@@ -67,21 +69,20 @@ class DefaultHomeComponent(
 
     init {
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessageCreate)
+        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessageUpdate)
     }
 
     override fun onLogoutClicked() = onLogout()
 
     private fun messageComponent(
         message: Message, isPending: Boolean = false, isEdited: Boolean = false
-    ): MessageComponent {/*val childCtx =
-            childContext(key = "message-" + if (!isPending) message.id.toString() else message.nonce.toString())*/
+    ): MessageComponent {
         return DefaultMessageComponent(ctx, client, message, isPending, isEdited)
     }
 
     private fun messageEntryComponent(
         messages: SnapshotStateList<MessageComponent>, endIndicator: EndIndicator? = null
-    ): MessageEntryComponent {/*val firstKey = messages.firstOrNull()?.getKey()
-        val childCtx = childContext(key = "message-entry-$firstKey")*/
+    ): MessageEntryComponent {
         return DefaultMessageEntryComponent(ctx, client, messages, endIndicator)
     }
 
@@ -93,31 +94,31 @@ class DefaultHomeComponent(
                 channelId = Snowflake(0u), before = lastMessage, limit = MESSAGE_BATCH_SIZE
             )
 
-            val currentFeatures = data.value.messageEntries
+            val currentEntries = data.value.messageEntries
 
             val features = createMessageFeatures(messages)
 
             val isEnd = messages.size.toUInt() < MESSAGE_BATCH_SIZE
 
             // Remove the EOF/LoadMore indicator
-            currentFeatures.last().setEndIndicator(null)
+            currentEntries.last().setEndIndicator(null)
             if (lastMessage == null) {
                 // Remove the placeholder feature that is added when opening a channel
-                currentFeatures.removeLast()
+                currentEntries.removeLast()
             }
 
             // Prepend messages to the list
-            currentFeatures.addAll(features)
+            currentEntries.addAll(features)
 
-            currentFeatures.last().setEndIndicator(
+            currentEntries.last().setEndIndicator(
                 if (isEnd) EndOfMessages else LoadMoreMessagesIndicator(isAtTop = true)
             )
 
             // Drop elements from the bottom beyond 300 messages
-            if (currentFeatures.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
-                println("Dropping ${currentFeatures.size.toUInt() - MESSAGE_BATCH_SIZE} messages from bottom")
-                currentFeatures.removeRange(0 until currentFeatures.size - MESSAGE_BATCH_SIZE.toInt() * 3)
-                currentFeatures.first().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = false))
+            if (currentEntries.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
+                println("Dropping ${currentEntries.size.toUInt() - MESSAGE_BATCH_SIZE} messages from bottom")
+                currentEntries.removeRange(0 until currentEntries.size - MESSAGE_BATCH_SIZE.toInt() * 3)
+                currentEntries.first().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = false))
                 data.value = data.value.copy(isCruising = true)
             }
         }
@@ -133,11 +134,11 @@ class DefaultHomeComponent(
 
             println("Received ${messages.size} messages with the first having id ${messages.firstOrNull()?.id}")
 
-            val currentFeatures = data.value.messageEntries
+            val currentEntries = data.value.messageEntries
 
             // If we can't fetch more, then drop the loading indicator that triggered this request
             if (messages.isEmpty()) {
-                currentFeatures.first().setEndIndicator(null)
+                currentEntries.first().setEndIndicator(null)
                 data.value = data.value.copy(isCruising = false)
                 return@launch
             }
@@ -147,23 +148,23 @@ class DefaultHomeComponent(
             val features = createMessageFeatures(messages)
 
             // Remove the EOF/LoadMore indicator
-            currentFeatures.first().setEndIndicator(null)
+            currentEntries.first().setEndIndicator(null)
 
             // Append messages to the list
-            currentFeatures.addAll(0, features)
+            currentEntries.addAll(0, features)
             // If not at end yet, add a loading indicator
-            if (!isEnd) currentFeatures.first().setEndIndicator(
+            if (!isEnd) currentEntries.first().setEndIndicator(
                 LoadMoreMessagesIndicator(isAtTop = false)
             )
 
             // Drop elements beyond from the top 300 messages to prevent memory leaks
-            if (currentFeatures.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
-                println("Dropping ${currentFeatures.size.toUInt() - MESSAGE_BATCH_SIZE * 3u} messages from top")
-                currentFeatures.removeRange(
-                    currentFeatures.size - MESSAGE_BATCH_SIZE.toInt() until currentFeatures.size
+            if (currentEntries.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
+                println("Dropping ${currentEntries.size.toUInt() - MESSAGE_BATCH_SIZE * 3u} messages from top")
+                currentEntries.removeRange(
+                    currentEntries.size - MESSAGE_BATCH_SIZE.toInt() until currentEntries.size
                 )
                 // Add a new loading indicator at the top to allow scrolling up
-                currentFeatures.last().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = true))
+                currentEntries.last().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = true))
             }
 
             data.value = data.value.copy(isCruising = data.value.isCruising && !isEnd)
@@ -187,19 +188,14 @@ class DefaultHomeComponent(
     private fun addMessage(newMessage: Message, isPending: Boolean = false) {
         if (data.value.isCruising) return
 
-        val currentFeatures = data.value.messageEntries
-        val lastMessage = currentFeatures.firstOrNull()?.lastMessage()?.data?.value?.message
+        val currentEntries = data.value.messageEntries
+        val lastMessage = currentEntries.firstOrNull()?.lastMessage()?.data?.value?.message
 
         // If we just received the message we recently sent, mark it as not pending
         if (newMessage.author.id == client.cache.ownUser?.id && !isPending) {
-            for (feature in currentFeatures) {
-                for (comp in feature.data.value.messages) {
-                    if (comp.data.value.message.nonce == newMessage.nonce) {
-                        comp.onMessageUpdate(newMessage)
-                        comp.onPendingChanged(false)
-                    }
-                }
-            }
+            currentEntries.flatMap { it.data.value.messages }
+                .firstOrNull { it.data.value.message.nonce == newMessage.nonce }
+                ?.onPendingEnd(newMessage)
             println("Marked message as not pending")
             return
         }
@@ -207,14 +203,14 @@ class DefaultHomeComponent(
         // Group messages by author
         if (lastMessage?.author?.id == newMessage.author.id) {
             println("Appending message to last message entry")
-            currentFeatures.first().pushMessage(
+            currentEntries.first().pushMessage(
                 messageComponent(
                     newMessage, isPending = isPending
                 )
             )
         } else {
             println("Creating new message entry")
-            currentFeatures.add(
+            currentEntries.add(
                 0, messageEntryComponent(
                     mutableStateListOf(
                         messageComponent(
@@ -247,9 +243,17 @@ class DefaultHomeComponent(
         addMessage(event.message, isPending = false)
     }
 
+    suspend fun onMessageUpdate(event: MessageUpdateEvent) {
+        println("Received message update event")
+        data.value.messageEntries.flatMap { it.data.value.messages }
+            .firstOrNull { it.data.value.message.id == event.message.id }?.onMessageUpdate(event)
+
+    }
+
     private fun createPendingMessage(content: String, nonce: String) {
         val msg = Message(
             Snowflake(0u),
+            data.value.currentChannelId ?: error("No channel selected"),
             content,
             client.cache.ownUser ?: error("Own user not cached, cannot send message"),
             nonce,
@@ -271,17 +275,16 @@ class DefaultHomeComponent(
         }
     }
 
-    /** Sanitize the text in the chat bar. */
-    private fun sanitizeText(value: TextFieldValue): TextFieldValue {
-        val tabCount = value.text.count { it == '\t' }
-        val text = value.text.replace("\t", "    ")
-        val selection =
-            TextRange(value.selection.start + 3 * tabCount, value.selection.end + 3 * tabCount)
-        return value.copy(text = text, selection = selection)
+    override fun onEditLastMessage() {
+        val lastMessage = data.value.messageEntries
+            .flatMap { it.data.value.messages }
+            .lastOrNull { it.data.value.message.author.id == client.cache.ownUser?.id } ?: return
+
+        lastMessage.onEditStart()
     }
 
     override fun onChatBarContentChanged(value: TextFieldValue) {
-        data.value = data.value.copy(chatBarValue = sanitizeText(value))
+        data.value = data.value.copy(chatBarValue = value.sanitized())
     }
 
     override fun onMessageDelete(messageId: Snowflake) {
@@ -300,7 +303,6 @@ class DefaultHomeComponent(
         if (messages.isEmpty()) {
             return emptyList()
         }
-
 
         val entries = mutableListOf<MessageEntryComponent>()
 

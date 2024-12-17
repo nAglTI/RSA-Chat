@@ -36,8 +36,6 @@ interface MessageEntryComponent {
     }
 
     fun setEndIndicator(endIndicator: EndIndicator?)
-
-    fun updateMessage(messageId: Snowflake, newMessage: Message)
 }
 
 class DefaultMessageEntryComponent(
@@ -55,10 +53,6 @@ class DefaultMessageEntryComponent(
 
     override fun getMessage(messageId: Snowflake): MessageComponent? {
         return data.value.messages.find { it.data.value.message.id == messageId }
-    }
-
-    override fun updateMessage(messageId: Snowflake, newMessage: Message) {
-        data.value.messages.find { it.data.value.message.id == messageId }?.onMessageUpdate(newMessage)
     }
 
     override fun setEndIndicator(endIndicator: EndIndicator?) {

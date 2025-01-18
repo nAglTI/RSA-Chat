@@ -1,11 +1,13 @@
 package com.hypergonial.chat.view.composables
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,12 +20,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.DoneOutline
-import androidx.compose.material.icons.filled.Pending
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -34,8 +41,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import chat.composeapp.generated.resources.Res
@@ -135,7 +145,8 @@ fun Entry(
 
         if (endIndicator is LoadMoreMessagesIndicator && endIndicator.isAtTop) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                LoadingIndicator(endIndicator, onSeen = { onEndReached(firstItem?.data?.value?.message?.id, true) })
+                LoadingIndicator(endIndicator,
+                    onSeen = { onEndReached(firstItem?.data?.value?.message?.id, true) })
             }
 
         }
@@ -160,7 +171,8 @@ fun Entry(
                     } else {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalPlatformContext.current)
-                                .data(firstItem.data.value.message.author.avatarUrl).crossfade(true).build(),
+                                .data(firstItem.data.value.message.author.avatarUrl).crossfade(true)
+                                .build(),
                             contentDescription = "Avatar of ${firstItem.data.value.message.author.displayName}",
                             contentScale = ContentScale.Crop,
                             modifier = imageModifier,
@@ -180,7 +192,8 @@ fun Entry(
 
         if (endIndicator is LoadMoreMessagesIndicator && !endIndicator.isAtTop) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                LoadingIndicator(endIndicator, onSeen = { onEndReached(lastItem?.data?.value?.message?.id, false) })
+                LoadingIndicator(endIndicator,
+                    onSeen = { onEndReached(lastItem?.data?.value?.message?.id, false) })
             }
         }
     }
@@ -198,7 +211,7 @@ fun MessageWithHeader(component: MessageComponent) {
                     .toString(), fontSize = 10.sp, color = Color.Gray
             )
         }
-        MessageContent(component, Modifier.padding(end=40.dp))
+        MessageContent(component, Modifier.padding(end = 40.dp))
     }
 }
 
@@ -207,14 +220,13 @@ fun MessageWithHeader(component: MessageComponent) {
 @Composable
 fun MessageWithoutHeader(component: MessageComponent) {
     Row(Modifier.fillMaxWidth()
-        .combinedClickable(onDoubleClick = { component.onEditStart() }) { },
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        MessageContent(component, Modifier.padding(end=40.dp))
+        .combinedClickable(onDoubleClick = { component.onEditStart() }) { }) {
+        MessageContent(component, Modifier.padding(end = 40.dp))
     }
 }
 
 /** The content of a message in markdown. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageContent(
     component: MessageComponent, modifier: Modifier = Modifier
@@ -222,53 +234,70 @@ fun MessageContent(
     val state by component.data.subscribeAsState()
 
     if (state.isBeingEdited) {
-        ChatBar(
-            value = state.editorState,
+        ChatBar(value = state.editorState,
             onValueChange = { component.onEditorStateChanged(it) },
             onSubmit = { component.onEditFinish() },
             onFocusLoss = { component.onEditCancel() },
             shouldGrabFocus = true,
             modifier = modifier.fillMaxWidth(),
-            trailingIcon = { Icon(Icons.Filled.Done, contentDescription = "Done") }
-        )
+            trailingIcon = {
+                Icon(
+                    Icons.Filled.Done,
+                    contentDescription = "Done",
+                    modifier = Modifier.pointerHoverIcon(
+                        PointerIcon.Hand
+                    )
+                )
+            })
         return
     }
 
-        Row(modifier = modifier) {
-            Markdown(
-                state.message.content ?: "TODO: No content - HANDLEME",
-                colors = markdownColor(
-                    text = if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground
-                ),
-                imageTransformer = ChatImageTransformer,
-                components = markdownComponents(
-                    codeBlock = { MarkdownHighlightedCodeBlock(it.content, it.node, LocalHighlights.current) },
-                    codeFence = { MarkdownHighlightedCodeFence(it.content, it.node, LocalHighlights.current) },
-                    // Ignore horizontal lines
-                    horizontalRule = { MarkdownText(it.content) }
-                ),
-                typography = markdownTypography(
-                    text = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
-                    paragraph = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
-                    quote = MaterialTheme.typography.bodyMedium.copy(
-                        color = Color.LightGray, fontWeight = FontWeight.Thin
-                    ),
-                ),
-            )
-            if (state.isEdited) {
-                Icon(
-                    Icons.Filled.Done,
-                    contentDescription = "Edited",
-                    tint = Color.Gray,
-                    modifier = Modifier.padding(start = 4.dp)
+    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Markdown(state.message.content ?: "TODO: No content - HANDLEME",
+            colors = markdownColor(
+                text = if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground,
+                linkText = MaterialTheme.colorScheme.primary,
+            ),
+            imageTransformer = ChatImageTransformer,
+            modifier = Modifier.fillMaxHeight().fillMaxWidth(0.9f),
+            components = markdownComponents(codeBlock = {
+                MarkdownHighlightedCodeBlock(
+                    it.content, it.node, LocalHighlights.current
                 )
-                //Text(if (state.isEdited) "(edited)" else "", fontSize = 10.sp, color = Color.Gray)
+            }, codeFence = {
+                MarkdownHighlightedCodeFence(
+                    it.content, it.node, LocalHighlights.current
+                )
+            },
+                // Ignore horizontal lines
+                horizontalRule = { MarkdownText(it.content) }),
+            typography = markdownTypography(
+                text = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                paragraph = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                quote = MaterialTheme.typography.bodyMedium.copy(
+                    color = Color.LightGray, fontWeight = FontWeight.Thin
+                ),
+                link = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Normal,
+                    textDecoration = TextDecoration.Underline,
+                )
+            )
+        )
+        AnimatedVisibility(visible = state.isEdited) {
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = {
+                    PlainTooltip(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    ) { Text("Edited") }
+                },
+                state = rememberTooltipState(isPersistent = true)
+            ) {
+                Icon(Icons.Outlined.Edit, contentDescription = "Edited", tint = Color.Gray)
             }
         }
-
-
-
-
+    }
 }
 
 

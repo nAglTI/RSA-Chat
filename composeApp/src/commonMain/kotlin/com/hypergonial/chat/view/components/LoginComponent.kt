@@ -24,12 +24,15 @@ interface LoginComponent {
 
     fun onRegisterRequested()
 
+    fun onLogoClick()
+
     data class Data(
         val username: String = "",
         val password: Secret<String> = Secret(""),
         val canLogin: Boolean = false,
         val isLoggingIn: Boolean = false,
         val loginFailed: Boolean = false,
+        val logoClickCount: Int = 0,
     )
 }
 
@@ -38,6 +41,7 @@ class DefaultLoginComponent(
     val client: Client,
     val onLogin: () -> Unit,
     val onRegisterRequest: () -> Unit,
+    val onDebugSettingsOpen: () -> Unit
 ) : LoginComponent,
     ComponentContext by ctx {
     override val data = MutableValue(LoginComponent.Data())
@@ -54,6 +58,14 @@ class DefaultLoginComponent(
 
     override fun onPasswordChange(password: String) {
         data.value = data.value.copy(password = Secret(password), canLogin = queryCanLogin())
+    }
+
+    override fun onLogoClick() {
+        data.value = data.value.copy(logoClickCount = data.value.logoClickCount + 1)
+        if (data.value.logoClickCount >= 8) {
+            data.value = data.value.copy(logoClickCount = 0)
+            onDebugSettingsOpen()
+        }
     }
 
     override fun onLoginAttempt() {

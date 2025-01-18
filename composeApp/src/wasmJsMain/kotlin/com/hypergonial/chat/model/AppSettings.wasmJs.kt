@@ -4,7 +4,7 @@ import com.russhwolf.settings.Settings
 import com.russhwolf.settings.StorageSettings
 import kotlinx.browser.localStorage
 
-class LocalStorageSettings: AppSettings {
+class LocalStorageSettings: AppSettings() {
     override val userPreferences: Settings = StorageSettings(localStorage)
     override val secrets: Settings? = null
 }

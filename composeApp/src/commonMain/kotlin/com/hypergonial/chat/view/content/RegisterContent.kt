@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.components.RegisterComponent
+import com.hypergonial.chat.view.composables.ChatButton
 import com.hypergonial.chat.view.composables.FullScreenSpinner
 import com.hypergonial.chat.view.composables.PasswordTextField
 
@@ -137,12 +138,15 @@ fun RegisterContent(component: RegisterComponent) {
                         imeAction = ImeAction.Go
                     ),
                     keyboardActions = KeyboardActions(onGo = {
-                        focusManager.clearFocus()
+                        if (state.canRegister) {
+                            component.onRegisterAttempt()
+                            focusManager.clearFocus()
+                        }
                     }),
                     modifier = Modifier.width(300.dp).padding(0.dp, 5.dp)
                 )
 
-                Button(
+                ChatButton(
                     modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp)
                         .height(45.dp),
                     onClick = { component.onRegisterAttempt() },

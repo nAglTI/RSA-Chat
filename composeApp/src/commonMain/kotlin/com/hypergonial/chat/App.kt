@@ -23,6 +23,8 @@ import com.hypergonial.chat.view.content.LoginContent
 import com.hypergonial.chat.view.content.NotFoundContent
 import com.hypergonial.chat.view.content.RegisterContent
 
+const val IS_DEVELOPMENT_BUILD = true
+
 val LocalUsingDarkTheme = compositionLocalOf { false }
 
 @OptIn(ExperimentalDecomposeApi::class)

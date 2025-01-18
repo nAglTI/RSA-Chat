@@ -2,6 +2,7 @@ package com.hypergonial.chat.view.composables
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.padding
@@ -22,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
@@ -30,6 +32,8 @@ import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -56,7 +60,15 @@ fun ChatBar(
     enabled: Boolean = true,
     shouldGrabFocus: Boolean = false,
     onValueChange: (TextFieldValue) -> Unit,
-    trailingIcon: @Composable (() -> Unit)? = { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send") },
+    trailingIcon: @Composable (() -> Unit)? = {
+        Icon(
+            Icons.AutoMirrored.Filled.Send,
+            contentDescription = "Send",
+            modifier = Modifier.pointerHoverIcon(
+                PointerIcon.Hand
+            )
+        )
+    },
     onFocusGain: (() -> Unit)? = null,
     onFocusLoss: (() -> Unit)? = null,
     onEditLastRequested: (() -> Unit)? = null,
@@ -81,8 +93,7 @@ fun ChatBar(
         if (shouldGrabFocus && !hasGrabbedFocus) {
             focusRequester.requestFocus()
             hasGrabbedFocus = true
-        }
-        else if (!isFocused && hasGrabbedFocus) {
+        } else if (!isFocused && hasGrabbedFocus) {
             onFocusLoss?.invoke()
         }
     }
@@ -114,9 +125,7 @@ fun ChatBar(
         }
         false
     }.padding(20.dp).focusRequester(focusRequester).border(
-        1.dp,
-        borderColor,
-        RoundedCornerShape(16.dp)
+        1.dp, borderColor, RoundedCornerShape(16.dp)
     ),
         enabled = enabled,
         value = value,
@@ -130,9 +139,12 @@ fun ChatBar(
             unfocusedIndicatorColor = Color.Transparent,
         ),
         trailingIcon = {
-            IconButton(onClick = onSubmit) {
-                trailingIcon?.invoke()
+            if (trailingIcon != null) {
+                IconButton(onClick = onSubmit, modifier = Modifier.focusProperties { canFocus = false }) {
+                    trailingIcon()
+                }
             }
+
         })
 }
 

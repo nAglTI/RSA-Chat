@@ -4,7 +4,7 @@ import android.content.SharedPreferences
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SharedPreferencesSettings
 
-class AndroidSettings: AppSettings {
+class AndroidSettings: AppSettings() {
     override var userPreferences: Settings
         get() {
             if (potentiallyPendingUserPrefs != null) {

@@ -1,9 +1,12 @@
 package com.hypergonial.chat.model
 
 import com.hypergonial.chat.model.exceptions.AuthorizationFailedException
+import com.hypergonial.chat.model.payloads.Channel
+import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 
 class MockClient : Client {
@@ -18,6 +21,7 @@ class MockClient : Client {
             )
         }.reversed().toMutableList()
     }
+    private val readyJob = Job()
 
     override val eventManager = EventManager()
 
@@ -26,16 +30,35 @@ class MockClient : Client {
     private var token = settings.getToken()?.let { Secret(it) }
 
     init {
-        cache.ownUser = User(
+        cache.putOwnUser(User(
             Snowflake(0u),
             "user_0",
             displayName = "User 0",
-            avatarUrl = "https://cdn.discordapp.com/avatars/163979124820541440/bff16568c763679ab394da1e1c893263.png?size=512"
-        )
+        ))
     }
 
     override fun isLoggedIn(): Boolean {
         return token != null
+    }
+
+    override fun isReady(): Boolean {
+        return readyJob.isCompleted
+    }
+
+    override suspend fun fetchGuild(guildId: Snowflake): Guild {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun fetchGuildChannels(guildId: Snowflake): List<Channel> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun fetchChannel(channelId: Snowflake): Channel {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun waitUntilReady() {
+        readyJob.join()
     }
 
 
@@ -54,6 +77,10 @@ class MockClient : Client {
 
     override suspend fun register(username: String, password: Secret<String>) {
         delay(1000)
+    }
+
+    override suspend fun connect() {
+        delay(500)
     }
 
     /** Fetch a batch of messages from the given channel.

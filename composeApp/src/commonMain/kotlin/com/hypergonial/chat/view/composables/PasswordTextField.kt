@@ -13,6 +13,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -58,11 +60,13 @@ fun PasswordTextField(
         placeholder = placeholder,
         leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = "Password") },
         trailingIcon = {
-            IconButton(onClick = { showPassword = !showPassword }) {
+            IconButton(
+                onClick = { showPassword = !showPassword },
+                modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
+            ) {
                 if (showPassword) {
                     VisibilityIcon()
-                }
-                else {
+                } else {
                     VisibilityOffIcon()
                 }
             }

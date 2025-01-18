@@ -6,7 +6,7 @@ import com.russhwolf.settings.NSUserDefaultsSettings
 
 
 @OptIn(ExperimentalSettingsImplementation::class)
-class IOSAppSettings: AppSettings {
+class IOSAppSettings: AppSettings() {
     override val userPreferences = NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults)
     override val secrets = KeychainSettings("com.hypergonial.chat.secrets")
 }

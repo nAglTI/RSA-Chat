@@ -1,23 +1,81 @@
 package com.hypergonial.chat.model.payloads
 
 import kotlinx.datetime.Instant
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
 sealed interface PartialUser {
     val id: Snowflake
     val username: String
     val displayName: String
-    val avatarUrl: String?
+    val avatarHash: String?
+    val presence: Presence?
 
     val createdAt: Instant
         get() = id.createdAt
 }
 
+@Serializable
 open class User(
     override val id: Snowflake,
     override val username: String,
+    @SerialName("display_name")
     override val displayName: String,
-    override val avatarUrl: String? = null
+    @SerialName("avatar_hash")
+    override val avatarHash: String? = null,
+    @SerialName("presence")
+    override val presence: Presence? = null,
 ) : PartialUser
 
-class Member(id: Snowflake, name: String, displayName: String, avatarUrl: String? = null, val nickName: String) :
-    User(id, name, displayName, avatarUrl)
+@Serializable(with = MemberSerializer::class)
+class Member(
+    id: Snowflake,
+    name: String,
+    displayName: String,
+    avatarUrl: String? = null,
+    val nickname: String? = null,
+    val guildId: Snowflake,
+    val joinedAt: Instant,
+) : User(id, name, displayName, avatarUrl)
+
+@Serializable
+private data class MemberPayload(
+    val user: User,
+    @SerialName("guild_id") val guildId: Snowflake,
+    @SerialName("nickname") val nickname: String? = null,
+    @SerialName("joined_at") val joinedAt: Long,
+) {
+    companion object {
+        fun fromMember(member: Member): MemberPayload {
+            return MemberPayload(member, member.guildId, member.nickname, member.joinedAt.epochSeconds)
+        }
+
+        fun toMember(memberPayload: MemberPayload): Member {
+            return Member(
+                memberPayload.user.id,
+                memberPayload.user.username,
+                memberPayload.user.displayName,
+                memberPayload.user.avatarHash,
+                memberPayload.nickname,
+                memberPayload.guildId,
+                Instant.fromEpochSeconds(memberPayload.joinedAt)
+            )
+        }
+    }
+}
+
+// Serializer to defer serialization of Member to MemberPayload
+object MemberSerializer : KSerializer<Member> {
+    override val descriptor = MemberPayload.serializer().descriptor
+
+    override fun serialize(encoder: Encoder, value: Member) {
+        MemberPayload.serializer().serialize(encoder, MemberPayload.fromMember(value))
+    }
+
+    override fun deserialize(decoder: Decoder): Member {
+        return MemberPayload.toMember(MemberPayload.serializer().deserialize(decoder))
+    }
+}

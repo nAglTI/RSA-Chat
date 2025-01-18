@@ -34,6 +34,7 @@ interface RootComponent : BackHandlerOwner {
     sealed class Child {
         class LoginChild(val component: LoginComponent) : Child()
         class RegisterChild(val component: RegisterComponent) : Child()
+        class DebugSettingsChild(val component: DebugSettingsComponent) : Child()
         class HomeChild(val component: HomeComponent) : Child()
         class NotFoundChild(val component: NotFoundComponent) : Child()
     }
@@ -101,7 +102,11 @@ class DefaultRootComponent(
                     onLogin = { nav.replaceAll(Config.Home) },
                     onRegisterRequest = {
                         nav.pushNew(Config.Register)
-                    })
+                    },
+                    onDebugSettingsOpen = {
+                        nav.pushNew(Config.DebugSettings)
+                    }
+                ),
             )
 
             Config.Register -> RootComponent.Child.RegisterChild(
@@ -114,6 +119,16 @@ class DefaultRootComponent(
                     onBack = {
                         nav.pop()
                     }),
+            )
+
+            Config.DebugSettings -> RootComponent.Child.DebugSettingsChild(
+                DefaultDebugSettingsComponent(
+                    ctx = componentContext,
+                    client = client,
+                    onBack = {
+                        nav.pop()
+                    }
+                )
             )
 
             Config.NotFound -> RootComponent.Child.NotFoundChild(
@@ -146,6 +161,7 @@ class DefaultRootComponent(
         private const val WEB_PATH_LOGIN = "login"
         private const val WEB_PATH_NOT_FOUND = "not_found"
         private const val WEB_PATH_REGISTER = "register"
+        private const val WEB_PATH_DEBUG_SETTINGS = "debug_settings"
 
         private fun getInitialStack(
             webHistoryPaths: List<String>?,
@@ -174,6 +190,7 @@ class DefaultRootComponent(
             Config.Login -> "/$WEB_PATH_LOGIN"
             Config.Register -> "/$WEB_PATH_REGISTER"
             Config.NotFound -> "/$WEB_PATH_NOT_FOUND"
+            Config.DebugSettings -> "/$WEB_PATH_DEBUG_SETTINGS"
         }
 
         private fun getConfigForPath(path: String): Config = when (path.removePrefix("/")) {
@@ -204,6 +221,9 @@ class DefaultRootComponent(
 
         @Serializable
         data object NotFound : Config()
+
+        @Serializable
+        data object DebugSettings : Config()
     }
 }
 

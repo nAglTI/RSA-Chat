@@ -16,6 +16,7 @@ import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
 import com.hypergonial.chat.view.components.DefaultRootComponent
+import java.awt.Dimension
 import java.io.File
 
 private const val SAVED_STATE_FILE_NAME = "state.dat"
@@ -79,6 +80,8 @@ fun main() {
             title = "Chat",
             state = windowState
         ) {
+            window.minimumSize = Dimension(300, 300)
+
             AppTheme {
                 App(root)
             }

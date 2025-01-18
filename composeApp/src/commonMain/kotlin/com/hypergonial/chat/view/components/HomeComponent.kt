@@ -1,6 +1,8 @@
 package com.hypergonial.chat.view.components
 
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.text.input.TextFieldValue
@@ -25,7 +27,7 @@ import com.hypergonial.chat.view.components.subcomponents.MessageComponent
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import kotlinx.coroutines.launch
 
-private const val MESSAGE_BATCH_SIZE = 50u
+private const val MESSAGE_BATCH_SIZE = 100u
 
 interface HomeComponent {
     val data: Value<HomeState>
@@ -49,6 +51,8 @@ interface HomeComponent {
         val listState: LazyListState = LazyListState(),
         // If true, the bottom of the message list is no longer loaded
         val isCruising: Boolean = false,
+        // The state of the navigation drawer
+        val navDrawerState: DrawerState = DrawerState(DrawerValue.Closed)
     )
 }
 

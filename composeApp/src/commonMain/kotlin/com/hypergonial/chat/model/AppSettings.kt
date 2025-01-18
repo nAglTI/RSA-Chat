@@ -1,11 +1,46 @@
 package com.hypergonial.chat.model
 
 import com.russhwolf.settings.Settings
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 
-interface AppSettings {
-    val userPreferences: Settings
-    val secrets: Settings?
+abstract class AppSettings {
+    protected abstract val userPreferences: Settings
+    protected abstract val secrets: Settings?
 
+    /** Get a serializable object from the settings
+     *
+     * @param key The key to get the object for
+     * @return The object or null if it does not exist
+     * */
+    private inline fun <reified T> getSerializable(key: String): @Serializable T? {
+        val value = if (secrets == null) {
+            userPreferences.getStringOrNull(key)
+        }
+        else {
+            secrets!!.getStringOrNull(key)
+        }
+
+        return if (value.isNullOrEmpty()) null else Json.decodeFromString(serializer<T>(), value)
+    }
+
+    /** Set a serializable object in the settings
+     *
+     * @param key The key to set the object for
+     * @param value The object to set
+     * */
+    private inline fun <reified T> setSerializable(key: String, value: @Serializable T) {
+        val serialized = Json.encodeToString(serializer<T>(), value)
+
+        userPreferences.putString(key, serialized)
+    }
+
+    /** Get a secret from the settings, uses the secrets store if one is available on the platform.
+     *
+     * @param key The key to get the secret for
+     * @return The secret or null if it does not exist
+     * */
     private fun getSecret(key: String): String? {
         val value = if (secrets == null) {
             userPreferences.getStringOrNull(key)
@@ -17,6 +52,11 @@ interface AppSettings {
         return if (value.isNullOrEmpty()) null else value
     }
 
+    /** Set a secret in the settings, uses the secrets store if one is available on the platform.
+     *
+     * @param key The key to set the secret for
+     * @param value The secret to set
+     * */
     private fun setSecret(key: String, value: String) {
         if (secrets == null) {
             userPreferences.putString(key, value)
@@ -25,11 +65,34 @@ interface AppSettings {
         }
     }
 
+    /** Get the current user's token
+     *
+     * @return The token or null if no one is currently authenticated
+     * */
     fun getToken(): String? = getSecret("TOKEN")
 
+    /** Set the current user's token
+     *
+     * @param token The token to set
+     * */
     fun setToken(token: String) = setSecret("TOKEN", token)
 
+    /** Remove the current user's token, effectively logging them out
+     */
     fun removeToken() = setSecret("TOKEN", "")
+
+    /** Get the API settings
+     *
+     * @return The API settings or the default settings if none are set
+     * */
+    fun getApiSettings(): ApiConfig = getSerializable("API_CONFIG") ?: ApiConfig.default()
+
+    /** Set the API settings
+     *
+     * @param config The API settings to set
+     * */
+    fun setApiSettings(config: ApiConfig) = setSerializable("API_CONFIG", config)
+
 }
 
 

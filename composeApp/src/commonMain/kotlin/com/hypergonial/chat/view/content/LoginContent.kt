@@ -1,6 +1,7 @@
 package com.hypergonial.chat.view.content
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -11,12 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -25,9 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -35,13 +32,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import chat.composeapp.generated.resources.Res
 import chat.composeapp.generated.resources.compose_multiplatform
-import coil3.compose.AsyncImage
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.view.components.LoginComponent
 import com.hypergonial.chat.view.composables.ActionText
+import com.hypergonial.chat.view.composables.ChatButton
 import com.hypergonial.chat.view.composables.FullScreenSpinner
 import com.hypergonial.chat.view.composables.PasswordTextField
 import org.jetbrains.compose.resources.painterResource
@@ -49,7 +43,8 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun LoginBottomBar(component: LoginComponent) {
     Column(
-        Modifier.fillMaxHeight().fillMaxWidth().navigationBarsPadding().padding(0.dp, 0.dp, 0.dp, 30.dp),
+        Modifier.fillMaxHeight().fillMaxWidth().navigationBarsPadding()
+            .padding(0.dp, 0.dp, 0.dp, 30.dp),
         verticalArrangement = Arrangement.Bottom,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -69,14 +64,16 @@ fun LoginContent(component: LoginComponent) {
     FullScreenSpinner(state.isLoggingIn, "Logging in...") {
         Scaffold(bottomBar = { LoginBottomBar(component) }) {
             Column(
-                Modifier.fillMaxHeight().fillMaxWidth().safeDrawingPadding().padding(0.dp, 0.dp, 0.dp, 50.dp),
+                Modifier.fillMaxHeight().fillMaxWidth().safeDrawingPadding()
+                    .padding(0.dp, 0.dp, 0.dp, 50.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
                     painter = painterResource(Res.drawable.compose_multiplatform),
                     contentDescription = "Logo",
-                    modifier = Modifier.size(200.dp).padding(0.dp, 0.dp, 0.dp, 50.dp),
+                    modifier = Modifier.size(200.dp).padding(0.dp, 0.dp, 0.dp, 50.dp)
+                        .clickable(interactionSource = null, indication = null) { component.onLogoClick() },
                 )
 
 
@@ -95,7 +92,9 @@ fun LoginContent(component: LoginComponent) {
                     },
                     placeholder = { Text("Enter your username...") },
                     keyboardOptions = KeyboardOptions(
-                        autoCorrectEnabled = false, keyboardType = KeyboardType.Text, imeAction = ImeAction.Next
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
                     ),
                     keyboardActions = KeyboardActions(onNext = {
                         focusManager.moveFocus(FocusDirection.Down)
@@ -114,8 +113,9 @@ fun LoginContent(component: LoginComponent) {
                 )
 
 
-                Button(
-                    modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),
+                ChatButton(
+                    modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp)
+                        .height(45.dp),
                     onClick = { component.onLoginAttempt() },
                     enabled = state.canLogin && !state.isLoggingIn
                 ) {

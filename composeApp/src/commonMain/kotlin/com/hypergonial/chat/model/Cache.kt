@@ -38,6 +38,15 @@ class Cache {
 
     val messages: Map<Snowflake, List<Message>> get() = _messages
 
+    fun clear() {
+        _guilds.clear()
+        _users.clear()
+        _channels.clear()
+        _messages.clear()
+        _members.clear()
+        _ownUser = null
+    }
+
     fun getGuild(guildId: Snowflake): Guild? {
         return _guilds[guildId]
     }

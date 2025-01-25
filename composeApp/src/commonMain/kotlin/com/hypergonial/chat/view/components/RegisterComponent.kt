@@ -26,6 +26,7 @@ interface RegisterComponent {
         val username: String = "",
         val password: Secret<String> = Secret(""),
         val passwordConfirm: Secret<String> = Secret(""),
+        val usernameErrors: List<String> = listOf(),
         val passwordErrors: List<String> = listOf(),
         val canRegister: Boolean = false,
         val isRegistering: Boolean = false,
@@ -38,31 +39,69 @@ class DefaultRegisterComponent(
     val client: Client,
     val onRegister: () -> Unit,
     val onBack: () -> Unit
-) : RegisterComponent,
-    ComponentContext by ctx {
+) : RegisterComponent, ComponentContext by ctx {
     override val data = MutableValue(RegisterComponent.Data())
-    private val coroutineScope = ctx.coroutineScope()
+    private val scope = ctx.coroutineScope()
+    private val usernameRegex = Regex("^([a-z0-9]|[a-z0-9]+(?:[._][a-z0-9]+)*)\$")
 
     /** Query if the login button can be enabled */
-    private fun queryCanRegister(): Boolean {
-        return data.value.username.isNotEmpty() &&
-            data.value.password.expose().isNotEmpty() &&
-            data.value.passwordConfirm.expose().isNotEmpty() &&
-            queryPasswordErrors(data.value.password, data.value.passwordConfirm).isEmpty()
+    private fun updateCanRegister() {
+        data.value = data.value.copy(
+            canRegister = data.value.username.isNotEmpty() && data.value.password.expose()
+                .isNotEmpty() && data.value.passwordConfirm.expose()
+                .isNotEmpty() && getPasswordErrors(
+                data.value.password,
+                data.value.passwordConfirm
+            ).isEmpty() && getUsernameErrors(data.value.username).isEmpty()
+        )
     }
 
-    private fun queryPasswordErrors(
-        password: Secret<String>,
-        passwordConfirm: Secret<String>
+    private fun updatePasswordErrors() {
+        data.value = data.value.copy(
+            passwordErrors = getPasswordErrors(
+                data.value.password, data.value.passwordConfirm
+            )
+        )
+    }
+
+    private fun updateUsernameErrors() {
+        data.value = data.value.copy(usernameErrors = getUsernameErrors(data.value.username))
+    }
+
+    private fun getUsernameErrors(username: String): List<String> {
+        if (username.length < 3) {
+            return listOf("Username must be at least 3 characters")
+        }
+
+        if (username.length > 32) {
+            return listOf("Username must be at most 32 characters")
+        }
+
+        if (!usernameRegex.matches(username)) {
+            if (username.endsWith("_") || username.endsWith(".")) {
+                return listOf("Username must not end with an underscore or period")
+            }
+
+            if (username.startsWith("_") || username.startsWith(".")) {
+                return listOf("Username must not start with an underscore or period")
+            }
+
+            if (username.contains(" ")) {
+                return listOf("Username must not contain spaces")
+            }
+
+            return listOf("Username must only contain lowercase letters, numbers, underscores, and periods")
+        }
+
+        return emptyList()
+    }
+
+    private fun getPasswordErrors(
+        password: Secret<String>, passwordConfirm: Secret<String>
     ): List<String> {
-        if (
-            passwordConfirm.expose().isNotEmpty() &&
-            password.expose() != passwordConfirm.expose()
+        if (passwordConfirm.expose()
+                .isNotEmpty() && password.expose() != passwordConfirm.expose()
         ) {
-            println("Passwords do not match")
-            println(password.expose())
-            println(passwordConfirm.expose())
-            println(password.expose() == passwordConfirm.expose())
             return listOf("Passwords do not match")
         }
 
@@ -97,29 +136,25 @@ class DefaultRegisterComponent(
     }
 
     override fun onUsernameChange(username: String) {
-        data.value = data.value.copy(username = username.trim(), canRegister = queryCanRegister())
+        data.value = data.value.copy(username = username.trim().take(32))
+        updateUsernameErrors()
+        updateCanRegister()
     }
 
     override fun onPasswordChange(password: String) {
         data.value = data.value.copy(
             password = Secret(password.trim()),
-            canRegister = queryCanRegister(),
-            passwordErrors = queryPasswordErrors(
-                Secret(password.trim()),
-                data.value.passwordConfirm
-            )
         )
+        updatePasswordErrors()
+        updateCanRegister()
     }
 
     override fun onPasswordConfirmChange(passwordConfirm: String) {
         data.value = data.value.copy(
             passwordConfirm = Secret(passwordConfirm.trim()),
-            canRegister = queryCanRegister(),
-            passwordErrors = queryPasswordErrors(
-                data.value.password,
-                Secret(passwordConfirm.trim())
-            )
         )
+        updatePasswordErrors()
+        updateCanRegister()
     }
 
     override fun onBackClicked() = onBack()
@@ -137,12 +172,23 @@ class DefaultRegisterComponent(
             canRegister = false
         )
 
-        coroutineScope.launch {
+        scope.launch {
+            val availability = client.checkUsernameForAvailability(username)
+            println("Availability: $availability")
+            if (!availability) {
+                data.value = data.value.copy(
+                    isRegistering = false,
+                    registrationFailed = true,
+                    usernameErrors = listOf("Username is already taken")
+                )
+                return@launch
+            }
+
             try {
                 client.register(username, password)
                 data.value = data.value.copy(isRegistering = false, registrationFailed = false)
                 onRegister()
-            } catch (e: ApiException) {
+            } catch (_: ApiException) {
                 data.value = data.value.copy(isRegistering = false, registrationFailed = true)
             }
 

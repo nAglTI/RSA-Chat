@@ -9,6 +9,8 @@ abstract class AppSettings {
     protected abstract val userPreferences: Settings
     protected abstract val secrets: Settings?
 
+    private var cachedApiConfig: ApiConfig? = null
+
     /** Get a serializable object from the settings
      *
      * @param key The key to get the object for
@@ -85,13 +87,25 @@ abstract class AppSettings {
      *
      * @return The API settings or the default settings if none are set
      * */
-    fun getApiSettings(): ApiConfig = getSerializable("API_CONFIG") ?: ApiConfig.default()
+    fun getApiSettings(): ApiConfig {
+        if (cachedApiConfig != null) {
+            return cachedApiConfig!!
+        }
+        else {
+            val config = getSerializable("API_CONFIG") ?: ApiConfig.default()
+            cachedApiConfig = config
+            return config
+        }
+    }
 
     /** Set the API settings
      *
      * @param config The API settings to set
      * */
-    fun setApiSettings(config: ApiConfig) = setSerializable("API_CONFIG", config)
+    fun setApiSettings(config: ApiConfig) {
+        setSerializable("API_CONFIG", config)
+        cachedApiConfig = config
+    }
 
 }
 

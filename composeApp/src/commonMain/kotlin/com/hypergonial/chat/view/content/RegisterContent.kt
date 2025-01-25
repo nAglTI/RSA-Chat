@@ -85,6 +85,7 @@ fun RegisterContent(component: RegisterComponent) {
                     value = state.username,
                     modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
                     singleLine = true,
+                    isError = state.usernameErrors.isNotEmpty(),
                     onValueChange = { component.onUsernameChange(it) },
                     label = { Text("Username*") },
                     leadingIcon = {
@@ -102,20 +103,19 @@ fun RegisterContent(component: RegisterComponent) {
                     })
                 )
 
+                for (error in state.usernameErrors) {
+                    Row {
+                        Text(
+                            error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+
                 PasswordTextField(
                     value = state.password.expose(),
                     label = { Text("Password*") },
                     onValueChange = { component.onPasswordChange(password = it) },
                     isError = state.passwordErrors.isNotEmpty(),
-                    errorComposable = {
-                        for (error in state.passwordErrors) {
-                            Row {
-                                Text(
-                                    error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        }
-                    },
                     keyboardActions = KeyboardActions(onNext = {
                         focusManager.moveFocus(FocusDirection.Down)
                     }),
@@ -126,6 +126,14 @@ fun RegisterContent(component: RegisterComponent) {
                     ),
                     modifier = Modifier.width(300.dp).padding(0.dp, 5.dp)
                 )
+
+                for (error in state.passwordErrors) {
+                    Row {
+                        Text(
+                            error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
 
                 PasswordTextField(
                     value = state.passwordConfirm.expose(),

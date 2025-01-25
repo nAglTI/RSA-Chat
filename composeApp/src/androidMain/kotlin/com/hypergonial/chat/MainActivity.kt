@@ -30,8 +30,6 @@ class MainActivity : ComponentActivity() {
         initializeStorage()
         val root = DefaultRootComponent(defaultComponentContext())
 
-
-
         setContent {
             AppTheme {
                 App(root)

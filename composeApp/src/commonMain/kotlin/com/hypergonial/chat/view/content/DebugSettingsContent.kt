@@ -115,7 +115,7 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
             )
 
             OutlinedTextField(
-                value = state.apiEndpoint,
+                value = state.gatewayEndpoint,
                 modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
                 singleLine = true,
                 isError = state.gatewayEndpointError,
@@ -139,7 +139,7 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
             )
 
             OutlinedTextField(
-                value = state.apiEndpoint,
+                value = state.objectStoreEndpoint,
                 modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
                 singleLine = true,
                 isError = state.objectStoreEndpointError,
@@ -159,9 +159,9 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
                 ),
                 keyboardActions = KeyboardActions(onDone = {
                     if (state.hasChanged
-                        || !state.apiEndpointError
-                        || !state.gatewayEndpointError
-                        || !state.objectStoreEndpointError
+                        && !state.apiEndpointError
+                        && !state.gatewayEndpointError
+                        && !state.objectStoreEndpointError
                         ) {
                         component.onSaveClicked()
                         scope.launch {
@@ -181,9 +181,9 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
                     }
                 },
                 enabled = state.hasChanged
-                    || !state.apiEndpointError
-                    || !state.gatewayEndpointError
-                    || !state.objectStoreEndpointError
+                    && !state.apiEndpointError
+                    && !state.gatewayEndpointError
+                    && !state.objectStoreEndpointError
             ) {
                 Text("Save")
             }

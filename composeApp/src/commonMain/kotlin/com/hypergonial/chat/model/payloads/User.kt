@@ -1,5 +1,6 @@
 package com.hypergonial.chat.model.payloads
 
+import com.hypergonial.chat.model.settings
 import kotlinx.datetime.Instant
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
@@ -10,35 +11,39 @@ import kotlinx.serialization.encoding.Encoder
 sealed interface PartialUser {
     val id: Snowflake
     val username: String
-    val displayName: String
+    val displayName: String?
     val avatarHash: String?
     val presence: Presence?
 
     val createdAt: Instant
         get() = id.createdAt
+
+    val avatarUrl: String?
+        get() = avatarHash?.let {
+            "${settings.getApiSettings().objectStoreUrl}/$it.${
+                it.split("_").last()
+            }"
+        }
 }
 
 @Serializable
 open class User(
     override val id: Snowflake,
     override val username: String,
-    @SerialName("display_name")
-    override val displayName: String,
-    @SerialName("avatar_hash")
-    override val avatarHash: String? = null,
-    @SerialName("presence")
-    override val presence: Presence? = null,
+    @SerialName("display_name") override val displayName: String? = null,
+    @SerialName("avatar_hash") override val avatarHash: String? = null,
+    @SerialName("presence") override val presence: Presence? = null,
 ) : PartialUser
 
 @Serializable(with = MemberSerializer::class)
 class Member(
     id: Snowflake,
     name: String,
-    displayName: String,
+    displayName: String? = null,
     avatarUrl: String? = null,
     val nickname: String? = null,
-    val guildId: Snowflake,
-    val joinedAt: Instant,
+    @SerialName("guild_id") val guildId: Snowflake,
+    @SerialName("joined_at") val joinedAt: Instant,
 ) : User(id, name, displayName, avatarUrl)
 
 @Serializable
@@ -50,7 +55,9 @@ private data class MemberPayload(
 ) {
     companion object {
         fun fromMember(member: Member): MemberPayload {
-            return MemberPayload(member, member.guildId, member.nickname, member.joinedAt.epochSeconds)
+            return MemberPayload(
+                member, member.guildId, member.nickname, member.joinedAt.epochSeconds
+            )
         }
 
         fun toMember(memberPayload: MemberPayload): Member {

@@ -1,8 +1,10 @@
 package com.hypergonial.chat.model
 
-import com.hypergonial.chat.model.exceptions.ApiException
+import com.hypergonial.chat.model.exceptions.NotFoundException
+import com.hypergonial.chat.model.exceptions.getApiException
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
+import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
@@ -14,16 +16,22 @@ import com.hypergonial.chat.model.payloads.gateway.Identify
 import com.hypergonial.chat.model.payloads.gateway.InvalidSession
 import com.hypergonial.chat.model.payloads.gateway.Ready
 import com.hypergonial.chat.model.payloads.rest.AuthResponse
+import com.hypergonial.chat.model.payloads.rest.ChannelCreateRequest
+import com.hypergonial.chat.model.payloads.rest.GuildCreateRequest
+import com.hypergonial.chat.model.payloads.rest.MessageCreateRequest
 import com.hypergonial.chat.model.payloads.rest.UserRegisterRequest
 import com.hypergonial.chat.platform
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
+import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.UserAgent
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.timeout
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.receiveDeserialized
@@ -31,42 +39,80 @@ import io.ktor.client.plugins.websocket.sendSerialized
 import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.client.request.basicAuth
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.forms.formData
+import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.request.url
+import io.ktor.http.Headers
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.request
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
-import io.ktor.http.isSuccess
+import io.ktor.http.quote
+import io.ktor.serialization.WebsocketDeserializeException
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
 import kotlinx.coroutines.channels.Channel as QueueChannel
 
 class ChatClient : Client {
+    /** The bearer token used for authentication */
     private var token: Secret<String>? = settings.getToken()?.let { Secret(it) }
     private val readyJob = Job()
+    /** The logger used for this class */
     private val logger = KotlinLogging.logger {}
+    /** The JSON deserializer used for error messages */
     private val errorDeserializer = Json {
         prettyPrint = true
     }
+    /** The API endpoint configuration */
     private val config = settings.getApiSettings()
+    /** A queue of messages to be sent to the gateway */
     private val responses: QueueChannel<GatewayMessage> = QueueChannel()
+    /** A job that when completed, should indicate to
+     * the current gateway session to close the connection */
+    private var gatewayCloseJob = Job()
+    /** A job that when completed indicates that the gateway has successfully connected.
+     * Can be used to wait until the connection succeeds. */
+    private var gatewayConnectedJob = Job()
+    /** A job that represents the current gateway session */
+    private var gatewaySession: Job? = null
+    /** The interval at which the gateway should send heartbeats
+     * This is set by the HELLO message received from the gateway.
+     * */
     private var heartbeatInterval: Long? = null
+    /** The set of guild IDs that the client should receive on startup from the gateway
+     *
+     * Ids are then removed from this set as they are received through GUILD_CREATE events.
+     * */
     private val initialGuildIds: HashSet<Snowflake> = HashSet()
+    /** The event manager that is used to dispatch events */
     override val eventManager = EventManager()
+    /** The cache that is used to store entities received through the gateway */
     override val cache = Cache()
+
+    init {
+        println(config.apiUrl)
+    }
 
     private val http = HttpClient {
         install(ContentNegotiation) {
@@ -83,6 +129,11 @@ class ChatClient : Client {
             contentConverter = KotlinxWebsocketSerializationConverter(Json)
         }
 
+        install(HttpTimeout) {
+            requestTimeoutMillis = 60000
+            connectTimeoutMillis = 10000
+        }
+
         install(HttpRequestRetry) {
             maxRetries = 5
 
@@ -92,23 +143,44 @@ class ChatClient : Client {
 
         HttpResponseValidator {
             validateResponse { response ->
-                if (!response.status.isSuccess()) {
-                    val body = response.bodyAsText()
+                if (response.status.value !in 400..599) {
+                    return@validateResponse
+                }
 
-                    try {
-                        val prettyJson = errorDeserializer.encodeToString(
-                            errorDeserializer.serializersModule.serializer<JsonElement>(),
-                            errorDeserializer.parseToJsonElement(body)
-                        )
-                        logger.error { "Request failed with status ${response.status.value}\nBody: $prettyJson" }
-                        throw ApiException(
-                            "Request failed with status ${response.status.value}"
-                        )
-                    } catch (e: SerializationException) {
-                        logger.error { "Request failed with status ${response.status.value}\nBody (failed deserialize): ${body}" }
-                        throw ApiException("Request failed with status ${response.status.value}")
+                if (response.status == HttpStatusCode.Unauthorized) {
+                    eventManager.dispatch(SessionInvalidatedEvent())
+                }
+
+                val body = try {
+                    response.bodyAsText()
+                } catch (e: NoTransformationFoundException) {
+                    "Failed to parse body: ${e.message}"
+                }
+
+
+                val exc = getApiException(response.status,
+                    "Request failed with status ${response.status.value}"
+                )
+
+                try {
+                    val prettyJson = errorDeserializer.encodeToString(
+                        errorDeserializer.serializersModule.serializer<JsonElement>(),
+                        errorDeserializer.parseToJsonElement(body)
+                    )
+                    logger.error {
+                        "${exc::class.simpleName} - Request failed with status ${response.status.value}\n" +
+                        "Path: ${response.request.url}\n" +
+                        "Body: $prettyJson"
                     }
 
+                    throw exc
+                } catch (_: SerializationException) {
+                    logger.error {
+                        "${exc::class.simpleName} - Request failed with status ${response.status.value}\n" +
+                            "Path: ${response.request.url}\n" +
+                            "Body (failed deserialize): $body"
+                    }
+                    throw exc
                 }
             }
         }
@@ -127,9 +199,8 @@ class ChatClient : Client {
     }
 
 
-
     override fun isLoggedIn(): Boolean {
-        return token != null
+        return !token?.expose().isNullOrEmpty()
     }
 
     override fun isReady(): Boolean {
@@ -151,8 +222,7 @@ class ChatClient : Client {
                 session.outgoing.send(
                     Frame.Close(
                         CloseReason(
-                            CloseReason.Codes.VIOLATED_POLICY,
-                            "Heartbeat ACK not received in time"
+                            CloseReason.Codes.VIOLATED_POLICY, "Heartbeat ACK not received in time"
                         )
                     )
                 )
@@ -164,7 +234,17 @@ class ChatClient : Client {
     /** Receive events from the gateway and dispatch them to the event manager. */
     private suspend fun receiveEvents(session: DefaultClientWebSocketSession) {
         while (true) {
-            val msg = session.receiveDeserialized<GatewayMessage>()
+            val msg = try {
+                session.receiveDeserialized<GatewayMessage>()
+            } catch (e: WebsocketDeserializeException) {
+                logger.error { "Failed to deserialize message: $e\nFrame: ${e.frame}" }
+                if (e.frame !is Frame.Close) {
+                    continue
+                } else {
+                    return
+                }
+            }
+
 
             if (msg is InvalidSession) {
                 logger.error { "Server invalidated gateway session: ${msg.reason}" }
@@ -173,7 +253,6 @@ class ChatClient : Client {
 
             if (msg is EventConvertable) {
                 eventManager.dispatch(msg.toEvent())
-                continue
             }
         }
     }
@@ -190,12 +269,39 @@ class ChatClient : Client {
         responses.send(msg)
     }
 
-    override suspend fun connect() {
+    override fun closeGateway() {
+        gatewayCloseJob.complete()
+    }
+
+    override suspend fun connect() = coroutineScope {
+        gatewaySession = launch {
+            try {
+                gatewaySession()
+            }
+            finally {
+                gatewayConnectedJob = Job()
+                gatewayCloseJob = Job()
+            }
+        }
+    }
+
+    override fun isConnected(): Boolean = gatewayConnectedJob.isCompleted
+
+    override suspend fun waitUntilConnected() = gatewayConnectedJob.join()
+
+
+    private suspend fun gatewaySession() {
         check(token != null) { "Cannot connect without a token" }
 
+        logger.info { "Starting new gateway session to ${config.gatewayUrl}" }
 
-
-        http.webSocket(config.gatewayUrl) {
+        http.webSocket(request = {
+            url(config.gatewayUrl)
+            timeout {
+                requestTimeoutMillis = 5000
+            }
+        }) {
+            logger.info { "Connected to gateway at ${config.gatewayUrl}" }
             val hello = receiveDeserialized<GatewayMessage>()
 
             if (hello !is Hello) {
@@ -203,8 +309,7 @@ class ChatClient : Client {
                 outgoing.send(
                     Frame.Close(
                         CloseReason(
-                            CloseReason.Codes.VIOLATED_POLICY,
-                            "Expected HELLO"
+                            CloseReason.Codes.VIOLATED_POLICY, "Expected HELLO"
                         )
                     )
                 )
@@ -212,18 +317,30 @@ class ChatClient : Client {
             }
 
             heartbeatInterval = hello.data.heartbeatInterval
+            gatewayConnectedJob.complete()
+            logger.info { "Heartbeat interval is set to $heartbeatInterval ms" }
 
             sendSerialized<GatewayMessage>(Identify(token!!))
 
-            val ready = receiveDeserialized<GatewayMessage>()
+            val ready = try {
+                receiveDeserialized<GatewayMessage>()
+            } catch (_: ClosedReceiveChannelException) {
+                val reason = closeReason.await()
+                logger.error { "Channel was closed after IDENTIFY: $reason" }
+                eventManager.dispatch(SessionInvalidatedEvent())
+                return@webSocket
+            }
+
+            logger.info { "Gateway session authenticated" }
+
 
             if (ready !is Ready) {
                 logger.error { "Expected READY, got $ready" }
+
                 outgoing.send(
                     Frame.Close(
                         CloseReason(
-                            CloseReason.Codes.VIOLATED_POLICY,
-                            "Expected READY"
+                            CloseReason.Codes.VIOLATED_POLICY, "Expected READY"
                         )
                     )
                 )
@@ -237,10 +354,14 @@ class ChatClient : Client {
                 cache.putGuild(guild)
             }
 
-            val jobs = listOf(
-                launch { receiveEvents(this@webSocket) },
+            logger.info { "Gateway session is ready" }
+
+            eventManager.dispatch(ready.toEvent())
+
+            val jobs = listOf(launch { receiveEvents(this@webSocket) },
                 launch { performHeartbeating(this@webSocket) },
                 launch { forwardInternalMessages(this@webSocket) },
+                gatewayCloseJob
             )
 
             // Wait until one of the jobs terminates
@@ -252,6 +373,16 @@ class ChatClient : Client {
                     }
                 }
             }
+
+            logger.info { "Closing gateway session" }
+
+            outgoing.trySend(
+                Frame.Close(
+                    CloseReason(
+                        CloseReason.Codes.NORMAL, "Gateway session terminated"
+                    )
+                )
+            )
         }
     }
 
@@ -297,54 +428,103 @@ class ChatClient : Client {
     }
 
     override suspend fun login(username: String, password: Secret<String>) {
-        token = http.get("/login") {
+
+        token = http.get("users/auth") {
             basicAuth(username, password.expose())
         }.body<AuthResponse>().token
         settings.setToken(token!!.expose())
     }
 
     override suspend fun register(username: String, password: Secret<String>) {
-        val user = http.post("/register") {
+        val user = http.post("users") {
             contentType(ContentType.Application.Json)
             setBody(UserRegisterRequest(username, password))
         }.body<User>()
+        cache.putOwnUser(user)
     }
 
     override suspend fun fetchGuild(guildId: Snowflake): Guild {
-        TODO("Not yet implemented")
-    }
-
-    override suspend fun fetchGuildChannels(guildId: Snowflake): List<Channel> {
-        TODO("Not yet implemented")
+        return http.get("guilds/$guildId").body<Guild>()
     }
 
     override suspend fun fetchChannel(channelId: Snowflake): Channel {
-        TODO("Not yet implemented")
+        return http.get("channels/$channelId").body<Channel>()
     }
 
+    override suspend fun createGuild(name: String): Guild {
+        return http.post("guilds") {
+            contentType(ContentType.Application.Json)
+            setBody(GuildCreateRequest(name = name))
+        }.body<Guild>()
+    }
+
+    override suspend fun joinGuild(guildId: Snowflake): Member {
+        return http.post("guilds/$guildId/members").body<Member>()
+    }
+
+    override suspend fun createChannel(guildId: Snowflake, name: String): Channel {
+        return http.post("guilds/$guildId/channels") {
+            contentType(ContentType.Application.Json)
+            setBody(ChannelCreateRequest(name = name))
+        }.body<Channel>()
+    }
+
+    override suspend fun checkUsernameForAvailability(username: String): Boolean {
+        try {
+            http.get("usernames/$username")
+            return false
+        }
+        catch (_: NotFoundException) {
+            // If the user is not found, the username is available
+            return true
+        }
+    }
 
     override suspend fun fetchMessages(
         channelId: Snowflake, before: Snowflake?, after: Snowflake?, limit: UInt
     ): List<Message> {
-        TODO("Not yet implemented")
+        return http.get("channels/$channelId/messages") {
+            parameter("before", before?.toString())
+            parameter("after", after?.toString())
+            parameter("limit", limit.toString())
+        }.body<List<Message>>()
     }
 
     override suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String?) {
-        TODO("Not yet implemented")
-    }
-
-    override fun logout() {
-        token = null
-        settings.removeToken()
-    }
-
-    override fun onDestroy() {
-        http.close()
+        // See https://stackoverflow.com/questions/69830965/ktor-client-post-multipart-form-data
+        // TODO: Add support for file uploads
+        http.submitFormWithBinaryData(url = "${config.apiUrl}/channels/$channelId/messages",
+            formData = formData {
+                append(
+                    "json".quote(),
+                    Json.encodeToString<MessageCreateRequest>(MessageCreateRequest(content, nonce))
+                )
+                Headers.build {
+                    append(HttpHeaders.ContentType, "application/json")
+                    // TODO: Is this necessary? Also add filename= here for file uploads
+                    //append(HttpHeaders.ContentDisposition, "name=${"json".quote()}")
+                }
+            })
     }
 
     override suspend fun editMessage(channelId: Snowflake, messageId: Snowflake, content: String?) {
         TODO("Not yet implemented")
     }
 
+    override fun logout() {
+        token = null
+        settings.removeToken()
+        cache.clear()
+    }
 
+    override fun onDestroy() {
+        closeGateway()
+
+        // If we never managed to connect, wipe login credentials
+        if (!readyJob.isCompleted) {
+            logout()
+        }
+
+        http.close()
+    }
 }

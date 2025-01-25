@@ -1,5 +1,5 @@
 package com.hypergonial.chat.model
-
+/*
 import com.hypergonial.chat.model.exceptions.AuthorizationFailedException
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
@@ -62,7 +62,9 @@ class MockClient : Client {
     }
 
 
-    /** Try logging in with the provided credentials */
+    */
+/** Try logging in with the provided credentials *//*
+
     override suspend fun login(username: String, password: Secret<String>) {
         delay(1000)
 
@@ -83,7 +85,8 @@ class MockClient : Client {
         delay(500)
     }
 
-    /** Fetch a batch of messages from the given channel.
+    */
+/** Fetch a batch of messages from the given channel.
      *
      * @param channelId The channel to fetch messages from.
      * @param before Fetch messages before this message.
@@ -93,7 +96,8 @@ class MockClient : Client {
      * @return A list of messages.
      *
      * @throws IllegalArgumentException If both before and after are set.
-     * */
+     * *//*
+
     override suspend fun fetchMessages(
         channelId: Snowflake, before: Snowflake?, after: Snowflake?, limit: UInt
     ): List<Message> {
@@ -169,3 +173,4 @@ class MockClient : Client {
         throw IllegalArgumentException("Message not found: $messageId")
     }
 }
+*/

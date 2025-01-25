@@ -72,12 +72,8 @@ fun main() {
     val lifecycle = LifecycleRegistry()
     val stateKeeper = StateKeeperDispatcher(savedState = localStorage[KEY_SAVED_STATE]?.decodeSerializableContainer())
 
-    val history = DefaultWebHistoryController()
-
     val root = DefaultRootComponent(
         ctx = DefaultComponentContext(lifecycle, stateKeeper),
-        webHistoryController = history,
-        deepLink = DefaultRootComponent.DeepLink.Web(path = window.location.pathname)
     )
 
     lifecycle.attachToDocument()

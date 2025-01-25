@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -205,7 +204,10 @@ fun Entry(
 fun MessageWithHeader(component: MessageComponent) {
     Column(Modifier.combinedClickable(onDoubleClick = { component.onEditStart() }) { }) {
         Row(Modifier.fillMaxWidth()) {
-            Text(component.data.value.message.author.displayName, Modifier.padding(end = 8.dp))
+            Text(
+                component.data.value.message.author.displayName
+                    ?: component.data.value.message.author.username, Modifier.padding(end = 8.dp)
+            )
             Text(
                 component.data.value.message.createdAt.toLocalDateTime(TimeZone.currentSystemDefault())
                     .toString(), fontSize = 10.sp, color = Color.Gray

@@ -1,11 +1,8 @@
 package com.hypergonial.chat
 
-import androidx.compose.foundation.clickable
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalFocusManager
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.request.crossfade
@@ -18,10 +15,17 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.scale
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.hypergonial.chat.view.components.RootComponent
 import com.hypergonial.chat.view.ChatTheme
-import com.hypergonial.chat.view.content.HomeContent
+import com.hypergonial.chat.view.components.prompts.NewGuildComponent
+import com.hypergonial.chat.view.content.ChannelContent
+import com.hypergonial.chat.view.content.DebugSettingsContent
 import com.hypergonial.chat.view.content.LoginContent
+import com.hypergonial.chat.view.content.MainContent
 import com.hypergonial.chat.view.content.NotFoundContent
 import com.hypergonial.chat.view.content.RegisterContent
+import com.hypergonial.chat.view.content.prompts.CreateChannelContent
+import com.hypergonial.chat.view.content.prompts.CreateGuildContent
+import com.hypergonial.chat.view.content.prompts.JoinGuildContent
+import com.hypergonial.chat.view.content.prompts.NewGuildContent
 
 const val IS_DEVELOPMENT_BUILD = true
 
@@ -49,9 +53,14 @@ fun App(root: RootComponent) {
             ) { c ->
                 when (val child = c.instance) {
                     is RootComponent.Child.LoginChild -> LoginContent(child.component)
-                    is RootComponent.Child.HomeChild -> HomeContent(child.component)
+                    is RootComponent.Child.MainChild -> MainContent(child.component)
                     is RootComponent.Child.RegisterChild -> RegisterContent(child.component)
                     is RootComponent.Child.NotFoundChild -> NotFoundContent(child.component)
+                    is RootComponent.Child.NewGuildChild -> NewGuildContent(child.component)
+                    is RootComponent.Child.CreateGuildChild -> CreateGuildContent(child.component)
+                    is RootComponent.Child.JoinGuildChild -> JoinGuildContent(child.component)
+                    is RootComponent.Child.CreateChannelChild -> CreateChannelContent(child.component)
+                    is RootComponent.Child.DebugSettingsChild -> DebugSettingsContent(child.component)
                     else -> error("Unknown child: $child")
                 }
             }

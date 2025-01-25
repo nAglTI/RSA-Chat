@@ -5,12 +5,8 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.model.Client
-import com.hypergonial.chat.model.MessageCreateEvent
 import com.hypergonial.chat.model.Secret
-import com.hypergonial.chat.model.exceptions.AuthorizationFailedException
-import com.hypergonial.chat.model.payloads.Message
-import com.hypergonial.chat.model.payloads.Snowflake
-import com.hypergonial.chat.model.payloads.User
+import com.hypergonial.chat.model.exceptions.UnauthorizedException
 import kotlinx.coroutines.launch
 
 interface LoginComponent {
@@ -85,7 +81,7 @@ class DefaultLoginComponent(
                 client.login(username, password)
                 data.value = data.value.copy(isLoggingIn = false, loginFailed = false)
                 onLogin()
-            } catch (e: AuthorizationFailedException) {
+            } catch (_: UnauthorizedException) {
                 data.value = data.value.copy(isLoggingIn = false, loginFailed = true)
             }
         }

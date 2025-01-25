@@ -54,7 +54,6 @@ fun AppTheme(
 
 
 
-@OptIn(ExperimentalDecomposeApi::class)
 fun main() {
     val lifecycle = LifecycleRegistry()
     // Deserialize state from state file

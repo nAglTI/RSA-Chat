@@ -104,5 +104,5 @@ fun String.isWebSocketUrl(): Boolean {
 }
 
 fun String.ensureSlashAtEnd(): String {
-    return if (this.endsWith("/")) this else "$this/"
+    return if (!this.endsWith("/")) "$this/" else this
 }

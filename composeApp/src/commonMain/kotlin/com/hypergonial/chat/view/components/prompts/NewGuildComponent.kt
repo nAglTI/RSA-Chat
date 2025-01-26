@@ -1,13 +1,19 @@
 package com.hypergonial.chat.view.components.prompts
 
+import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.ComponentContext
+import com.hypergonial.chat.view.components.Displayable
+import com.hypergonial.chat.view.content.prompts.NewGuildContent
 
-interface NewGuildComponent {
+interface NewGuildComponent: Displayable {
     fun onGuildCreateClicked()
 
     fun onGuildJoinClicked()
 
     fun onBackClicked()
+
+    @Composable
+    override fun Display() = NewGuildContent(this)
 }
 
 class DefaultNewGuildComponent(

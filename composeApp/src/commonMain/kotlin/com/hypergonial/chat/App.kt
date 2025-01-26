@@ -41,7 +41,6 @@ fun App(root: RootComponent) {
     }
 
     ChatTheme {
-        // Drop the focus if the user clicks anywhere on the screen that is not clickable
         Surface {
             Children(
                 stack = root.stack,
@@ -50,20 +49,7 @@ fun App(root: RootComponent) {
                     fallbackAnimation = stackAnimation(scale() + fade()),
                     onBack = root::onBackClicked,
                 )
-            ) { c ->
-                when (val child = c.instance) {
-                    is RootComponent.Child.LoginChild -> LoginContent(child.component)
-                    is RootComponent.Child.MainChild -> MainContent(child.component)
-                    is RootComponent.Child.RegisterChild -> RegisterContent(child.component)
-                    is RootComponent.Child.NotFoundChild -> NotFoundContent(child.component)
-                    is RootComponent.Child.NewGuildChild -> NewGuildContent(child.component)
-                    is RootComponent.Child.CreateGuildChild -> CreateGuildContent(child.component)
-                    is RootComponent.Child.JoinGuildChild -> JoinGuildContent(child.component)
-                    is RootComponent.Child.CreateChannelChild -> CreateChannelContent(child.component)
-                    is RootComponent.Child.DebugSettingsChild -> DebugSettingsContent(child.component)
-                    else -> error("Unknown child: $child")
-                }
-            }
+            ) { child -> child.instance.component.Display() }
         }
 
     }

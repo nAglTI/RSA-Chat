@@ -1,5 +1,6 @@
 package com.hypergonial.chat.view.components.prompts
 
+import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -7,14 +8,19 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.view.components.Displayable
+import com.hypergonial.chat.view.content.prompts.JoinGuildContent
 import kotlinx.coroutines.launch
 
-interface JoinGuildComponent {
+interface JoinGuildComponent: Displayable {
     fun onGuildJoinClicked()
 
     fun onBackClicked()
 
     fun onInviteCodeChanged(inviteCode: String)
+
+    @Composable
+    override fun Display() = JoinGuildContent(this)
 
     val data: Value<State>
 

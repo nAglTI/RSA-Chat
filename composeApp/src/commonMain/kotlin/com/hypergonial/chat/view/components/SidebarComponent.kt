@@ -2,11 +2,13 @@ package com.hypergonial.chat.view.components
 
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
+import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.slot.SlotNavigation
 import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
+import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
@@ -16,21 +18,27 @@ import com.hypergonial.chat.model.FocusChannelEvent
 import com.hypergonial.chat.model.FocusGuildEvent
 import com.hypergonial.chat.model.GuildCreateEvent
 import com.hypergonial.chat.model.ReadyEvent
+import com.hypergonial.chat.model.SessionInvalidatedEvent
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.view.content.MainContent
 import com.hypergonial.chat.withFallbackValue
 import kotlinx.serialization.Serializable
+import kotlinx.coroutines.channels.Channel as QueueChannel
 
 /** The main sidebar component that is displayed on the left side of the screen.
  * It also contains the main content in a child slot. */
-interface SidebarComponent {
+interface SidebarComponent: Displayable {
     fun onHomeSelected()
     fun onGuildSelected(guildId: Snowflake)
     fun onChannelSelected(channelId: Snowflake)
     fun onGuildCreateClicked()
     fun onChannelCreateClicked()
     fun onLogoutClicked()
+
+    @Composable
+    override fun Display() = MainContent(this)
 
     val mainContent: Value<ChildSlot<*, MainContentComponent>>
 
@@ -44,7 +52,7 @@ interface SidebarComponent {
         val channels: List<Channel> = emptyList(),
         val isConnecting: Boolean = true,
         // The state of the navigation drawer
-        val navDrawerState: DrawerState = DrawerState(DrawerValue.Closed)
+        val navDrawerState: DrawerState = DrawerState(DrawerValue.Closed),
     )
 }
 
@@ -81,6 +89,7 @@ class DefaultSideBarComponent(
 
     init {
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onReady)
+        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onSessionInvalidated)
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onGuildCreate)
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onChannelCreate)
     }
@@ -115,6 +124,10 @@ class DefaultSideBarComponent(
 
     private suspend fun onReady(event: ReadyEvent) {
         data.value = data.value.copy(isConnecting = false)
+    }
+
+    private suspend fun onSessionInvalidated(event: SessionInvalidatedEvent) {
+        onLogout()
     }
 
     private suspend fun onGuildCreate(event: GuildCreateEvent) {

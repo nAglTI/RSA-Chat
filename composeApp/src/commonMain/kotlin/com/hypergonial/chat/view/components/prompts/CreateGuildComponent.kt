@@ -1,20 +1,25 @@
 package com.hypergonial.chat.view.components.prompts
 
+import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.payloads.Guild
-import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.view.components.Displayable
+import com.hypergonial.chat.view.content.prompts.CreateGuildContent
 import kotlinx.coroutines.launch
 
-interface CreateGuildComponent {
+interface CreateGuildComponent: Displayable {
     fun onGuildCreateClicked()
 
     fun onBackClicked()
 
     fun onGuildNameChanged(guildName: String)
+
+    @Composable
+    override fun Display() = CreateGuildContent(this)
 
     val data: Value<State>
 

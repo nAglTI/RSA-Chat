@@ -1,13 +1,15 @@
 package com.hypergonial.chat.view.components
 
+import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.hypergonial.chat.model.ApiConfig
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.settings
+import com.hypergonial.chat.view.content.DebugSettingsContent
 
-interface DebugSettingsComponent {
+interface DebugSettingsComponent: Displayable {
     val data: Value<Data>
 
     fun onApiEndpointChange(url: String)
@@ -19,6 +21,9 @@ interface DebugSettingsComponent {
     fun onSaveClicked()
 
     fun onBackClicked()
+
+    @Composable
+    override fun Display() = DebugSettingsContent(this)
 
     data class Data(
         val apiEndpoint: String,

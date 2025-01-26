@@ -43,11 +43,16 @@ class ChannelRemoveEvent(val channel: Channel) : Event()
 /** Event dispatched after the client has authenticated with the gateway */
 class ReadyEvent(val user: User, val guilds: List<Guild>) : Event()
 
+enum class InvalidationReason {
+    AuthenticationFailure,
+    Timeout
+}
+
 /** Event dispatched when the session is invalidated
  *
  * Listeners should clear all state and return to the login screen
  */
-class SessionInvalidatedEvent : InternalEvent()
+class SessionInvalidatedEvent(val reason: InvalidationReason) : InternalEvent()
 
 /** Internal event dispatched when the application should bring a channel into focus */
 class FocusChannelEvent(val channel: Channel) : InternalEvent()

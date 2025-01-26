@@ -81,9 +81,7 @@ class ChatClient : Client {
     /** The logger used for this class */
     private val logger = KotlinLogging.logger {}
     /** The JSON deserializer used for error messages */
-    private val errorDeserializer = Json {
-        prettyPrint = true
-    }
+    private val errorDeserializer = Json { prettyPrint = true }
     /** The API endpoint configuration */
     private val config = settings.getApiSettings()
     /** A queue of messages to be sent to the gateway */
@@ -97,8 +95,7 @@ class ChatClient : Client {
     /** A job that represents the current gateway session */
     private var gatewaySession: Job? = null
     /** The interval at which the gateway should send heartbeats
-     * This is set by the HELLO message received from the gateway.
-     * */
+     * This is set by the HELLO message received from the gateway. */
     private var heartbeatInterval: Long? = null
     /** The set of guild IDs that the client should receive on startup from the gateway
      *
@@ -130,8 +127,8 @@ class ChatClient : Client {
         }
 
         install(HttpTimeout) {
-            requestTimeoutMillis = 60000
-            connectTimeoutMillis = 10000
+            requestTimeoutMillis = 30000
+            connectTimeoutMillis = 5000
         }
 
         install(HttpRequestRetry) {
@@ -148,7 +145,7 @@ class ChatClient : Client {
                 }
 
                 if (response.status == HttpStatusCode.Unauthorized) {
-                    eventManager.dispatch(SessionInvalidatedEvent())
+                    eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.AuthenticationFailure))
                 }
 
                 val body = try {
@@ -274,6 +271,14 @@ class ChatClient : Client {
     }
 
     override suspend fun connect() = coroutineScope {
+        launch {
+            delay(10000)
+            if (!gatewayConnectedJob.isCompleted) {
+                gatewaySession?.cancel()
+                gatewayConnectedJob = Job()
+                eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.Timeout))
+            }
+        }
         gatewaySession = launch {
             try {
                 gatewaySession()
@@ -283,6 +288,7 @@ class ChatClient : Client {
                 gatewayCloseJob = Job()
             }
         }
+
     }
 
     override fun isConnected(): Boolean = gatewayConnectedJob.isCompleted
@@ -327,7 +333,7 @@ class ChatClient : Client {
             } catch (_: ClosedReceiveChannelException) {
                 val reason = closeReason.await()
                 logger.error { "Channel was closed after IDENTIFY: $reason" }
-                eventManager.dispatch(SessionInvalidatedEvent())
+                eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.AuthenticationFailure))
                 return@webSocket
             }
 

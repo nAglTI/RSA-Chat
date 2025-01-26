@@ -1,5 +1,6 @@
 package com.hypergonial.chat.view.components
 
+import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -7,9 +8,10 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.Secret
 import com.hypergonial.chat.model.exceptions.ApiException
+import com.hypergonial.chat.view.content.RegisterContent
 import kotlinx.coroutines.launch
 
-interface RegisterComponent {
+interface RegisterComponent: Displayable {
     val data: Value<Data>
 
     fun onUsernameChange(username: String)
@@ -21,6 +23,9 @@ interface RegisterComponent {
     fun onRegisterAttempt()
 
     fun onBackClicked()
+
+    @Composable
+    override fun Display() = RegisterContent(this)
 
     data class Data(
         val username: String = "",

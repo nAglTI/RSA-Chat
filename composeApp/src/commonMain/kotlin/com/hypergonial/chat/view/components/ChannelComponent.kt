@@ -1,6 +1,7 @@
 package com.hypergonial.chat.view.components
 
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.text.input.TextFieldValue
@@ -23,11 +24,12 @@ import com.hypergonial.chat.view.components.subcomponents.EndOfMessages
 import com.hypergonial.chat.view.components.subcomponents.LoadMoreMessagesIndicator
 import com.hypergonial.chat.view.components.subcomponents.MessageComponent
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
+import com.hypergonial.chat.view.content.ChannelContent
 import kotlinx.coroutines.launch
 
 private const val MESSAGE_BATCH_SIZE = 100u
 
-interface ChannelComponent : MainContentComponent {
+interface ChannelComponent : MainContentComponent, Displayable {
     val data: Value<ChannelState>
 
     fun onLogoutClicked()
@@ -36,6 +38,9 @@ interface ChannelComponent : MainContentComponent {
     fun onEditLastMessage()
     fun onChatBarContentChanged(value: TextFieldValue)
     fun onMessageDelete(messageId: Snowflake)
+
+    @Composable
+    override fun Display() = ChannelContent(this)
 
 
     data class ChannelState(
@@ -52,7 +57,10 @@ interface ChannelComponent : MainContentComponent {
 }
 
 class DefaultChannelComponent(
-    private val ctx: ComponentContext, private val client: Client, private val channelId: Snowflake, private val onLogout: () -> Unit
+    private val ctx: ComponentContext,
+    private val client: Client,
+    private val channelId: Snowflake,
+    private val onLogout: () -> Unit
 ) : ChannelComponent, ComponentContext by ctx {
     private val scope = ctx.coroutineScope()
 
@@ -275,8 +283,7 @@ class DefaultChannelComponent(
     }
 
     override fun onEditLastMessage() {
-        val lastMessage = data.value.messageEntries
-            .flatMap { it.data.value.messages }
+        val lastMessage = data.value.messageEntries.flatMap { it.data.value.messages }
             .lastOrNull { it.data.value.message.author.id == client.cache.ownUser?.id } ?: return
 
         lastMessage.onEditStart()

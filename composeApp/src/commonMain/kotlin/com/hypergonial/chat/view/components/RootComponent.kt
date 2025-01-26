@@ -38,46 +38,34 @@ import kotlinx.serialization.serializer
 
 
 interface RootComponent : BackHandlerOwner {
-    val data: Value<RootData>
-    val stack: Value<ChildStack<*, *>>
+    val stack: Value<ChildStack<*, Child>>
 
 
     fun onBackClicked()
     fun onBackClicked(toIndex: Int)
 
-    class RootData
-
-    sealed class Child {
-        class LoginChild(val component: LoginComponent) : Child()
-        class RegisterChild(val component: RegisterComponent) : Child()
-        class DebugSettingsChild(val component: DebugSettingsComponent) : Child()
-        class MainChild(val component: SidebarComponent) : Child()
-        class NotFoundChild(val component: NotFoundComponent) : Child()
-        class NewGuildChild(val component: NewGuildComponent) : Child()
-        class CreateGuildChild(val component: CreateGuildComponent) : Child()
-        class JoinGuildChild(val component: JoinGuildComponent) : Child()
-        class CreateChannelChild(val component: CreateChannelComponent) : Child()
+    sealed class Child(open val component: Displayable) {
+        class LoginChild(override val component: LoginComponent) : Child(component)
+        class RegisterChild(override val component: RegisterComponent) : Child(component)
+        class DebugSettingsChild(override val component: DebugSettingsComponent) : Child(component)
+        class MainChild(override val component: SidebarComponent) : Child(component)
+        class NotFoundChild(override val component: NotFoundComponent) : Child(component)
+        class NewGuildChild(override val component: NewGuildComponent) : Child(component)
+        class CreateGuildChild(override val component: CreateGuildComponent) : Child(component)
+        class JoinGuildChild(override val component: JoinGuildComponent) : Child(component)
+        class CreateChannelChild(override val component: CreateChannelComponent) : Child(component)
     }
 }
 
 class DefaultRootComponent(
     val ctx: ComponentContext,
 ) : RootComponent, ComponentContext by ctx {
-    override val data = MutableValue(
-        RootComponent.RootData()
-    )
 
-    private val logger = KotlinLogging.logger {}
     private val scope = ctx.coroutineScope()
 
     private val client: Client = retainedInstance { ChatClient() }
 
     private val nav = StackNavigation<Config>()
-
-    init {
-        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onSessionInvalidated)
-        startGateway()
-    }
 
     private val _stack = childStack(
         source = nav,
@@ -89,21 +77,16 @@ class DefaultRootComponent(
 
     override val stack: Value<ChildStack<*, RootComponent.Child>> = _stack
 
+    init {
+        startGateway()
+    }
+
     private fun startGateway() {
         if (client.isLoggedIn()) {
             scope.launch {
                 client.connect()
             }
-
         }
-
-    }
-
-    private fun getDefaultConfig(): Config {
-        if (client.isLoggedIn()) {
-            return Config.Main
-        }
-        return Config.Login
     }
 
     /** The child factory for the root component's childStack. */
@@ -114,12 +97,8 @@ class DefaultRootComponent(
                     ctx = childCtx,
                     client = client,
                     onLogin = { startGateway(); nav.replaceAll(Config.Main) },
-                    onRegisterRequest = {
-                        nav.pushNew(Config.Register)
-                    },
-                    onDebugSettingsOpen = {
-                        nav.pushNew(Config.DebugSettings)
-                    }
+                    onRegisterRequest = { nav.pushNew(Config.Register) },
+                    onDebugSettingsOpen = { nav.pushNew(Config.DebugSettings) }
                 ),
             )
 
@@ -127,40 +106,29 @@ class DefaultRootComponent(
                 DefaultRegisterComponent(
                     ctx = childCtx,
                     client = client,
-                    onRegister = {
-                        nav.replaceAll(Config.Login)
-                    },
-                    onBack = {
-                        nav.pop()
-                    }),
+                    onRegister = { nav.replaceAll(Config.Login) },
+                    onBack = { nav.pop() }
+                ),
             )
 
             is Config.DebugSettings -> RootComponent.Child.DebugSettingsChild(
                 DefaultDebugSettingsComponent(
                     ctx = childCtx,
                     client = client,
-                    onBack = {
-                        nav.pop()
-                    }
+                    onBack = { nav.pop() }
                 )
             )
 
             is Config.NotFound -> RootComponent.Child.NotFoundChild(
-                DefaultNotFoundComponent(
-                    ctx = childCtx,
-                )
+                DefaultNotFoundComponent(ctx = childCtx)
             )
 
             is Config.Main -> RootComponent.Child.MainChild(
                 DefaultSideBarComponent(
                     ctx = childCtx,
                     client = client,
-                    onGuildCreateRequested = {
-                        nav.pushNew(Config.NewGuild)
-                    },
-                    onChannelCreateRequested = {
-                        nav.pushNew(Config.CreateChannel(it))
-                    },
+                    onGuildCreateRequested = { nav.pushNew(Config.NewGuild) },
+                    onChannelCreateRequested = { nav.pushNew(Config.CreateChannel(it)) },
                     onLogout = {
                         client.closeGateway()
                         client.logout()
@@ -171,15 +139,9 @@ class DefaultRootComponent(
             is Config.NewGuild -> RootComponent.Child.NewGuildChild(
                 DefaultNewGuildComponent(
                     ctx = childCtx,
-                    onCreateRequested = {
-                        nav.pushNew(Config.CreateGuild)
-                    },
-                    onJoinRequested = {
-                        nav.pushNew(Config.JoinGuild)
-                    },
-                    onCancel = {
-                        nav.pop()
-                    }
+                    onCreateRequested = { nav.pushNew(Config.CreateGuild) },
+                    onJoinRequested = { nav.pushNew(Config.JoinGuild) },
+                    onCancel = { nav.pop() }
                 )
             )
 
@@ -193,9 +155,7 @@ class DefaultRootComponent(
                             client.eventManager.dispatch(FocusGuildEvent(it))
                         }
                     },
-                    onCancel = {
-                        nav.pop()
-                    }
+                    onCancel = { nav.pop() }
                 )
             )
 
@@ -210,9 +170,7 @@ class DefaultRootComponent(
                             client.eventManager.dispatch(FocusGuildEvent(guild))
                         }
                     },
-                    onCancel = {
-                        nav.pop()
-                    }
+                    onCancel = { nav.pop() }
                 )
             )
 
@@ -227,18 +185,10 @@ class DefaultRootComponent(
                             client.eventManager.dispatch(FocusChannelEvent(it))
                         }
                     },
-                    onCancel = {
-                        nav.pop()
-                    }
+                    onCancel = { nav.pop() }
                 )
             )
         }
-
-    private suspend fun onSessionInvalidated(event: SessionInvalidatedEvent) {
-        client.closeGateway()
-        client.logout()
-        nav.replaceAll(Config.Login)
-    }
 
     override fun onBackClicked() {
         nav.pop()

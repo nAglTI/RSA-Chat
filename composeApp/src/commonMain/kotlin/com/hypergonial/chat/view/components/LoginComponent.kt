@@ -1,5 +1,6 @@
 package com.hypergonial.chat.view.components
 
+import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -7,9 +8,10 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.Secret
 import com.hypergonial.chat.model.exceptions.UnauthorizedException
+import com.hypergonial.chat.view.content.LoginContent
 import kotlinx.coroutines.launch
 
-interface LoginComponent {
+interface LoginComponent: Displayable {
     val data: Value<Data>
 
     fun onUsernameChange(username: String)
@@ -21,6 +23,9 @@ interface LoginComponent {
     fun onRegisterRequested()
 
     fun onLogoClick()
+
+    @Composable
+    override fun Display() = LoginContent(this)
 
     data class Data(
         val username: String = "",

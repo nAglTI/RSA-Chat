@@ -19,14 +19,21 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +45,7 @@ import com.hypergonial.chat.view.composables.ActionText
 import com.hypergonial.chat.view.composables.ChatButton
 import com.hypergonial.chat.view.composables.FullScreenSpinner
 import com.hypergonial.chat.view.composables.PasswordTextField
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -60,9 +68,12 @@ fun LoginBottomBar(component: LoginComponent) {
 fun LoginContent(component: LoginComponent) {
     val state by component.data.subscribeAsState()
     val focusManager = LocalFocusManager.current
+    val snackBarState = remember { SnackbarHostState() }
+
+
 
     FullScreenSpinner(state.isLoggingIn, "Logging in...") {
-        Scaffold(bottomBar = { LoginBottomBar(component) }) {
+        Scaffold(bottomBar = { LoginBottomBar(component) }, snackbarHost = { SnackbarHost(snackBarState) }) {
             Column(
                 Modifier.fillMaxHeight().fillMaxWidth().safeDrawingPadding()
                     .padding(0.dp, 0.dp, 0.dp, 50.dp),
@@ -92,6 +103,7 @@ fun LoginContent(component: LoginComponent) {
                     },
                     placeholder = { Text("Enter your username...") },
                     keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
                         autoCorrectEnabled = false,
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Next
@@ -122,6 +134,18 @@ fun LoginContent(component: LoginComponent) {
                     Text("Login")
                 }
             }
+        }
+    }
+
+    LaunchedEffect(state.loginFailed) {
+        if (!state.loginFailed) {
+            return@LaunchedEffect
+        }
+        component.errors.tryReceive().getOrNull()?.let {
+            val res = snackBarState.showSnackbar(
+                message = it,
+                duration = SnackbarDuration.Long
+            )
         }
     }
 

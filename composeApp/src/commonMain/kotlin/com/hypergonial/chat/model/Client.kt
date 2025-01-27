@@ -6,6 +6,7 @@ import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
+import kotlinx.coroutines.CoroutineScope
 
 interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
 

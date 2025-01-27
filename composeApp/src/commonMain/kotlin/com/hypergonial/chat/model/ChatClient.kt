@@ -11,6 +11,7 @@ import com.hypergonial.chat.model.payloads.User
 import com.hypergonial.chat.model.payloads.gateway.EventConvertable
 import com.hypergonial.chat.model.payloads.gateway.GatewayMessage
 import com.hypergonial.chat.model.payloads.gateway.Heartbeat
+import com.hypergonial.chat.model.payloads.gateway.HeartbeatAck
 import com.hypergonial.chat.model.payloads.gateway.Hello
 import com.hypergonial.chat.model.payloads.gateway.Identify
 import com.hypergonial.chat.model.payloads.gateway.InvalidSession
@@ -59,10 +60,10 @@ import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
@@ -74,7 +75,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
 import kotlinx.coroutines.channels.Channel as QueueChannel
 
-class ChatClient : Client {
+class ChatClient(val scope: CoroutineScope) : Client {
     /** The bearer token used for authentication */
     private var token: Secret<String>? = settings.getToken()?.let { Secret(it) }
     private val readyJob = Job()
@@ -86,6 +87,8 @@ class ChatClient : Client {
     private val config = settings.getApiSettings()
     /** A queue of messages to be sent to the gateway */
     private val responses: QueueChannel<GatewayMessage> = QueueChannel()
+    /** A channel for sending heartbeat ACKs between jobs */
+    private val heartbeatAckQueue: QueueChannel<HeartbeatAckEvent> = QueueChannel(1)
     /** A job that when completed, should indicate to
      * the current gateway session to close the connection */
     private var gatewayCloseJob = Job()
@@ -107,10 +110,6 @@ class ChatClient : Client {
     /** The cache that is used to store entities received through the gateway */
     override val cache = Cache()
 
-    init {
-        println(config.apiUrl)
-    }
-
     private val http = HttpClient {
         install(ContentNegotiation) {
             json(Json {
@@ -127,8 +126,7 @@ class ChatClient : Client {
         }
 
         install(HttpTimeout) {
-            requestTimeoutMillis = 30000
-            connectTimeoutMillis = 5000
+            requestTimeoutMillis = 5000
         }
 
         install(HttpRequestRetry) {
@@ -192,6 +190,7 @@ class ChatClient : Client {
     }
 
     init {
+        eventManager.start(scope)
         eventManager.subscribe(::onGuildCreate)
     }
 
@@ -212,7 +211,7 @@ class ChatClient : Client {
             try {
                 // Wait for ACK and assume session is dead if not received in time
                 withTimeout(5000) {
-                    eventManager.waitFor(HeartbeatAckEvent::class)
+                    heartbeatAckQueue.receive()
                 }
             } catch (e: TimeoutCancellationException) {
                 logger.error { "Heartbeat ACK not received in time: $e" }
@@ -238,14 +237,24 @@ class ChatClient : Client {
                 if (e.frame !is Frame.Close) {
                     continue
                 } else {
+                    logger.info { "Received close frame." }
                     return
                 }
+            }
+            catch (e: SerializationException) {
+                logger.error { "Failed to deserialize message: $e" }
+                continue
             }
 
 
             if (msg is InvalidSession) {
                 logger.error { "Server invalidated gateway session: ${msg.reason}" }
                 return
+            }
+
+            if (msg is HeartbeatAck) {
+                heartbeatAckQueue.send(HeartbeatAckEvent())
+                continue
             }
 
             if (msg is EventConvertable) {
@@ -259,6 +268,7 @@ class ChatClient : Client {
         for (msg in responses) {
             session.sendSerialized<GatewayMessage>(msg)
         }
+        logger.info { "Internal gateway message queue closed." }
     }
 
     /** Send a message to the gateway. */
@@ -270,8 +280,8 @@ class ChatClient : Client {
         gatewayCloseJob.complete()
     }
 
-    override suspend fun connect() = coroutineScope {
-        launch {
+    override suspend fun connect() {
+        scope.launch {
             delay(10000)
             if (!gatewayConnectedJob.isCompleted) {
                 gatewaySession?.cancel()
@@ -279,7 +289,7 @@ class ChatClient : Client {
                 eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.Timeout))
             }
         }
-        gatewaySession = launch {
+        gatewaySession = scope.launch {
             try {
                 gatewaySession()
             }
@@ -360,15 +370,27 @@ class ChatClient : Client {
                 cache.putGuild(guild)
             }
 
+            if (initialGuildIds.isEmpty()) {
+                readyJob.complete()
+            }
+
             logger.info { "Gateway session is ready" }
 
             eventManager.dispatch(ready.toEvent())
 
-            val jobs = listOf(launch { receiveEvents(this@webSocket) },
-                launch { performHeartbeating(this@webSocket) },
-                launch { forwardInternalMessages(this@webSocket) },
-                gatewayCloseJob
+            val jobs = listOf(launch { receiveEvents(this@webSocket); },
+                launch { performHeartbeating(this@webSocket); },
+                launch { forwardInternalMessages(this@webSocket); },
+                launch { gatewayCloseJob.join(); }
             )
+
+            jobs.forEachIndexed { index, job ->
+                job.invokeOnCompletion {
+                    if (it != null) {
+                        logger.error { "Job $index failed: $it" }
+                    }
+                }
+            }
 
             // Wait until one of the jobs terminates
             select {
@@ -389,12 +411,16 @@ class ChatClient : Client {
                     )
                 )
             )
+
+            eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.Normal))
         }
     }
 
     private suspend fun onGuildCreate(event: GuildCreateEvent) {
         cache.putGuild(event.guild)
         event.channels.forEach { cache.putChannel(it) }
+        println("Channels: ${event.channels}")
+
         event.members.forEach { cache.putUser(it); cache.putMember(it) }
         initialGuildIds.remove(event.guild.id)
 
@@ -525,6 +551,7 @@ class ChatClient : Client {
 
     override fun onDestroy() {
         closeGateway()
+        eventManager.stop()
 
         // If we never managed to connect, wipe login credentials
         if (!readyJob.isCompleted) {

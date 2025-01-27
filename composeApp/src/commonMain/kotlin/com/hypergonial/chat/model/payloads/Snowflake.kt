@@ -17,7 +17,7 @@ data class Snowflake(val inner: ULong) : Comparable<Snowflake> {
         return inner.compareTo(other.inner)
     }
 
-    override fun toString(): String = "Snowflake($inner)"
+    override fun toString(): String = inner.toString()
 
     /** The timestamp of the snowflake in milliseconds */
     val timestampMillis: ULong
@@ -44,6 +44,5 @@ private class SnowflakeSerializer : KSerializer<Snowflake> {
         catch (e: NumberFormatException) {
             throw IllegalArgumentException("Snowflake must be a number")
         }
-
     }
 }

@@ -20,7 +20,7 @@ sealed interface PartialUser {
 
     val avatarUrl: String?
         get() = avatarHash?.let {
-            "${settings.getApiSettings().objectStoreUrl}/$it.${
+            "${settings.getApiSettings().objectStoreUrl}/users/$id/$it.${
                 it.split("_").last()
             }"
         }

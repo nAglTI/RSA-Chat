@@ -2,10 +2,18 @@ package com.hypergonial.chat.model
 
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.doOnDestroy
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
 import kotlin.reflect.KClass
+
+/** A type that has an event manager. */
+interface EventManagerAware {
+    val eventManager: EventManager
+}
 
 /** A wrapper for a suspend subscribe callback. */
 private class EventSubscriber<EventT : Event>(val callback: suspend (EventT) -> Unit) {
@@ -26,15 +34,94 @@ private class EventSubscriber<EventT : Event>(val callback: suspend (EventT) -> 
     }
 }
 
-/** A type that has an event manager. */
-interface EventManagerAware {
-    val eventManager: EventManager
+/** Instructions for the inner event manager. */
+private sealed class Instruction {
+    class Subscribe(val event: KClass<out Event>, val subscriber: EventSubscriber<out Event>) : Instruction()
+    class Unsubscribe(val event: KClass<out Event>, val subscriber: EventSubscriber<out Event>) : Instruction()
+    class Dispatch(val event: Event) : Instruction()
+}
+
+/** Inner class managing the event subscriptions and dispatching. */
+private class EventManagerInner {
+    private val subscribers: MutableMap<KClass<out Event>, MutableList<EventSubscriber<out Event>>> =
+        mutableMapOf()
+
+    private val channel = Channel<Instruction>(Channel.Factory.UNLIMITED)
+    private var scope: CoroutineScope? = null
+    private var runningJob: Job? = null
+
+    fun start(coroutineScope: CoroutineScope) {
+        if (runningJob != null) {
+            runningJob?.cancel()
+        }
+        scope = coroutineScope
+        runningJob = coroutineScope.launch { run() }
+    }
+
+    fun stop() {
+        channel.close()
+        runningJob?.cancel()
+    }
+
+    suspend fun run() {
+        for (instruction in channel) {
+            when (instruction) {
+                is Instruction.Subscribe -> subscribe(instruction.event, instruction.subscriber)
+                is Instruction.Unsubscribe -> unsubscribe(instruction.event, instruction.subscriber)
+                is Instruction.Dispatch -> dispatch(instruction.event)
+            }
+        }
+    }
+
+    suspend fun sendInstruction(instruction: Instruction) {
+        channel.send(instruction)
+    }
+
+    fun trySendInstruction(instruction: Instruction): Boolean {
+        return channel.trySend(instruction).isSuccess
+    }
+
+    private fun <T : Event> subscribe(eventType: KClass<out T>, subscriber: EventSubscriber<out T>) {
+        val eventSubscribers = subscribers.getOrPut(eventType) { mutableListOf() }
+        eventSubscribers.add(subscriber)
+    }
+
+    private fun <T : Event>unsubscribe(eventType: KClass<out T>, subscriber: EventSubscriber<out T>) {
+        val eventSubscribers = subscribers[eventType]
+        eventSubscribers?.retainAll { it != subscriber }
+    }
+
+    private fun <T : Event> getSubscribers(eventType: KClass<T>): List<EventSubscriber<out Event>> {
+        return this.subscribers[eventType] ?: emptyList()
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun dispatch(event: Event) {
+        if (scope == null) {
+            throw RuntimeException("Event manager not started")
+        }
+
+        val eventSubscribers = getSubscribers(event::class)
+        eventSubscribers.forEach {
+            val subscriber = it as EventSubscriber<Event>
+            scope!!.launch {
+                subscriber.invoke(event)
+            }
+        }
+    }
 }
 
 /** A class for handling event subscriptions and dispatching. */
 class EventManager {
-    private val subscribers: MutableMap<KClass<out Event>, MutableList<EventSubscriber<out Event>>> =
-        mutableMapOf()
+    private val inner: EventManagerInner = EventManagerInner()
+
+    fun start(scope: CoroutineScope) {
+        inner.start(scope)
+    }
+
+    fun stop() {
+        inner.stop()
+    }
 
     /** Add a subscriber to this event manager.
      * The provided callback will be called when an event of that type is dispatched.
@@ -71,8 +158,10 @@ class EventManager {
      * It will be called with the event as the only parameter.
      */
     fun <T : Event> subscribe(eventType: KClass<T>, callback: suspend (T) -> Unit) {
-        val eventSubscribers = subscribers.getOrPut(eventType) { mutableListOf() }
-        eventSubscribers.add(EventSubscriber(callback))
+        val res = inner.trySendInstruction(Instruction.Subscribe(eventType, EventSubscriber(callback)))
+        if (!res) {
+            throw RuntimeException("Failed to subscribe $callback to $eventType")
+        }
     }
 
     /**
@@ -95,20 +184,10 @@ class EventManager {
      * @param callback The callback to remove from the subscribers list.
      */
     fun <T : Event> unsubscribe(eventType: KClass<T>, callback: suspend (T) -> Unit) {
-        val eventSubscribers = subscribers[eventType]
-        eventSubscribers?.retainAll { it != EventSubscriber(callback) }
-    }
-
-    /**
-     * Get all subscribers for the given event type.
-     * This resolves the subscribers for the given type.
-     *
-     * @param eventType The type of event to get subscribers for.
-     *
-     * @return A list of all subscribers for the given event type.
-     */
-    private fun <T : Event> getSubscribers(eventType: KClass<T>): List<EventSubscriber<out Event>> {
-        return this.subscribers[eventType] ?: emptyList()
+        val res = inner.trySendInstruction(Instruction.Unsubscribe(eventType, EventSubscriber(callback)))
+        if (!res) {
+            throw RuntimeException("Failed to subscribe $callback to $eventType")
+        }
     }
 
     /**
@@ -120,24 +199,25 @@ class EventManager {
      *
      * @return The event that was dispatched.
      */
-    suspend fun <EventT : Event> waitFor(
+    suspend inline fun <reified EventT : Event> waitFor(
         eventType: KClass<EventT>,
-        predicate: ((EventT) -> Boolean)? = null
+        noinline predicate: ((EventT) -> Boolean)? = null,
     ): EventT {
-        var callback: ((EventT) -> Unit)? = null
-        val result = suspendCancellableCoroutine { continuation ->
-            callback = { event ->
-                if (predicate == null || predicate(event)) {
-                    continuation.resumeWith(Result.success(event))
-                }
-            }
-            subscribe(eventType, callback!!)
-            continuation.invokeOnCancellation {
-                callback?.let { unsubscribe(eventType, it) }
+        val deferredEvent = CompletableDeferred<EventT>()
+
+        val callback = { event: EventT ->
+            if (predicate == null || predicate(event)) {
+                deferredEvent.complete(event)
             }
         }
-        callback?.let { unsubscribe(eventType, it) }
-        return result
+
+        deferredEvent.invokeOnCompletion {
+            unsubscribe(eventType, callback)
+        }
+
+        subscribe<EventT>(callback)
+
+        return deferredEvent.await()
     }
 
     /**
@@ -145,14 +225,10 @@ class EventManager {
      *
      * @param event The event to dispatch.
      */
-    @Suppress("UNCHECKED_CAST")
-    suspend fun dispatch(event: Event) = coroutineScope {
-        val eventSubscribers = getSubscribers(event::class)
-        eventSubscribers.forEach {
-            val subscriber = it as EventSubscriber<Event>
-            launch {
-                subscriber.invoke(event)
-            }
+    fun dispatch(event: Event) {
+        val res = inner.trySendInstruction(Instruction.Dispatch(event))
+        if (!res) {
+            throw RuntimeException("Failed to dispatch $event")
         }
     }
 }

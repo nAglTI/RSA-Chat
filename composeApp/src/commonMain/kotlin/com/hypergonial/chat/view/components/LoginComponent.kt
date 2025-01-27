@@ -9,6 +9,9 @@ import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.Secret
 import com.hypergonial.chat.model.exceptions.UnauthorizedException
 import com.hypergonial.chat.view.content.LoginContent
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.channels.Channel as QueueChannel
+import kotlinx.coroutines.channels.ReceiveChannel as QueueReceiveChannel
 import kotlinx.coroutines.launch
 
 interface LoginComponent: Displayable {
@@ -26,6 +29,8 @@ interface LoginComponent: Displayable {
 
     @Composable
     override fun Display() = LoginContent(this)
+
+    val errors: QueueReceiveChannel<String>
 
     data class Data(
         val username: String = "",
@@ -46,7 +51,9 @@ class DefaultLoginComponent(
 ) : LoginComponent,
     ComponentContext by ctx {
     override val data = MutableValue(LoginComponent.Data())
-    private val coroutineScope = ctx.coroutineScope()
+    override val errors = QueueChannel<String>(1)
+    private val scope = ctx.coroutineScope()
+    private val logger = KotlinLogging.logger {}
 
     /** Query if the login button can be enabled */
     private fun queryCanLogin(): Boolean {
@@ -54,7 +61,7 @@ class DefaultLoginComponent(
     }
 
     override fun onUsernameChange(username: String) {
-        data.value = data.value.copy(username = username, canLogin = queryCanLogin())
+        data.value = data.value.copy(username = username.lowercase(), canLogin = queryCanLogin())
     }
 
     override fun onPasswordChange(password: String) {
@@ -81,12 +88,19 @@ class DefaultLoginComponent(
             canLogin = false
         )
 
-        coroutineScope.launch {
+        scope.launch {
             try {
                 client.login(username, password)
                 data.value = data.value.copy(isLoggingIn = false, loginFailed = false)
                 onLogin()
             } catch (_: UnauthorizedException) {
+                data.value = data.value.copy(isLoggingIn = false, loginFailed = true)
+            }
+            catch(e: Exception) {
+                logger.error { "Login failed: ${e.message}" }
+                println("Sending error")
+                val res = errors.trySend("Failed to connect, please try again later.")
+                println("Sent error: ${res.isSuccess}")
                 data.value = data.value.copy(isLoggingIn = false, loginFailed = true)
             }
         }

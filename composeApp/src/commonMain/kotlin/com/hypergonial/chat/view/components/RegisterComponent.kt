@@ -9,6 +9,7 @@ import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.Secret
 import com.hypergonial.chat.model.exceptions.ApiException
 import com.hypergonial.chat.view.content.RegisterContent
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.launch
 
 interface RegisterComponent: Displayable {
@@ -48,6 +49,7 @@ class DefaultRegisterComponent(
     override val data = MutableValue(RegisterComponent.Data())
     private val scope = ctx.coroutineScope()
     private val usernameRegex = Regex("^([a-z0-9]|[a-z0-9]+(?:[._][a-z0-9]+)*)\$")
+    private val logger = KotlinLogging.logger {}
 
     /** Query if the login button can be enabled */
     private fun updateCanRegister() {
@@ -194,6 +196,10 @@ class DefaultRegisterComponent(
                 data.value = data.value.copy(isRegistering = false, registrationFailed = false)
                 onRegister()
             } catch (_: ApiException) {
+                data.value = data.value.copy(isRegistering = false, registrationFailed = true)
+            }
+            catch (e: Exception) {
+                logger.error { "Registration failed: ${e.message}" }
                 data.value = data.value.copy(isRegistering = false, registrationFailed = true)
             }
 

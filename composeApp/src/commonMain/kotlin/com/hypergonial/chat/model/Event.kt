@@ -43,9 +43,12 @@ class ChannelRemoveEvent(val channel: Channel) : Event()
 /** Event dispatched after the client has authenticated with the gateway */
 class ReadyEvent(val user: User, val guilds: List<Guild>) : Event()
 
+class PresenceUpdateEvent(val userId: Snowflake, val presence: String) : Event()
+
 enum class InvalidationReason {
+    Normal,
     AuthenticationFailure,
-    Timeout
+    Timeout,
 }
 
 /** Event dispatched when the session is invalidated

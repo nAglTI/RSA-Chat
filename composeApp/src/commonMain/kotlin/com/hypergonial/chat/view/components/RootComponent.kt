@@ -9,7 +9,6 @@ import com.arkivanov.decompose.router.stack.popTo
 import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.router.stack.replaceAll
-import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.instancekeeper.retainedInstance
@@ -18,7 +17,6 @@ import com.hypergonial.chat.model.ChatClient
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.FocusChannelEvent
 import com.hypergonial.chat.model.FocusGuildEvent
-import com.hypergonial.chat.model.SessionInvalidatedEvent
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.view.components.prompts.CreateChannelComponent
 import com.hypergonial.chat.view.components.prompts.CreateGuildComponent
@@ -28,13 +26,9 @@ import com.hypergonial.chat.view.components.prompts.DefaultJoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.DefaultNewGuildComponent
 import com.hypergonial.chat.view.components.prompts.JoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.NewGuildComponent
-import com.hypergonial.chat.withFallbackValue
-import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.serializer
 
 
 interface RootComponent : BackHandlerOwner {
@@ -63,7 +57,7 @@ class DefaultRootComponent(
 
     private val scope = ctx.coroutineScope()
 
-    private val client: Client = retainedInstance { ChatClient() }
+    private val client: Client = retainedInstance { ChatClient(scope) }
 
     private val nav = StackNavigation<Config>()
 
@@ -82,8 +76,8 @@ class DefaultRootComponent(
     }
 
     private fun startGateway() {
+        scope.launch {
         if (client.isLoggedIn()) {
-            scope.launch {
                 client.connect()
             }
         }

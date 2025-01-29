@@ -80,6 +80,9 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     /** Edit a message by its ID */
     suspend fun editMessage(channelId: Snowflake, messageId: Snowflake, content: String? = null)
 
+    /** Reloads the client API configuration from disk */
+    fun reloadConfig()
+
     /** Wait until the client is ready */
     suspend fun waitUntilReady()
 

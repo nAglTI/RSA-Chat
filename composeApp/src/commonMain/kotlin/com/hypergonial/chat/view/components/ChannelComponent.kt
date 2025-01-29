@@ -98,8 +98,6 @@ class DefaultChannelComponent(
     }
 
     private fun requestMessagesScrollingUp(lastMessage: Snowflake? = null) {
-        println("Requesting messages scrolling up")
-
         scope.launch {
             val messages = client.fetchMessages(
                 channelId = channelId, before = lastMessage, limit = MESSAGE_BATCH_SIZE
@@ -135,7 +133,6 @@ class DefaultChannelComponent(
 
             // Drop elements from the bottom beyond 300 messages
             if (currentEntries.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
-                println("Dropping ${currentEntries.size.toUInt() - MESSAGE_BATCH_SIZE} messages from bottom")
                 currentEntries.removeRange(0 until currentEntries.size - MESSAGE_BATCH_SIZE.toInt() * 3)
                 currentEntries.first().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = false))
                 data.value = data.value.copy(isCruising = true)
@@ -144,14 +141,10 @@ class DefaultChannelComponent(
     }
 
     private fun requestMessagesScrollingDown(lastMessage: Snowflake? = null) {
-        println("Requesting messages scrolling down after $lastMessage")
-
         scope.launch {
             val messages = client.fetchMessages(
                 channelId = channelId, after = lastMessage, limit = MESSAGE_BATCH_SIZE
             )
-
-            println("Received ${messages.size} messages with the first having id ${messages.firstOrNull()?.id}")
 
             val currentEntries = data.value.messageEntries
 
@@ -178,7 +171,6 @@ class DefaultChannelComponent(
 
             // Drop elements beyond from the top 300 messages to prevent memory leaks
             if (currentEntries.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
-                println("Dropping ${currentEntries.size.toUInt() - MESSAGE_BATCH_SIZE * 3u} messages from top")
                 currentEntries.removeRange(
                     currentEntries.size - MESSAGE_BATCH_SIZE.toInt() until currentEntries.size
                 )
@@ -215,21 +207,18 @@ class DefaultChannelComponent(
             currentEntries.flatMap { it.data.value.messages }
                 .firstOrNull { it.data.value.message.nonce == newMessage.nonce }
                 ?.onPendingEnd(newMessage)
-            println("Marked message as not pending")
             return
         }
 
         // Group recent messages by author
         if (lastMessage?.author?.id == newMessage.author.id
             && Clock.System.now() - lastMessage.createdAt < 5.minutes) {
-            println("Appending message to last message entry")
             currentEntries.first().pushMessage(
                 messageComponent(
                     newMessage, isPending = isPending
                 )
             )
         } else {
-            println("Creating new message entry")
             currentEntries.add(
                 0, messageEntryComponent(
                     mutableStateListOf(
@@ -253,7 +242,6 @@ class DefaultChannelComponent(
 
     /** Invoked when a new message is created on the server. */
     fun onMessageCreate(event: MessageCreateEvent) {
-        println("Received message create event")
         // If the user is so high up that the messages at the bottom aren't even loaded, just don't bother
         if (data.value.isCruising) {
             // TODO: Implement a way to notify the user that new messages are available
@@ -264,7 +252,6 @@ class DefaultChannelComponent(
     }
 
     fun onMessageUpdate(event: MessageUpdateEvent) {
-        println("Received message update event")
         data.value.messageEntries.flatMap { it.data.value.messages }
             .firstOrNull { it.data.value.message.id == event.message.id }?.onMessageUpdate(event)
 

@@ -19,6 +19,8 @@ data class Snowflake(val inner: ULong) : Comparable<Snowflake> {
 
     override fun toString(): String = inner.toString()
 
+    fun toULong(): ULong = inner
+
     /** The timestamp of the snowflake in milliseconds */
     val timestampMillis: ULong
         get() = (inner shr 22) + EPOCH

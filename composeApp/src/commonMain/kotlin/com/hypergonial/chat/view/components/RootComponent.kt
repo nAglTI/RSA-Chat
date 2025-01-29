@@ -109,7 +109,7 @@ class DefaultRootComponent(
                 DefaultDebugSettingsComponent(
                     ctx = childCtx,
                     client = client,
-                    onBack = { nav.pop() }
+                    onBack = { client.reloadConfig(); nav.pop() }
                 )
             )
 

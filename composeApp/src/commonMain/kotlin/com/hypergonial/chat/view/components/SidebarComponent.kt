@@ -88,12 +88,14 @@ class DefaultSideBarComponent(
         }
 
     init {
-        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onReady)
-        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onSessionInvalidated)
-        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onGuildCreate)
-        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onChannelCreate)
-        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onChannelFocus)
-        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onGuildFocus)
+        client.eventManager.apply {
+            subscribeWithLifeCycle(ctx.lifecycle, ::onReady)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onSessionInvalidated)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onGuildCreate)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onChannelCreate)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onChannelFocus)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onGuildFocus)
+        }
     }
 
     override fun onHomeSelected() {

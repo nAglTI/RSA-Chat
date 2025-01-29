@@ -181,7 +181,6 @@ class DefaultRegisterComponent(
 
         scope.launch {
             val availability = client.checkUsernameForAvailability(username)
-            println("Availability: $availability")
             if (!availability) {
                 data.value = data.value.copy(
                     isRegistering = false,

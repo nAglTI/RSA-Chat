@@ -98,9 +98,7 @@ class DefaultLoginComponent(
             }
             catch(e: Exception) {
                 logger.error { "Login failed: ${e.message}" }
-                println("Sending error")
                 val res = errors.trySend("Failed to connect, please try again later.")
-                println("Sent error: ${res.isSuccess}")
                 data.value = data.value.copy(isLoggingIn = false, loginFailed = true)
             }
         }

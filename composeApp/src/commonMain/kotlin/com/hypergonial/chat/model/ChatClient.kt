@@ -84,7 +84,7 @@ class ChatClient(val scope: CoroutineScope) : Client {
     /** The JSON deserializer used for error messages */
     private val errorDeserializer = Json { prettyPrint = true }
     /** The API endpoint configuration */
-    private val config = settings.getApiSettings()
+    private var config = settings.getApiSettings()
     /** A queue of messages to be sent to the gateway */
     private val responses: QueueChannel<GatewayMessage> = QueueChannel()
     /** A channel for sending heartbeat ACKs between jobs */
@@ -267,7 +267,9 @@ class ChatClient(val scope: CoroutineScope) : Client {
             }
 
             if (msg is EventConvertable) {
-                eventManager.dispatch(msg.toEvent())
+                val event = msg.toEvent()
+                logger.debug { "Dispatching event: '${event::class.simpleName}'" }
+                eventManager.dispatch(event)
             }
         }
     }
@@ -421,7 +423,6 @@ class ChatClient(val scope: CoroutineScope) : Client {
     private fun onGuildCreate(event: GuildCreateEvent) {
         cache.putGuild(event.guild)
         event.channels.forEach { cache.putChannel(it) }
-        println("Channels: ${event.channels}")
 
         event.members.forEach { cache.putUser(it); cache.putMember(it) }
         initialGuildIds.remove(event.guild.id)
@@ -541,6 +542,11 @@ class ChatClient(val scope: CoroutineScope) : Client {
 
     override suspend fun editMessage(channelId: Snowflake, messageId: Snowflake, content: String?) {
         TODO("Not yet implemented")
+    }
+
+    override fun reloadConfig() {
+        config = settings.getApiSettings()
+        token = settings.getToken()?.let { Secret(it) }
     }
 
     override fun logout() {

@@ -76,7 +76,7 @@ fun MainContent(component: SidebarComponent) {
         AdaptiveDrawer(drawerState = state.navDrawerState, drawerContent = {
             Row {
                 LazyColumn {
-                    itemsIndexed(state.guilds, key = { _, item -> item.id }) { _, guild ->
+                    itemsIndexed(state.guilds, key = { _, item -> item.id.toString() }) { _, guild ->
                         IconButton(onClick = { component.onGuildSelected(guild.id) }) {
                             if (guild.avatarUrl != null) {
                                 Icon(Icons.Outlined.Group, contentDescription = guild.name)
@@ -102,7 +102,7 @@ fun MainContent(component: SidebarComponent) {
                     }
                 }
                 LazyColumn {
-                    itemsIndexed(state.channels, key = { _, item -> item.id }) { _, channel ->
+                    itemsIndexed(state.channels, key = { _, item -> item.id.toString() }) { _, channel ->
                         Row(Modifier.clickable(onClick = { component.onChannelSelected(channel.id) })) {
                             Icon(Icons.Filled.Tag, contentDescription = "Channel Icon")
                             Text(channel.name)

@@ -307,7 +307,6 @@ fun MessageContent(
 fun LoadingIndicator(item: LoadMoreMessagesIndicator, onSeen: () -> Unit) {
     LaunchedEffect(Unit) {
         if (!item.wasSeen) {
-            println("Loading more messages")
             item.wasSeen = true
             onSeen()
         }

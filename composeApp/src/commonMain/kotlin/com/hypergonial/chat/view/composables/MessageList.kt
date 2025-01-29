@@ -56,6 +56,7 @@ import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.LocalUsingDarkTheme
 import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.toHumanReadable
 import com.hypergonial.chat.view.ChatImageTransformer
 import com.hypergonial.chat.view.components.subcomponents.EndOfMessages
 import com.hypergonial.chat.view.components.subcomponents.LoadMoreMessagesIndicator
@@ -70,8 +71,6 @@ import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
 import dev.snipme.highlights.Highlights
 import dev.snipme.highlights.model.SyntaxThemes
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 
 
@@ -147,9 +146,7 @@ fun Entry(
                 LoadingIndicator(endIndicator,
                     onSeen = { onEndReached(firstItem?.data?.value?.message?.id, true) })
             }
-
         }
-
 
 
         if (firstItem != null) {
@@ -202,15 +199,16 @@ fun Entry(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageWithHeader(component: MessageComponent) {
+    val state by component.data.subscribeAsState()
+
     Column(Modifier.combinedClickable(onDoubleClick = { component.onEditStart() }) { }) {
         Row(Modifier.fillMaxWidth()) {
             Text(
-                component.data.value.message.author.displayName
-                    ?: component.data.value.message.author.username, Modifier.padding(end = 8.dp)
+                state.message.author.displayName
+                    ?: state.message.author.username, Modifier.padding(end = 8.dp)
             )
             Text(
-                component.data.value.message.createdAt.toLocalDateTime(TimeZone.currentSystemDefault())
-                    .toString(), fontSize = 10.sp, color = Color.Gray
+                state.createdAt.toHumanReadable(), fontSize = 10.sp, color = Color.Gray
             )
         }
         MessageContent(component, Modifier.padding(end = 40.dp))

@@ -46,8 +46,8 @@ interface SidebarComponent: Displayable {
     val data: Value<SidebarState>
 
     data class SidebarState(
-        val selectedGuild: Snowflake? = null,
-        val selectedChannel: Snowflake? = null,
+        val selectedGuild: Guild? = null,
+        val selectedChannel: Channel? = null,
         val topBarContent: String = "Chat",
         val guilds: List<Guild> = emptyList(),
         val channels: List<Channel> = emptyList(),
@@ -100,6 +100,7 @@ class DefaultSideBarComponent(
     }
 
     override fun onHomeSelected() {
+        data.value = data.value.copy(selectedGuild = null, selectedChannel = null, channels = emptyList())
         slotNavigation.activate(SlotConfig.Home)
     }
 
@@ -109,10 +110,12 @@ class DefaultSideBarComponent(
 
     override fun onGuildSelected(guildId: Snowflake) {
         // TODO: Update when channels have positions
+        val guild = client.cache.getGuild(guildId) ?: return
         val firstChannelId = client.cache.getChannelsForGuild(guildId).keys.minOrNull()
+        val channel = firstChannelId?.let { client.cache.getChannel(it) }
 
-        data.value = data.value.copy(selectedGuild = guildId,
-            selectedChannel = firstChannelId,
+        data.value = data.value.copy(selectedGuild = guild,
+            selectedChannel = channel,
             channels = client.cache.getChannelsForGuild(guildId).values.toList().sortedBy { it.id }
         )
 
@@ -124,7 +127,8 @@ class DefaultSideBarComponent(
     }
 
     override fun onChannelSelected(channelId: Snowflake) {
-        data.value = data.value.copy(selectedChannel = channelId)
+        val channel = client.cache.getChannel(channelId) ?: return
+        data.value = data.value.copy(selectedChannel = channel)
         slotNavigation.activate(SlotConfig.Channel(channelId))
     }
 
@@ -145,7 +149,7 @@ class DefaultSideBarComponent(
     }
 
     private fun onChannelCreate(event: ChannelCreateEvent) {
-        if (event.channel.guildId != data.value.selectedGuild) {
+        if (event.channel.guildId != data.value.selectedGuild?.id) {
             return
         }
 
@@ -160,7 +164,7 @@ class DefaultSideBarComponent(
         if (event.channel in data.value.channels) {
             onChannelSelected(event.channel.id)
         }
-        else if (event.channel.guildId == data.value.selectedGuild) {
+        else if (event.channel.guildId == data.value.selectedGuild?.id) {
             data.value = data.value.copy(
                 channels = (data.value.channels + event.channel).sortedBy { it.id },
             )
@@ -184,7 +188,7 @@ class DefaultSideBarComponent(
     }
 
     override fun onChannelCreateClicked() {
-        onChannelCreateRequested(data.value.selectedGuild ?: return)
+        onChannelCreateRequested(data.value.selectedGuild?.id ?: return)
     }
 
     @Serializable

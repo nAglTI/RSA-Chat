@@ -71,15 +71,15 @@ fun AdaptiveDrawer(
         PermanentNavigationDrawer({
             CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDir) {
                 PermanentDrawerSheet(
-                    Modifier.animateContentSize().width(if (!isSmall) 200.dp else 0.dp)
-                ) { Box(Modifier.padding(8.dp)) { drawerContent() } }
+                    Modifier.animateContentSize().width(if (!isSmall) 300.dp else 0.dp)
+                ) { drawerContent() }
             }
         }, modifier) {
             ModalNavigationDrawer({
                 if (isSmall) CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDir) {
                     ModalDrawerSheet(
                         drawerShape = shape,
-                    ) { Box(Modifier.padding(8.dp)) { drawerContent() } }
+                    ) { drawerContent() }
                 } else Unit
             },
                 modifier,

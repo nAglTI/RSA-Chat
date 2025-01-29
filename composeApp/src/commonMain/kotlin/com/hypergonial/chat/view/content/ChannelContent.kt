@@ -22,10 +22,6 @@ fun ChannelContent(component: ChannelComponent) {
     Column(
         Modifier.safeDrawingPadding().fillMaxSize(), verticalArrangement = Arrangement.Bottom
     ) {
-        ChatButton(onClick = component::onLogoutClicked) {
-            Text("Logout")
-        }
-
         // Is a LazyColumn wrapped in a custom composable
         MessageList(
             features = state.messageEntries,

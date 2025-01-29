@@ -11,6 +11,8 @@ import com.hypergonial.chat.model.MessageUpdateEvent
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.sanitized
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 // Note to self: Subcomponents must not have navigation, StateKeeper, or InstanceKeeper,
 // because they get the parent's ctx directly which is *technically* not a supported configuration.
@@ -20,6 +22,7 @@ import kotlinx.coroutines.launch
 interface MessageComponent {
     data class MessageUIState(
         val message: Message,
+        val createdAt: Instant,
         val isPending: Boolean = false,
         val isEdited: Boolean = false,
         val isBeingEdited: Boolean = false,
@@ -66,7 +69,14 @@ class DefaultMessageComponent(
     isPending: Boolean = false,
     isEdited: Boolean = false,
 ) : MessageComponent {
-    override val data = MutableValue(MessageComponent.MessageUIState(message, isPending, isEdited))
+    override val data = MutableValue(
+        MessageComponent.MessageUIState(
+            message,
+            createdAt = if (isPending) Clock.System.now() else message.createdAt,
+            isPending,
+            isEdited
+        )
+    )
     private val wasCreatedAsPending = isPending
 
     override fun getKey(): String {
@@ -76,7 +86,7 @@ class DefaultMessageComponent(
     }
 
     override fun onPendingEnd(message: Message) {
-        data.value = data.value.copy(isPending = false, message = message)
+        data.value = data.value.copy(isPending = false, message = message, createdAt = message.createdAt)
     }
 
 
@@ -86,8 +96,7 @@ class DefaultMessageComponent(
         }
 
         data.value = data.value.copy(
-            isBeingEdited = true,
-            editorState = TextFieldValue(
+            isBeingEdited = true, editorState = TextFieldValue(
                 data.value.message.content ?: "",
                 selection = TextRange(data.value.message.content?.length ?: 0)
             )
@@ -107,9 +116,7 @@ class DefaultMessageComponent(
         data.value = data.value.copy(isPending = true, isBeingEdited = false)
         ctx.coroutineScope().launch {
             client.editMessage(
-                data.value.message.channelId,
-                data.value.message.id,
-                data.value.editorState.text
+                data.value.message.channelId, data.value.message.id, data.value.editorState.text
             )
         }
     }

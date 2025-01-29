@@ -24,6 +24,7 @@ import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.view.content.MainContent
 import com.hypergonial.chat.withFallbackValue
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.coroutines.channels.Channel as QueueChannel
 
@@ -165,6 +166,7 @@ class DefaultSideBarComponent(
             )
             onChannelSelected(event.channel.id)
         }
+        data.value = data.value.copy(navDrawerState = DrawerState(DrawerValue.Closed))
     }
 
     private fun onGuildFocus(event: FocusGuildEvent) {
@@ -174,6 +176,7 @@ class DefaultSideBarComponent(
             )
         }
         onGuildSelected(event.guild.id)
+        data.value = data.value.copy(navDrawerState = DrawerState(DrawerValue.Closed))
     }
 
     override fun onGuildCreateClicked() {

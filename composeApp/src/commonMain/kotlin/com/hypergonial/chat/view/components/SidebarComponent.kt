@@ -80,10 +80,10 @@ class DefaultSideBarComponent(
             initialConfiguration = { SlotConfig.Home }) { config, childCtx ->
             when (config) {
                 is SlotConfig.Home -> DefaultHomeComponent(childCtx)
-                is SlotConfig.Fallback -> DefaultFallbackMainComponent(childCtx) { onChannelCreateClicked() }
+                is SlotConfig.Fallback -> DefaultFallbackMainComponent(childCtx, ::onChannelCreateClicked)
                 is SlotConfig.Channel -> DefaultChannelComponent(
                     childCtx, client, config.channelId
-                ) {}
+                ) { onLogout() }
             }
         }
 
@@ -92,6 +92,8 @@ class DefaultSideBarComponent(
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onSessionInvalidated)
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onGuildCreate)
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onChannelCreate)
+        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onChannelFocus)
+        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onGuildFocus)
     }
 
     override fun onHomeSelected() {
@@ -108,7 +110,8 @@ class DefaultSideBarComponent(
 
         data.value = data.value.copy(selectedGuild = guildId,
             selectedChannel = firstChannelId,
-            channels = client.cache.getChannelsForGuild(guildId).values.toList().sortedBy { it.id })
+            channels = client.cache.getChannelsForGuild(guildId).values.toList().sortedBy { it.id }
+        )
 
         if (firstChannelId != null) {
             slotNavigation.activate(SlotConfig.Channel(firstChannelId))
@@ -122,15 +125,15 @@ class DefaultSideBarComponent(
         slotNavigation.activate(SlotConfig.Channel(channelId))
     }
 
-    private suspend fun onReady(event: ReadyEvent) {
+    private fun onReady(event: ReadyEvent) {
         data.value = data.value.copy(isConnecting = false)
     }
 
-    private suspend fun onSessionInvalidated(event: SessionInvalidatedEvent) {
+    private fun onSessionInvalidated(event: SessionInvalidatedEvent) {
         onLogout()
     }
 
-    private suspend fun onGuildCreate(event: GuildCreateEvent) {
+    private fun onGuildCreate(event: GuildCreateEvent) {
         // TODO: Update when guilds have positions saved in prefs
         if (event.guild !in data.value.guilds) {
             data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
@@ -138,7 +141,7 @@ class DefaultSideBarComponent(
 
     }
 
-    private suspend fun onChannelCreate(event: ChannelCreateEvent) {
+    private fun onChannelCreate(event: ChannelCreateEvent) {
         if (event.channel.guildId != data.value.selectedGuild) {
             return
         }
@@ -150,7 +153,7 @@ class DefaultSideBarComponent(
         }
     }
 
-    private suspend fun onChannelFocus(event: FocusChannelEvent) {
+    private fun onChannelFocus(event: FocusChannelEvent) {
         if (event.channel in data.value.channels) {
             onChannelSelected(event.channel.id)
         }
@@ -162,7 +165,7 @@ class DefaultSideBarComponent(
         }
     }
 
-    private suspend fun onGuildFocus(event: FocusGuildEvent) {
+    private fun onGuildFocus(event: FocusGuildEvent) {
         if (event.guild !in data.value.guilds) {
             data.value = data.value.copy(
                 guilds = (data.value.guilds + event.guild).sortedBy { it.id },

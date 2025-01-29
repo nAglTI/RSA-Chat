@@ -75,11 +75,6 @@ class DefaultMessageComponent(
         }
     }
 
-    init {
-        // TODO: Idea: If pending, do a waitFor with timeout HERE instead of in the top-level viewmodel
-        // and then either set isPending to false or set a sendFailed flag
-    }
-
     override fun onPendingEnd(message: Message) {
         data.value = data.value.copy(isPending = false, message = message)
     }

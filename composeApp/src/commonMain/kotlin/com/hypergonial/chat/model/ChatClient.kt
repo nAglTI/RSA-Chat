@@ -122,7 +122,10 @@ class ChatClient(val scope: CoroutineScope) : Client {
         }
 
         install(WebSockets) {
-            contentConverter = KotlinxWebsocketSerializationConverter(Json)
+            contentConverter = KotlinxWebsocketSerializationConverter(Json {
+                ignoreUnknownKeys = true
+                encodeDefaults = true
+            })
         }
 
         install(HttpTimeout) {
@@ -172,8 +175,8 @@ class ChatClient(val scope: CoroutineScope) : Client {
                 } catch (_: SerializationException) {
                     logger.error {
                         "${exc::class.simpleName} - Request failed with status ${response.status.value}\n" +
-                            "Path: ${response.request.url}\n" +
-                            "Body (failed deserialize): $body"
+                        "Path: ${response.request.url}\n" +
+                        "Body (failed deserialize): $body"
                     }
                     throw exc
                 }
@@ -192,6 +195,12 @@ class ChatClient(val scope: CoroutineScope) : Client {
     init {
         eventManager.start(scope)
         eventManager.subscribe(::onGuildCreate)
+        eventManager.subscribe(::onGuildRemove)
+        eventManager.subscribe(::onChannelCreate)
+        eventManager.subscribe(::onChannelRemove)
+        eventManager.subscribe(::onMessageCreate)
+        eventManager.subscribe(::onMemberCreate)
+        eventManager.subscribe(::onMemberRemove)
     }
 
 
@@ -281,6 +290,8 @@ class ChatClient(val scope: CoroutineScope) : Client {
     }
 
     override suspend fun connect() {
+        gatewayCloseJob = Job()
+        gatewayConnectedJob = Job()
         scope.launch {
             delay(10000)
             if (!gatewayConnectedJob.isCompleted) {
@@ -289,16 +300,7 @@ class ChatClient(val scope: CoroutineScope) : Client {
                 eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.Timeout))
             }
         }
-        gatewaySession = scope.launch {
-            try {
-                gatewaySession()
-            }
-            finally {
-                gatewayConnectedJob = Job()
-                gatewayCloseJob = Job()
-            }
-        }
-
+        gatewaySession = scope.launch { gatewaySession() }
     }
 
     override fun isConnected(): Boolean = gatewayConnectedJob.isCompleted
@@ -416,7 +418,7 @@ class ChatClient(val scope: CoroutineScope) : Client {
         }
     }
 
-    private suspend fun onGuildCreate(event: GuildCreateEvent) {
+    private fun onGuildCreate(event: GuildCreateEvent) {
         cache.putGuild(event.guild)
         event.channels.forEach { cache.putChannel(it) }
         println("Channels: ${event.channels}")
@@ -430,28 +432,28 @@ class ChatClient(val scope: CoroutineScope) : Client {
         }
     }
 
-    private suspend fun onGuildRemove(event: GuildRemoveEvent) {
+    private fun onGuildRemove(event: GuildRemoveEvent) {
         cache.dropGuild(event.guild.id)
     }
 
-    private suspend fun onChannelCreate(event: ChannelCreateEvent) {
+    private fun onChannelCreate(event: ChannelCreateEvent) {
         cache.putChannel(event.channel)
     }
 
-    private suspend fun onChannelRemove(event: ChannelRemoveEvent) {
+    private fun onChannelRemove(event: ChannelRemoveEvent) {
         cache.dropChannel(event.channel.id)
     }
 
-    private suspend fun onMessageCreate(event: MessageCreateEvent) {
+    private fun onMessageCreate(event: MessageCreateEvent) {
         cache.putMessage(event.message)
     }
 
-    private suspend fun onMemberCreate(event: MemberCreateEvent) {
+    private fun onMemberCreate(event: MemberCreateEvent) {
         cache.putUser(event.member)
         cache.putMember(event.member)
     }
 
-    private suspend fun onMemberRemove(event: MemberRemoveEvent) {
+    private fun onMemberRemove(event: MemberRemoveEvent) {
         cache.dropMember(event.guildId, event.id)
     }
 
@@ -519,23 +521,21 @@ class ChatClient(val scope: CoroutineScope) : Client {
             parameter("before", before?.toString())
             parameter("after", after?.toString())
             parameter("limit", limit.toString())
-        }.body<List<Message>>()
+        }.body<List<Message>>().sortedBy { it.id }
     }
 
     override suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String?) {
         // See https://stackoverflow.com/questions/69830965/ktor-client-post-multipart-form-data
         // TODO: Add support for file uploads
-        http.submitFormWithBinaryData(url = "${config.apiUrl}/channels/$channelId/messages",
+        http.submitFormWithBinaryData(url = "channels/$channelId/messages",
             formData = formData {
                 append(
                     "json".quote(),
-                    Json.encodeToString<MessageCreateRequest>(MessageCreateRequest(content, nonce))
+                    Json.encodeToString<MessageCreateRequest>(MessageCreateRequest(content, nonce)),
+                    Headers.build {
+                        append(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                    }
                 )
-                Headers.build {
-                    append(HttpHeaders.ContentType, "application/json")
-                    // TODO: Is this necessary? Also add filename= here for file uploads
-                    //append(HttpHeaders.ContentDisposition, "name=${"json".quote()}")
-                }
             })
     }
 

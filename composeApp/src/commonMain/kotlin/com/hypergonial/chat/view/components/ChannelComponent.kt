@@ -26,6 +26,10 @@ import com.hypergonial.chat.view.components.subcomponents.MessageComponent
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import com.hypergonial.chat.view.content.ChannelContent
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 
 private const val MESSAGE_BATCH_SIZE = 100u
 
@@ -98,7 +102,7 @@ class DefaultChannelComponent(
 
         scope.launch {
             val messages = client.fetchMessages(
-                channelId = Snowflake(0u), before = lastMessage, limit = MESSAGE_BATCH_SIZE
+                channelId = channelId, before = lastMessage, limit = MESSAGE_BATCH_SIZE
             )
 
             val currentEntries = data.value.messageEntries
@@ -116,6 +120,14 @@ class DefaultChannelComponent(
 
             // Prepend messages to the list
             currentEntries.addAll(features)
+
+            // Edge-case when the channel is empty
+            if (currentEntries.isEmpty()) {
+                currentEntries.add(
+                    messageEntryComponent(mutableStateListOf(), EndOfMessages)
+                )
+                return@launch
+            }
 
             currentEntries.last().setEndIndicator(
                 if (isEnd) EndOfMessages else LoadMoreMessagesIndicator(isAtTop = true)
@@ -136,7 +148,7 @@ class DefaultChannelComponent(
 
         scope.launch {
             val messages = client.fetchMessages(
-                channelId = Snowflake(0u), after = lastMessage, limit = MESSAGE_BATCH_SIZE
+                channelId = channelId, after = lastMessage, limit = MESSAGE_BATCH_SIZE
             )
 
             println("Received ${messages.size} messages with the first having id ${messages.firstOrNull()?.id}")
@@ -207,8 +219,9 @@ class DefaultChannelComponent(
             return
         }
 
-        // Group messages by author
-        if (lastMessage?.author?.id == newMessage.author.id) {
+        // Group recent messages by author
+        if (lastMessage?.author?.id == newMessage.author.id
+            && Clock.System.now() - lastMessage.createdAt < 5.minutes) {
             println("Appending message to last message entry")
             currentEntries.first().pushMessage(
                 messageComponent(
@@ -239,7 +252,7 @@ class DefaultChannelComponent(
     }
 
     /** Invoked when a new message is created on the server. */
-    suspend fun onMessageCreate(event: MessageCreateEvent) {
+    fun onMessageCreate(event: MessageCreateEvent) {
         println("Received message create event")
         // If the user is so high up that the messages at the bottom aren't even loaded, just don't bother
         if (data.value.isCruising) {
@@ -250,7 +263,7 @@ class DefaultChannelComponent(
         addMessage(event.message, isPending = false)
     }
 
-    suspend fun onMessageUpdate(event: MessageUpdateEvent) {
+    fun onMessageUpdate(event: MessageUpdateEvent) {
         println("Received message update event")
         data.value.messageEntries.flatMap { it.data.value.messages }
             .firstOrNull { it.data.value.message.id == event.message.id }?.onMessageUpdate(event)
@@ -278,7 +291,7 @@ class DefaultChannelComponent(
             val nonce = genNonce()
             data.value = data.value.copy(chatBarValue = data.value.chatBarValue.copy(text = ""))
             createPendingMessage(content, nonce)
-            client.sendMessage(channelId = Snowflake(0u), content = content, nonce = nonce)
+            client.sendMessage(channelId, content = content, nonce = nonce)
         }
     }
 
@@ -312,11 +325,18 @@ class DefaultChannelComponent(
 
         val entries = mutableListOf<MessageEntryComponent>()
 
-        // TODO: Message grouping by author
+        // Group messages by author
         for (message in messages) {
-            entries.add(messageEntryComponent(mutableStateListOf(messageComponent(message))))
+            if (entries.isNotEmpty()
+                && entries.last().author?.id == message.author.id
+                && message.createdAt - entries.last().lastMessage()!!.data.value.message.createdAt < 5.minutes
+                ) {
+                entries.last().pushMessage(messageComponent(message))
+            } else {
+                entries.add(messageEntryComponent(mutableStateListOf(messageComponent(message))))
+            }
         }
 
-        return entries
+        return entries.reversed()
     }
 }

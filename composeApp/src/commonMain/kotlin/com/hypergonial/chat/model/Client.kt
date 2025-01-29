@@ -50,6 +50,13 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     /** Fetch a batch of messages from the given channel.
      *
      * @param channelId The ID of the channel to fetch messages from
+     * @param before Fetch messages before this message ID
+     * @param after Fetch messages after this message ID
+     * @param limit The maximum number of messages to fetch
+     *
+     * @return A list of messages fetched from the channel, sorted by creation date in ascending order.
+     *
+     * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the channel does not exist
      */
     suspend fun fetchMessages(
         channelId: Snowflake,
@@ -61,7 +68,10 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     /** Send a message to the given channel */
     suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String? = null)
 
-    /** Logout the currently authenticated user */
+    /** Log out the currently authenticated user
+     *
+     * Wipes all client state.
+     * */
     fun logout()
 
     /** Closes the gateway connection, if it is open. */

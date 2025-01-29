@@ -7,7 +7,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
 import kotlin.reflect.KClass
 
 /** A type that has an event manager. */
@@ -43,7 +42,7 @@ private sealed class Instruction {
 
 /** Inner class managing the event subscriptions and dispatching. */
 private class EventManagerInner {
-    private val subscribers: MutableMap<KClass<out Event>, MutableList<EventSubscriber<out Event>>> =
+    private val subscribers: MutableMap<KClass<out Event>, HashSet<EventSubscriber<out Event>>> =
         mutableMapOf()
 
     private val channel = Channel<Instruction>(Channel.Factory.UNLIMITED)
@@ -82,7 +81,7 @@ private class EventManagerInner {
     }
 
     private fun <T : Event> subscribe(eventType: KClass<out T>, subscriber: EventSubscriber<out T>) {
-        val eventSubscribers = subscribers.getOrPut(eventType) { mutableListOf() }
+        val eventSubscribers = subscribers.getOrPut(eventType) { hashSetOf() }
         eventSubscribers.add(subscriber)
     }
 
@@ -91,8 +90,8 @@ private class EventManagerInner {
         eventSubscribers?.retainAll { it != subscriber }
     }
 
-    private fun <T : Event> getSubscribers(eventType: KClass<T>): List<EventSubscriber<out Event>> {
-        return this.subscribers[eventType] ?: emptyList()
+    private fun <T : Event> getSubscribers(eventType: KClass<T>): Set<EventSubscriber<out Event>> {
+        return this.subscribers[eventType] ?: emptySet()
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -133,21 +132,6 @@ class EventManager {
         subscribe(T::class, callback)
     }
 
-    /** Add a subscriber to this event manager in a lifecycle-aware way.
-     * The provided callback will be called when an event of that type is dispatched.
-     *
-     * @param callback The callback to call when an event of the given type is dispatched.
-     * It will be called with the event as the only parameter.
-     * @param lifecycle The lifecycle to unsubscribe the callback on.
-     */
-    inline fun <reified T : Event> subscribeWithLifeCycle(
-        lifecycle: Lifecycle,
-        noinline callback: suspend (T) -> Unit
-    ) {
-        subscribe(T::class, callback)
-        lifecycle.doOnDestroy { unsubscribe(T::class, callback) }
-    }
-
     /**
      * Add a subscriber to this event manager.
      * The provided callback will be called when an event of that type is dispatched.
@@ -162,6 +146,21 @@ class EventManager {
         if (!res) {
             throw RuntimeException("Failed to subscribe $callback to $eventType")
         }
+    }
+
+    /** Add a subscriber to this event manager in a lifecycle-aware way.
+     * The provided callback will be called when an event of that type is dispatched.
+     *
+     * @param callback The callback to call when an event of the given type is dispatched.
+     * It will be called with the event as the only parameter.
+     * @param lifecycle The lifecycle to unsubscribe the callback on.
+     */
+    inline fun <reified T : Event> subscribeWithLifeCycle(
+        lifecycle: Lifecycle,
+        noinline callback: suspend (T) -> Unit
+    ) {
+        subscribe(callback)
+        lifecycle.doOnDestroy { unsubscribe(callback) }
     }
 
     /**

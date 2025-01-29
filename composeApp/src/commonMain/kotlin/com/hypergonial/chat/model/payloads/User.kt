@@ -2,12 +2,17 @@ package com.hypergonial.chat.model.payloads
 
 import com.hypergonial.chat.model.settings
 import kotlinx.datetime.Instant
+import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonContentPolymorphicSerializer
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.jsonObject
 
+@Serializable(with = PartialUserSerializer::class)
 sealed interface PartialUser {
     val id: Snowflake
     val username: String
@@ -84,5 +89,13 @@ object MemberSerializer : KSerializer<Member> {
 
     override fun deserialize(decoder: Decoder): Member {
         return MemberPayload.toMember(MemberPayload.serializer().deserialize(decoder))
+    }
+}
+
+// Serializer to defer serialization of PartialUser to User or Member dynamically
+object PartialUserSerializer : JsonContentPolymorphicSerializer<PartialUser>(PartialUser::class) {
+    override fun selectDeserializer(element: JsonElement): DeserializationStrategy<PartialUser> = when {
+        "guild_id" in element.jsonObject -> Member.serializer()
+        else -> User.serializer()
     }
 }

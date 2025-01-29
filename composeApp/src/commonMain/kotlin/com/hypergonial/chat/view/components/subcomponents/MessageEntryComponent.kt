@@ -6,12 +6,15 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.hypergonial.chat.model.Client
-import com.hypergonial.chat.model.payloads.Message
+import com.hypergonial.chat.model.payloads.PartialUser
 import com.hypergonial.chat.model.payloads.Snowflake
 
 interface MessageEntryComponent {
 
     val data: Value<MessageEntryState>
+
+    val author: PartialUser?
+        get() = firstMessage()?.data?.value?.message?.author
 
     data class MessageEntryState(
         val messages: SnapshotStateList<MessageComponent>, val endIndicator: EndIndicator? = null
@@ -28,6 +31,10 @@ interface MessageEntryComponent {
     }
 
     fun pushMessage(message: MessageComponent) {
+        require(author == null || message.data.value.message.author.id == author?.id) {
+            "Message author does not match the author of the message entry."
+        }
+
         data.value.messages.add(message)
     }
 

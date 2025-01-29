@@ -11,7 +11,8 @@ data class Message(
     val channelId: Snowflake,
     val content: String? = null,
     val author: PartialUser,
-    val nonce: String? = null
+    val nonce: String? = null,
+    val attachments: List<Attachment> = emptyList(),
 ) {
     val createdAt: Instant
         get() = id.createdAt

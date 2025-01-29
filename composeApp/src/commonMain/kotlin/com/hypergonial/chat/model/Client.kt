@@ -46,6 +46,9 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     /** Wait until the client is connected to the gateway */
     suspend fun waitUntilConnected()
 
+    /** Wait until the client is disconnected from the gateway */
+    suspend fun waitUntilDisconnected()
+
 
     /** Fetch a batch of messages from the given channel.
      *
@@ -66,7 +69,7 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     ): List<Message>
 
     /** Send a message to the given channel */
-    suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String? = null)
+    suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String? = null): Message
 
     /** Log out the currently authenticated user
      *
@@ -78,7 +81,10 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     fun closeGateway()
 
     /** Edit a message by its ID */
-    suspend fun editMessage(channelId: Snowflake, messageId: Snowflake, content: String? = null)
+    suspend fun editMessage(channelId: Snowflake, messageId: Snowflake, content: String? = null): Message
+
+    /** Delete a message by its ID */
+    suspend fun deleteMessage(channelId: Snowflake, messageId: Snowflake)
 
     /** Reloads the client API configuration from disk */
     fun reloadConfig()

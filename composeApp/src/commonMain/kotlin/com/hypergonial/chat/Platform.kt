@@ -10,6 +10,10 @@ enum class PlatformType {
     fun needsBackButton(): Boolean {
         return this != ANDROID
     }
+
+    fun needsToSuspendGatewaySession(): Boolean {
+        return this != JVM
+    }
 }
 
 interface Platform {

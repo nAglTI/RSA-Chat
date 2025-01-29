@@ -283,7 +283,7 @@ fun MessageContent(
                 )
             )
         )
-        AnimatedVisibility(visible = state.isEdited) {
+        AnimatedVisibility(visible = state.message.isEdited) {
             TooltipBox(
                 positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
                 tooltip = {

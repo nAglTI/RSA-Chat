@@ -20,6 +20,7 @@ import com.hypergonial.chat.model.payloads.rest.AuthResponse
 import com.hypergonial.chat.model.payloads.rest.ChannelCreateRequest
 import com.hypergonial.chat.model.payloads.rest.GuildCreateRequest
 import com.hypergonial.chat.model.payloads.rest.MessageCreateRequest
+import com.hypergonial.chat.model.payloads.rest.MessageUpdateRequest
 import com.hypergonial.chat.model.payloads.rest.UserRegisterRequest
 import com.hypergonial.chat.platform
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -40,10 +41,12 @@ import io.ktor.client.plugins.websocket.sendSerialized
 import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.client.request.basicAuth
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
@@ -195,10 +198,13 @@ class ChatClient(val scope: CoroutineScope) : Client {
     init {
         eventManager.start(scope)
         eventManager.subscribe(::onGuildCreate)
+        eventManager.subscribe(::onGuildUpdate)
         eventManager.subscribe(::onGuildRemove)
         eventManager.subscribe(::onChannelCreate)
         eventManager.subscribe(::onChannelRemove)
         eventManager.subscribe(::onMessageCreate)
+        eventManager.subscribe(::onMessageUpdate)
+        eventManager.subscribe(::onMessageRemove)
         eventManager.subscribe(::onMemberCreate)
         eventManager.subscribe(::onMemberRemove)
     }
@@ -308,6 +314,8 @@ class ChatClient(val scope: CoroutineScope) : Client {
     override fun isConnected(): Boolean = gatewayConnectedJob.isCompleted
 
     override suspend fun waitUntilConnected() = gatewayConnectedJob.join()
+
+    override suspend fun waitUntilDisconnected() = gatewaySession?.join() ?: Unit
 
 
     private suspend fun gatewaySession() {
@@ -433,6 +441,10 @@ class ChatClient(val scope: CoroutineScope) : Client {
         }
     }
 
+    private fun onGuildUpdate(event: GuildUpdateEvent) {
+        cache.putGuild(event.guild)
+    }
+
     private fun onGuildRemove(event: GuildRemoveEvent) {
         cache.dropGuild(event.guild.id)
     }
@@ -446,7 +458,15 @@ class ChatClient(val scope: CoroutineScope) : Client {
     }
 
     private fun onMessageCreate(event: MessageCreateEvent) {
-        cache.putMessage(event.message)
+        cache.addMessage(event.message)
+    }
+
+    private fun onMessageUpdate(event: MessageUpdateEvent) {
+        cache.updateMessage(event.message)
+    }
+
+    private fun onMessageRemove(event: MessageRemoveEvent) {
+        cache.dropMessage(event.channelId, event.id)
     }
 
     private fun onMemberCreate(event: MemberCreateEvent) {
@@ -525,10 +545,10 @@ class ChatClient(val scope: CoroutineScope) : Client {
         }.body<List<Message>>().sortedBy { it.id }
     }
 
-    override suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String?) {
+    override suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String?): Message {
         // See https://stackoverflow.com/questions/69830965/ktor-client-post-multipart-form-data
         // TODO: Add support for file uploads
-        http.submitFormWithBinaryData(url = "channels/$channelId/messages",
+        return http.submitFormWithBinaryData(url = "channels/$channelId/messages",
             formData = formData {
                 append(
                     "json".quote(),
@@ -537,11 +557,18 @@ class ChatClient(val scope: CoroutineScope) : Client {
                         append(HttpHeaders.ContentType, ContentType.Application.Json.toString())
                     }
                 )
-            })
+            }).body<Message>()
     }
 
-    override suspend fun editMessage(channelId: Snowflake, messageId: Snowflake, content: String?) {
-        TODO("Not yet implemented")
+    override suspend fun editMessage(channelId: Snowflake, messageId: Snowflake, content: String?): Message {
+        return http.patch("channels/$channelId/messages/$messageId") {
+            contentType(ContentType.Application.Json)
+            setBody(MessageUpdateRequest(content))
+        }.body<Message>()
+    }
+
+    override suspend fun deleteMessage(channelId: Snowflake, messageId: Snowflake) {
+        http.delete("channels/$channelId/messages/$messageId")
     }
 
     override fun reloadConfig() {

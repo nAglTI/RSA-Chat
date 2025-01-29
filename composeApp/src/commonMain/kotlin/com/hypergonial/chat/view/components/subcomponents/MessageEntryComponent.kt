@@ -38,6 +38,17 @@ interface MessageEntryComponent {
         data.value.messages.add(message)
     }
 
+    fun containsMessage(messageId: Snowflake): Boolean {
+        return data.value.messages.any { it.data.value.message.id == messageId }
+    }
+
+    fun removeMessage(messageId: Snowflake) {
+        val index = data.value.messages.indexOfFirst { it.data.value.message.id == messageId }
+        if (index != -1) {
+            data.value.messages.removeAt(index)
+        }
+    }
+
     fun getKey(): String {
         return data.value.messages.firstOrNull()?.getKey() ?: "emptykey"
     }

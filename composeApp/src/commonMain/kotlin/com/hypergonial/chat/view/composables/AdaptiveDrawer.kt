@@ -1,10 +1,10 @@
 package com.hypergonial.chat.view.composables
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalDrawerSheet
@@ -38,6 +38,7 @@ fun AdaptiveDrawer(
     drawerState: DrawerState = rememberDrawerState(DrawerValue.Closed),
     gesturesEnabled: Boolean = true,
     onLayoutChange: ((Boolean) -> Unit)? = null,
+    windowInsets: WindowInsets = WindowInsets(0),
     drawerDirection: DrawerDirection = DrawerDirection.Left,
     content: @Composable () -> Unit,
 ) {
@@ -71,14 +72,17 @@ fun AdaptiveDrawer(
         PermanentNavigationDrawer({
             CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDir) {
                 PermanentDrawerSheet(
-                    Modifier.animateContentSize().width(if (!isSmall) 300.dp else 0.dp)
+                    Modifier.animateContentSize().width(if (!isSmall) 300.dp else 0.dp),
+                    windowInsets = windowInsets
                 ) { drawerContent() }
             }
         }, modifier) {
             ModalNavigationDrawer({
                 if (isSmall) CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDir) {
+                    DrawerDefaults.windowInsets
                     ModalDrawerSheet(
                         drawerShape = shape,
+                        windowInsets = windowInsets
                     ) { drawerContent() }
                 } else Unit
             },

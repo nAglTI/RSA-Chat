@@ -6,7 +6,6 @@ import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
-import com.hypergonial.chat.removeRange
 
 interface CacheAware {
     val cache: Cache
@@ -120,7 +119,7 @@ class Cache {
         _ownUser = user
     }
 
-    fun putMessage(message: Message) {
+    fun addMessage(message: Message) {
         val messages = _messages[message.channelId] ?: ArrayDeque()
         messages.add(message)
 
@@ -131,7 +130,25 @@ class Cache {
         _messages[message.channelId] = messages
     }
 
-    fun putMessages(messages: List<Message>) {
+    fun updateMessage(message: Message) {
+        val messages = _messages[message.channelId] ?: return
+        val index = messages.indexOfFirst { it.id == message.id }
+
+        if (index != -1) {
+            messages[index] = message
+        }
+    }
+
+    fun dropMessage(channelId: Snowflake, messageId: Snowflake) {
+        val messages = _messages[channelId] ?: return
+        val index = messages.indexOfFirst { it.id == messageId }
+
+        if (index != -1) {
+            messages.removeAt(index)
+        }
+    }
+
+    fun addMessages(messages: List<Message>) {
         val grouped = messages.groupBy { it.channelId }
 
         for ((channelId, group) in grouped) {

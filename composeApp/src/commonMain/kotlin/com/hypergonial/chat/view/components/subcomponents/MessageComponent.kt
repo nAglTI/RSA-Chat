@@ -24,7 +24,6 @@ interface MessageComponent {
         val message: Message,
         val createdAt: Instant,
         val isPending: Boolean = false,
-        val isEdited: Boolean = false,
         val isBeingEdited: Boolean = false,
         val editorState: TextFieldValue = TextFieldValue()
     )
@@ -67,14 +66,12 @@ class DefaultMessageComponent(
     private val client: Client,
     message: Message,
     isPending: Boolean = false,
-    isEdited: Boolean = false,
 ) : MessageComponent {
     override val data = MutableValue(
         MessageComponent.MessageUIState(
             message,
             createdAt = if (isPending) Clock.System.now() else message.createdAt,
             isPending,
-            isEdited
         )
     )
     private val wasCreatedAsPending = isPending
@@ -126,7 +123,7 @@ class DefaultMessageComponent(
     }
 
     override fun onMessageUpdate(event: MessageUpdateEvent) {
-        data.value = data.value.copy(message = event.message, isEdited = true, isPending = false)
+        data.value = data.value.copy(message = event.message, isPending = false)
     }
 
 }

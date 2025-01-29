@@ -22,6 +22,9 @@ class MessageCreateEvent(message: Message) : MessageEvent(message)
 /** Event dispatched when a message is edited */
 class MessageUpdateEvent(message: Message) : MessageEvent(message)
 
+/** Event dispatched when a message is deleted */
+class MessageRemoveEvent(val id: Snowflake, val channelId: Snowflake, val guildId: Snowflake) : Event()
+
 /** Event dispatched when a member is created */
 class MemberCreateEvent(val member: Member) : Event()
 
@@ -30,6 +33,9 @@ class MemberRemoveEvent(val id: Snowflake, val guildId: Snowflake) : Event()
 
 /** Event dispatched when a guild is created */
 class GuildCreateEvent(val guild: Guild, val channels: List<Channel>, val members: List<Member>) : Event()
+
+/** Event dispatched when a guild is updated */
+class GuildUpdateEvent(val guild: Guild) : Event()
 
 /** Event dispatched when a guild is removed */
 class GuildRemoveEvent(val guild: Guild) : Event()
@@ -43,6 +49,7 @@ class ChannelRemoveEvent(val channel: Channel) : Event()
 /** Event dispatched after the client has authenticated with the gateway */
 class ReadyEvent(val user: User, val guilds: List<Guild>) : Event()
 
+/** Event dispatched when a user's presence is updated */
 class PresenceUpdateEvent(val userId: Snowflake, val presence: String) : Event()
 
 enum class InvalidationReason {

@@ -11,8 +11,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.window.ComposeViewport
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
-import com.arkivanov.decompose.router.stack.webhistory.DefaultWebHistoryController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.arkivanov.essenty.lifecycle.pause
 import com.arkivanov.essenty.lifecycle.resume
 import com.arkivanov.essenty.lifecycle.stop
 import com.arkivanov.essenty.statekeeper.SerializableContainer
@@ -42,7 +42,7 @@ private val darkColorScheme = darkColorScheme(
 
 /** Change the app's lifecycle based on the document's visibility. */
 private fun LifecycleRegistry.attachToDocument() {
-    val onVisibilityChanged = { if (document.hasFocus()) resume() else stop() }
+    val onVisibilityChanged = { if (document.hasFocus()) resume() else pause() }
 
     onVisibilityChanged()
 
@@ -67,7 +67,7 @@ fun AppTheme(
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalDecomposeApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     val lifecycle = LifecycleRegistry()
     val stateKeeper = StateKeeperDispatcher(savedState = localStorage[KEY_SAVED_STATE]?.decodeSerializableContainer())

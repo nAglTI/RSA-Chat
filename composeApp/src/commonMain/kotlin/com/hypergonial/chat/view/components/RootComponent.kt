@@ -13,6 +13,8 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.instancekeeper.retainedInstance
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.arkivanov.essenty.lifecycle.doOnPause
+import com.arkivanov.essenty.lifecycle.doOnResume
 import com.hypergonial.chat.model.ChatClient
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.FocusChannelEvent
@@ -71,18 +73,6 @@ class DefaultRootComponent(
 
     override val stack: Value<ChildStack<*, RootComponent.Child>> = _stack
 
-    init {
-        startGateway()
-    }
-
-    private fun startGateway() {
-        scope.launch {
-        if (client.isLoggedIn()) {
-                client.connect()
-            }
-        }
-    }
-
     /** The child factory for the root component's childStack. */
     private fun child(config: Config, childCtx: ComponentContext): RootComponent.Child =
         when (config) {
@@ -90,7 +80,7 @@ class DefaultRootComponent(
                 DefaultLoginComponent(
                     ctx = childCtx,
                     client = client,
-                    onLogin = { startGateway(); nav.replaceAll(Config.Main) },
+                    onLogin = { nav.replaceAll(Config.Main) },
                     onRegisterRequest = { nav.pushNew(Config.Register) },
                     onDebugSettingsOpen = { nav.pushNew(Config.DebugSettings) }
                 ),

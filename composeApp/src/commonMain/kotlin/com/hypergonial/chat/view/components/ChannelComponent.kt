@@ -12,6 +12,7 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.genNonce
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.MessageCreateEvent
+import com.hypergonial.chat.model.MessageRemoveEvent
 import com.hypergonial.chat.model.MessageUpdateEvent
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
@@ -41,7 +42,7 @@ interface ChannelComponent : MainContentComponent, Displayable {
     fun onMessageSend()
     fun onEditLastMessage()
     fun onChatBarContentChanged(value: TextFieldValue)
-    fun onMessageDelete(messageId: Snowflake)
+    fun onMessageDeleteRequested(messageId: Snowflake)
 
     @Composable
     override fun Display() = ChannelContent(this)
@@ -81,14 +82,13 @@ class DefaultChannelComponent(
     init {
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessageCreate)
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessageUpdate)
+        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessageDelete)
     }
 
     override fun onLogoutClicked() = onLogout()
 
-    private fun messageComponent(
-        message: Message, isPending: Boolean = false, isEdited: Boolean = false
-    ): MessageComponent {
-        return DefaultMessageComponent(ctx, client, message, isPending, isEdited)
+    private fun messageComponent(message: Message, isPending: Boolean = false): MessageComponent {
+        return DefaultMessageComponent(ctx, client, message, isPending)
     }
 
     private fun messageEntryComponent(
@@ -241,9 +241,9 @@ class DefaultChannelComponent(
     }
 
     /** Invoked when a new message is created on the server. */
-    fun onMessageCreate(event: MessageCreateEvent) {
+    private fun onMessageCreate(event: MessageCreateEvent) {
         // If the user is so high up that the messages at the bottom aren't even loaded, just don't bother
-        if (data.value.isCruising) {
+        if (event.message.channelId != channelId || data.value.isCruising) {
             // TODO: Implement a way to notify the user that new messages are available
             return
         }
@@ -251,18 +251,27 @@ class DefaultChannelComponent(
         addMessage(event.message, isPending = false)
     }
 
-    fun onMessageUpdate(event: MessageUpdateEvent) {
+    private fun onMessageUpdate(event: MessageUpdateEvent) {
+        if (event.message.channelId != channelId) return
+
         data.value.messageEntries.flatMap { it.data.value.messages }
             .firstOrNull { it.data.value.message.id == event.message.id }?.onMessageUpdate(event)
 
+    }
+
+    private fun onMessageDelete(event: MessageRemoveEvent) {
+        if (event.channelId != channelId) return
+
+        val entry = data.value.messageEntries.firstOrNull { it.containsMessage(event.id) } ?: return
+        entry.removeMessage(event.id)
     }
 
     private fun createPendingMessage(content: String, nonce: String) {
         val msg = Message(
             Snowflake(0u),
             channelId,
-            content,
             client.cache.ownUser ?: error("Own user not cached, cannot send message"),
+            content,
             nonce,
         )
         addMessage(msg, isPending = true)
@@ -289,12 +298,12 @@ class DefaultChannelComponent(
         lastMessage.onEditStart()
     }
 
-    override fun onChatBarContentChanged(value: TextFieldValue) {
-        data.value = data.value.copy(chatBarValue = value.sanitized())
+    override fun onMessageDeleteRequested(messageId: Snowflake) {
+        TODO("Not yet implemented")
     }
 
-    override fun onMessageDelete(messageId: Snowflake) {
-        TODO("Not yet implemented")
+    override fun onChatBarContentChanged(value: TextFieldValue) {
+        data.value = data.value.copy(chatBarValue = value.sanitized())
     }
 
     /** Creates a list of message list features from a list of messages.

@@ -2,12 +2,15 @@ package com.hypergonial.chat.view.content
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
@@ -34,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -96,7 +100,7 @@ fun MainContent(component: SidebarComponent) {
                             } else {
                                 MaterialTheme.colorScheme.surfaceContainerLow
                             }
-                        )
+                        ).safeDrawingPadding()
                 ) {
                     item {
                         SidebarGuildItem(tooltipText = "Home",
@@ -129,7 +133,7 @@ fun MainContent(component: SidebarComponent) {
                         }, isSelected = false, onSelect = { component.onGuildCreateClicked() })
                     }
                 }
-                Column(Modifier.padding(start = 5.dp)) {
+                Column(Modifier.safeDrawingPadding().padding(start = 5.dp)) {
                     Text(state.selectedGuild?.name ?: "Home", Modifier.padding(vertical = 5.dp))
 
                     HorizontalDivider(Modifier.fillMaxWidth().padding(vertical = 5.dp))
@@ -169,12 +173,10 @@ fun MainContent(component: SidebarComponent) {
                         }
                     }
                 }
-
             }
-
         }) {
-            Scaffold(topBar = { MainTopBar(component) }) { padding ->
-                Box(Modifier.padding(padding)) {
+            Scaffold(topBar = { MainTopBar(component) }) {
+                Box(Modifier.safeDrawingPadding()) {
                     when (val c = mainContent.child?.instance) {
                         is HomeComponent -> HomeContent(c)
                         is ChannelComponent -> ChannelContent(c)

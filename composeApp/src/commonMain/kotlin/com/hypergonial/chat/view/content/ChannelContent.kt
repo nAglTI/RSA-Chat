@@ -20,7 +20,7 @@ fun ChannelContent(component: ChannelComponent) {
     val state by component.data.subscribeAsState()
 
     Column(
-        Modifier.safeDrawingPadding().fillMaxSize(), verticalArrangement = Arrangement.Bottom
+        Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom
     ) {
         // Is a LazyColumn wrapped in a custom composable
         MessageList(

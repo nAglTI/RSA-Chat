@@ -11,19 +11,27 @@ import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.arkivanov.essenty.lifecycle.doOnPause
+import com.arkivanov.essenty.lifecycle.doOnResume
 import com.hypergonial.chat.model.ChannelCreateEvent
+import com.hypergonial.chat.model.ChannelRemoveEvent
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.FocusChannelEvent
 import com.hypergonial.chat.model.FocusGuildEvent
 import com.hypergonial.chat.model.GuildCreateEvent
+import com.hypergonial.chat.model.GuildRemoveEvent
+import com.hypergonial.chat.model.GuildUpdateEvent
 import com.hypergonial.chat.model.ReadyEvent
 import com.hypergonial.chat.model.SessionInvalidatedEvent
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.content.MainContent
 import com.hypergonial.chat.withFallbackValue
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.coroutines.channels.Channel as QueueChannel
@@ -65,6 +73,8 @@ class DefaultSideBarComponent(
     val onLogout: () -> Unit
 ) : SidebarComponent, ComponentContext by ctx {
     private val scope = ctx.coroutineScope()
+    private var isSuspended = false
+    private val logger = KotlinLogging.logger {}
 
     override val data = MutableValue(
         SidebarComponent.SidebarState(
@@ -93,10 +103,41 @@ class DefaultSideBarComponent(
             subscribeWithLifeCycle(ctx.lifecycle, ::onReady)
             subscribeWithLifeCycle(ctx.lifecycle, ::onSessionInvalidated)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildCreate)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onGuildUpdate)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onGuildRemove)
             subscribeWithLifeCycle(ctx.lifecycle, ::onChannelCreate)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onChannelRemove)
             subscribeWithLifeCycle(ctx.lifecycle, ::onChannelFocus)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildFocus)
         }
+
+        if (!platform.platformType.needsToSuspendGatewaySession()) {
+            scope.launch {
+                if (client.isLoggedIn()) client.connect() else onLogout()
+            }
+        }
+        else {
+            ctx.lifecycle.doOnResume {
+                scope.launch {
+                    // Wait for any pending connection to finish before reconnecting
+                    client.waitUntilDisconnected()
+                    isSuspended = false
+                    logger.info { "App resumed, reconnecting to gateway..." }
+                    if (client.isLoggedIn()) {
+                        client.connect()
+                    }
+                }
+            }
+
+            ctx.lifecycle.doOnPause {
+                logger.info { "App paused, closing gateway..." }
+                isSuspended = true
+                client.closeGateway()
+                data.value = data.value.copy(isConnecting = true)
+            }
+        }
+
+
     }
 
     override fun onHomeSelected() {
@@ -137,7 +178,9 @@ class DefaultSideBarComponent(
     }
 
     private fun onSessionInvalidated(event: SessionInvalidatedEvent) {
-        onLogout()
+        if (!isSuspended) {
+            onLogout()
+        }
     }
 
     private fun onGuildCreate(event: GuildCreateEvent) {
@@ -145,7 +188,25 @@ class DefaultSideBarComponent(
         if (event.guild !in data.value.guilds) {
             data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         }
+    }
 
+    private fun onGuildUpdate(event: GuildUpdateEvent) {
+        if (event.guild !in data.value.guilds) {
+            data.value = data.value.copy(
+                guilds = (data.value.guilds + event.guild).sortedBy { it.id },
+            )
+        }
+        else {
+            data.value = data.value.copy(
+                guilds = data.value.guilds.map { if (it.id == event.guild.id) event.guild else it }
+            )
+        }
+    }
+
+    private fun onGuildRemove(event: GuildRemoveEvent) {
+        data.value = data.value.copy(
+            guilds = data.value.guilds.filter { it.id != event.guild.id }
+        )
     }
 
     private fun onChannelCreate(event: ChannelCreateEvent) {
@@ -158,6 +219,16 @@ class DefaultSideBarComponent(
                 channels = (data.value.channels + event.channel).sortedBy { it.id },
             )
         }
+    }
+
+    private fun onChannelRemove(event: ChannelRemoveEvent) {
+        if (event.channel.guildId != data.value.selectedGuild?.id) {
+            return
+        }
+
+        data.value = data.value.copy(
+            channels = data.value.channels.filter { it.id != event.channel.id }
+        )
     }
 
     private fun onChannelFocus(event: FocusChannelEvent) {

@@ -6,6 +6,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 
@@ -45,24 +46,24 @@ private class EventManagerInner {
     private val subscribers: MutableMap<KClass<out Event>, HashSet<EventSubscriber<out Event>>> =
         mutableMapOf()
 
-    private val channel = Channel<Instruction>(Channel.Factory.UNLIMITED)
+    private var channel = Channel<Instruction>(Channel.Factory.UNLIMITED)
     private var scope: CoroutineScope? = null
     private var runningJob: Job? = null
 
-    fun start(coroutineScope: CoroutineScope) {
+    suspend fun run() = coroutineScope {
         if (runningJob != null) {
             runningJob?.cancel()
         }
-        scope = coroutineScope
-        runningJob = coroutineScope.launch { run() }
+        scope = this
+        runningJob = launch { handleInstructions() }
     }
 
     fun stop() {
-        channel.close()
         runningJob?.cancel()
+        runningJob = null
     }
 
-    suspend fun run() {
+    private suspend fun handleInstructions() {
         for (instruction in channel) {
             when (instruction) {
                 is Instruction.Subscribe -> subscribe(instruction.event, instruction.subscriber)
@@ -114,10 +115,12 @@ private class EventManagerInner {
 class EventManager {
     private val inner: EventManagerInner = EventManagerInner()
 
-    fun start(scope: CoroutineScope) {
-        inner.start(scope)
+    /** Runs the event manager. This call unblocks only when the event manager is stopped. */
+    suspend fun run() {
+        inner.run()
     }
 
+    /** Stops the event manager. */
     fun stop() {
         inner.stop()
     }

@@ -1,5 +1,8 @@
 package com.hypergonial.chat.model
 
+import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.arkivanov.essenty.lifecycle.doOnPause
+import com.arkivanov.essenty.lifecycle.doOnResume
 import com.hypergonial.chat.model.exceptions.NotFoundException
 import com.hypergonial.chat.model.exceptions.getApiException
 import com.hypergonial.chat.model.payloads.Channel
@@ -66,8 +69,11 @@ import io.ktor.websocket.Frame
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withTimeout
@@ -78,9 +84,30 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
 import kotlinx.coroutines.channels.Channel as QueueChannel
 
-class ChatClient(val scope: CoroutineScope) : Client {
+/** The primary implemention of a client that connects to the chat backend
+ *
+ * This class is responsible for managing the connection to the chat backend, sending and receiving messages,
+ * and dispatching events to the event manager.
+ *
+ * @param scopeFactory A factory function that creates a new coroutine scope
+ * It should always return a new scope to ensure that the client can be suspended and resumed correctly.
+ *
+ * Note: If the client needs to be lifecycle-aware, .bindToLifecycle() should be called with the appropriate lifecycle.
+ * */
+class ChatClient(scope: CoroutineScope) : Client {
     /** The bearer token used for authentication */
     private var token: Secret<String>? = settings.getToken()?.let { Secret(it) }
+
+    private var _isSuspended = false
+
+    override val isSuspended
+        get() = _isSuspended
+
+    private var _scope = scope
+
+    override val scope
+        get() = _scope
+
     private val readyJob = Job()
     /** The logger used for this class */
     private val logger = KotlinLogging.logger {}
@@ -196,7 +223,7 @@ class ChatClient(val scope: CoroutineScope) : Client {
     }
 
     init {
-        eventManager.start(scope)
+        scope.launch { eventManager.run() }
         eventManager.subscribe(::onGuildCreate)
         eventManager.subscribe(::onGuildUpdate)
         eventManager.subscribe(::onGuildRemove)
@@ -209,6 +236,29 @@ class ChatClient(val scope: CoroutineScope) : Client {
         eventManager.subscribe(::onMemberRemove)
     }
 
+
+    override fun replaceScope(scope: CoroutineScope) {
+        closeGateway()
+        eventManager.stop()
+        _scope = scope
+        scope.launch { eventManager.run() }
+    }
+
+    override fun pause() {
+        _isSuspended = true
+        closeGateway()
+    }
+
+    override suspend fun resume() {
+        withTimeout(2500) {
+            waitUntilDisconnected()
+        }
+        _isSuspended = false
+        logger.info { "Reconnecting to gateway..." }
+        if (isLoggedIn()) {
+            connect()
+        }
+    }
 
     override fun isLoggedIn(): Boolean {
         return !token?.expose().isNullOrEmpty()
@@ -398,7 +448,7 @@ class ChatClient(val scope: CoroutineScope) : Client {
 
             jobs.forEachIndexed { index, job ->
                 job.invokeOnCompletion {
-                    if (it != null) {
+                    if (it != null && it !is kotlinx.coroutines.CancellationException) {
                         logger.error { "Job $index failed: $it" }
                     }
                 }

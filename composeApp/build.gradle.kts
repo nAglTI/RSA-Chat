@@ -83,7 +83,7 @@ kotlin {
             implementation(libs.androidx.startup.runtime)
             // SLF4J
             implementation(libs.slf4j.api)
-            implementation(libs.slf4j.simple)
+            implementation(libs.slf4j.android)
         }
         commonMain.dependencies {
             implementation(kotlin("reflect"))

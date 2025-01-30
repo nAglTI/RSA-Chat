@@ -23,6 +23,7 @@ kotlinxSerializationJson = "1.7.3"
 kotlinxDatetime = "0.6.1"
 essenty = "2.3.0"
 multiplatformMarkdownRenderer = "0.27.0"
+slf4jAndroid = "2.0.7-0"
 startupRuntime = "1.2.0"
 kotlinx-coroutines = "1.9.0"
 ktor = "3.0.3"
@@ -80,6 +81,7 @@ multiplatform-markdown-renderer-coil3 = { module = "com.mikepenz:multiplatform-m
 multiplatform-markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdownRenderer" }
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatform-settings" }
 multiplatform-settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatform-settings" }
+slf4j-android = { module = "uk.uuid.slf4j:slf4j-android", version.ref = "slf4jAndroid" }
 state-keeper = { module = "com.arkivanov.essenty:state-keeper", version.ref = "essenty" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref= "slf4j" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref= "slf4j" }

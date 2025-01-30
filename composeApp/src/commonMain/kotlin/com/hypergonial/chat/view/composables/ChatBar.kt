@@ -60,6 +60,7 @@ fun ChatBar(
     enabled: Boolean = true,
     shouldGrabFocus: Boolean = false,
     onValueChange: (TextFieldValue) -> Unit,
+    leadingIcon: @Composable (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = {
         Icon(
             Icons.AutoMirrored.Filled.Send,
@@ -72,6 +73,7 @@ fun ChatBar(
     onFocusGain: (() -> Unit)? = null,
     onFocusLoss: (() -> Unit)? = null,
     onEditLastRequested: (() -> Unit)? = null,
+    onLeadingIconClick: (() -> Unit)? = null,
     onSubmit: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
@@ -138,6 +140,13 @@ fun ChatBar(
             disabledIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent,
         ),
+        leadingIcon = {
+            if (leadingIcon != null && onLeadingIconClick != null) {
+                IconButton(onClick = onLeadingIconClick, modifier = Modifier.focusProperties { canFocus = false }) {
+                    leadingIcon()
+                }
+            }
+        },
         trailingIcon = {
             if (trailingIcon != null) {
                 IconButton(onClick = onSubmit, modifier = Modifier.focusProperties { canFocus = false }) {

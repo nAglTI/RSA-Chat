@@ -1,6 +1,7 @@
 package com.hypergonial.chat.model
 
 import com.arkivanov.essenty.instancekeeper.InstanceKeeper
+import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Member
@@ -9,6 +10,21 @@ import com.hypergonial.chat.model.payloads.Snowflake
 import kotlinx.coroutines.CoroutineScope
 
 interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
+    /** The coroutine scope of the client */
+    val scope: CoroutineScope
+
+    /** If true, the client is paused and will not perform background tasks */
+    val isSuspended: Boolean
+
+    /** Replace the coroutine scope of the client with a different one.
+     *
+     * Stops and restarts all background tasks on the new scope.
+     * */
+    fun replaceScope(scope: CoroutineScope)
+
+    fun pause()
+
+    suspend fun resume()
 
     /** Check if the client is logged in
      *

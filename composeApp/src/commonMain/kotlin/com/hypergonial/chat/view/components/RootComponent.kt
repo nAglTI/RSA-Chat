@@ -19,7 +19,6 @@ import com.hypergonial.chat.model.ChatClient
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.FocusChannelEvent
 import com.hypergonial.chat.model.FocusGuildEvent
-import com.hypergonial.chat.model.LoginEvent
 import com.hypergonial.chat.model.SessionInvalidatedEvent
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.platform
@@ -32,6 +31,7 @@ import com.hypergonial.chat.view.components.prompts.DefaultNewGuildComponent
 import com.hypergonial.chat.view.components.prompts.JoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.NewGuildComponent
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerialName
@@ -68,8 +68,6 @@ class DefaultRootComponent(
 
     private val nav = StackNavigation<Config>()
 
-    private var isSuspended = false
-
     private val logger = KotlinLogging.logger {}
 
     private val _stack = childStack(
@@ -89,8 +87,30 @@ class DefaultRootComponent(
             if (client.isLoggedIn()) client.connect()
         }
 
-        if (platform.platformType.needsToSuspendGatewaySession()) {
-            setupGatewayLifecycle()
+        if (platform.platformType.needsToSuspendClient()) {
+            manageClientLifecycle()
+        }
+    }
+
+    private fun manageClientLifecycle() {
+        ctx.lifecycle.doOnResume {
+            // Ignore resume events fired on startup
+            if (!client.isSuspended) {
+                return@doOnResume
+            }
+
+            // The scope may not survive configuration changes, so we may need to replace it
+            if (!client.scope.isActive) {
+                client.replaceScope(ctx.coroutineScope())
+            }
+
+            scope.launch {
+                client.resume()
+            }
+        }
+
+        ctx.lifecycle.doOnPause {
+            client.pause()
         }
     }
 
@@ -209,35 +229,8 @@ class DefaultRootComponent(
     private fun onSessionInvalidated(event: SessionInvalidatedEvent) {
         // If the gateway session dropped while we were not suspended,
         // assume the worst has happened, and log out the user.
-        if (!isSuspended) {
+        if (!client.isSuspended) {
             onLogout()
-        }
-    }
-
-    private fun setupGatewayLifecycle() {
-        ctx.lifecycle.doOnResume {
-            // Ignore resume events fired on startup
-            if (!isSuspended) {
-                return@doOnResume
-            }
-
-            scope.launch {
-                // Wait for any pending connection to finish before reconnecting
-                withTimeout(2500) {
-                    client.waitUntilDisconnected()
-                }
-                isSuspended = false
-                logger.info { "App resumed, reconnecting to gateway..." }
-                if (client.isLoggedIn()) {
-                    client.connect()
-                }
-            }
-        }
-
-        ctx.lifecycle.doOnPause {
-            logger.info { "App paused, closing gateway..." }
-            isSuspended = true
-            client.closeGateway()
         }
     }
 

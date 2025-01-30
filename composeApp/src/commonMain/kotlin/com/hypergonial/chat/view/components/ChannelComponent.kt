@@ -41,6 +41,7 @@ interface ChannelComponent : MainContentComponent, Displayable {
     fun onMoreMessagesRequested(lastMessage: Snowflake? = null, isAtTop: Boolean)
     fun onMessageSend()
     fun onEditLastMessage()
+    fun onFileUploadRequested()
     fun onChatBarContentChanged(value: TextFieldValue)
     fun onMessageDeleteRequested(messageId: Snowflake)
 
@@ -188,6 +189,10 @@ class DefaultChannelComponent(
         } else {
             requestMessagesScrollingDown(lastMessage)
         }
+    }
+
+    override fun onFileUploadRequested() {
+        TODO("Not yet implemented")
     }
 
     /** Add a new message to the list of message entries.

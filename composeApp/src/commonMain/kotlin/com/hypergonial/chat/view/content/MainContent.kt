@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -175,8 +176,8 @@ fun MainContent(component: SidebarComponent) {
                 }
             }
         }) {
-            Scaffold(topBar = { MainTopBar(component) }) {
-                Box(Modifier.safeDrawingPadding()) {
+            Scaffold(topBar = { MainTopBar(component) }) { padding ->
+                Box(Modifier.padding(padding).imePadding()) {
                     when (val c = mainContent.child?.instance) {
                         is HomeComponent -> HomeContent(c)
                         is ChannelComponent -> ChannelContent(c)

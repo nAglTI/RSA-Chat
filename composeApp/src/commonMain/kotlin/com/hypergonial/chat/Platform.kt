@@ -11,7 +11,7 @@ enum class PlatformType {
         return this != ANDROID
     }
 
-    fun needsToSuspendGatewaySession(): Boolean {
+    fun needsToSuspendClient(): Boolean {
         return this != JVM
     }
 }

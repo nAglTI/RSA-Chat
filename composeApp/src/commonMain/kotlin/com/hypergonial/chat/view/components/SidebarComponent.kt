@@ -8,10 +8,8 @@ import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.slot.SlotNavigation
 import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
-import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.arkivanov.essenty.lifecycle.doOnPause
 import com.arkivanov.essenty.lifecycle.doOnResume
@@ -28,20 +26,21 @@ import com.hypergonial.chat.model.SessionInvalidatedEvent
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Snowflake
-import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.content.MainContent
 import com.hypergonial.chat.withFallbackValue
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
-import kotlinx.coroutines.channels.Channel as QueueChannel
 
 /** The main sidebar component that is displayed on the left side of the screen.
  * It also contains the main content in a child slot. */
-interface SidebarComponent: Displayable {
+interface SidebarComponent : Displayable {
     fun onHomeSelected()
     fun onGuildSelected(guildId: Snowflake)
+    fun onGuildSelected(guild: Guild)
     fun onChannelSelected(channelId: Snowflake)
+    fun onChannelSelected(channel: Channel)
     fun onGuildCreateClicked()
     fun onChannelCreateClicked()
     fun onLogoutClicked()
@@ -72,13 +71,9 @@ class DefaultSideBarComponent(
     val onChannelCreateRequested: (Snowflake) -> Unit,
     val onLogout: () -> Unit
 ) : SidebarComponent, ComponentContext by ctx {
-    private val scope = ctx.coroutineScope()
-    private var isSuspended = false
-    private val logger = KotlinLogging.logger {}
-
     override val data = MutableValue(
-        SidebarComponent.SidebarState(
-            guilds = client.cache.guilds.values.toList().sortedBy { it.id })
+        SidebarComponent.SidebarState(guilds = client.cache.guilds.values.toList()
+            .sortedBy { it.id })
     )
 
     private val slotNavigation = SlotNavigation<SlotConfig>()
@@ -91,7 +86,11 @@ class DefaultSideBarComponent(
             initialConfiguration = { SlotConfig.Home }) { config, childCtx ->
             when (config) {
                 is SlotConfig.Home -> DefaultHomeComponent(childCtx)
-                is SlotConfig.Fallback -> DefaultFallbackMainComponent(childCtx, ::onChannelCreateClicked)
+                is SlotConfig.Fallback -> DefaultFallbackMainComponent(
+                    childCtx,
+                    ::onChannelCreateClicked
+                )
+
                 is SlotConfig.Channel -> DefaultChannelComponent(
                     childCtx, client, config.channelId
                 ) { onLogout() }
@@ -101,7 +100,6 @@ class DefaultSideBarComponent(
     init {
         client.eventManager.apply {
             subscribeWithLifeCycle(ctx.lifecycle, ::onReady)
-            subscribeWithLifeCycle(ctx.lifecycle, ::onSessionInvalidated)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildCreate)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildUpdate)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildRemove)
@@ -110,38 +108,16 @@ class DefaultSideBarComponent(
             subscribeWithLifeCycle(ctx.lifecycle, ::onChannelFocus)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildFocus)
         }
+    }
 
-        if (!platform.platformType.needsToSuspendGatewaySession()) {
-            scope.launch {
-                if (client.isLoggedIn()) client.connect() else onLogout()
-            }
-        }
-        else {
-            ctx.lifecycle.doOnResume {
-                scope.launch {
-                    // Wait for any pending connection to finish before reconnecting
-                    client.waitUntilDisconnected()
-                    isSuspended = false
-                    logger.info { "App resumed, reconnecting to gateway..." }
-                    if (client.isLoggedIn()) {
-                        client.connect()
-                    }
-                }
-            }
-
-            ctx.lifecycle.doOnPause {
-                logger.info { "App paused, closing gateway..." }
-                isSuspended = true
-                client.closeGateway()
-                data.value = data.value.copy(isConnecting = true)
-            }
-        }
-
-
+    private fun getDefaultGuildChannel(guildId: Snowflake): Channel? {
+        val id = client.cache.getChannelsForGuild(guildId).keys.minOrNull()
+        return id?.let { client.cache.getChannel(it) }
     }
 
     override fun onHomeSelected() {
-        data.value = data.value.copy(selectedGuild = null, selectedChannel = null, channels = emptyList())
+        data.value =
+            data.value.copy(selectedGuild = null, selectedChannel = null, channels = emptyList())
         slotNavigation.activate(SlotConfig.Home)
     }
 
@@ -150,18 +126,20 @@ class DefaultSideBarComponent(
     }
 
     override fun onGuildSelected(guildId: Snowflake) {
-        // TODO: Update when channels have positions
         val guild = client.cache.getGuild(guildId) ?: return
-        val firstChannelId = client.cache.getChannelsForGuild(guildId).keys.minOrNull()
-        val channel = firstChannelId?.let { client.cache.getChannel(it) }
+        onGuildSelected(guild)
+    }
+
+    override fun onGuildSelected(guild: Guild) {
+        // TODO: Update when channels have positions
+        val channel = getDefaultGuildChannel(guild.id)
 
         data.value = data.value.copy(selectedGuild = guild,
             selectedChannel = channel,
-            channels = client.cache.getChannelsForGuild(guildId).values.toList().sortedBy { it.id }
-        )
+            channels = client.cache.getChannelsForGuild(guild.id).values.toList().sortedBy { it.id })
 
-        if (firstChannelId != null) {
-            slotNavigation.activate(SlotConfig.Channel(firstChannelId))
+        if (channel?.id != null) {
+            slotNavigation.activate(SlotConfig.Channel(channel.id))
         } else {
             slotNavigation.activate(SlotConfig.Fallback)
         }
@@ -169,24 +147,23 @@ class DefaultSideBarComponent(
 
     override fun onChannelSelected(channelId: Snowflake) {
         val channel = client.cache.getChannel(channelId) ?: return
+        onChannelSelected(channel)
+    }
+
+    override fun onChannelSelected(channel: Channel) {
         data.value = data.value.copy(selectedChannel = channel)
-        slotNavigation.activate(SlotConfig.Channel(channelId))
+        slotNavigation.activate(SlotConfig.Channel(channel.id))
     }
 
     private fun onReady(event: ReadyEvent) {
         data.value = data.value.copy(isConnecting = false)
     }
 
-    private fun onSessionInvalidated(event: SessionInvalidatedEvent) {
-        if (!isSuspended) {
-            onLogout()
-        }
-    }
-
     private fun onGuildCreate(event: GuildCreateEvent) {
         // TODO: Update when guilds have positions saved in prefs
         if (event.guild !in data.value.guilds) {
-            data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
+            data.value =
+                data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         }
     }
 
@@ -195,18 +172,14 @@ class DefaultSideBarComponent(
             data.value = data.value.copy(
                 guilds = (data.value.guilds + event.guild).sortedBy { it.id },
             )
-        }
-        else {
-            data.value = data.value.copy(
-                guilds = data.value.guilds.map { if (it.id == event.guild.id) event.guild else it }
-            )
+        } else {
+            data.value =
+                data.value.copy(guilds = data.value.guilds.map { if (it.id == event.guild.id) event.guild else it })
         }
     }
 
     private fun onGuildRemove(event: GuildRemoveEvent) {
-        data.value = data.value.copy(
-            guilds = data.value.guilds.filter { it.id != event.guild.id }
-        )
+        data.value = data.value.copy(guilds = data.value.guilds.filter { it.id != event.guild.id })
     }
 
     private fun onChannelCreate(event: ChannelCreateEvent) {
@@ -218,6 +191,11 @@ class DefaultSideBarComponent(
             data.value = data.value.copy(
                 channels = (data.value.channels + event.channel).sortedBy { it.id },
             )
+
+            // Leave fallback slot if it was active
+            if (data.value.selectedChannel == null || data.value.selectedGuild != null) {
+                onChannelSelected(event.channel.id)
+            }
         }
     }
 
@@ -226,20 +204,22 @@ class DefaultSideBarComponent(
             return
         }
 
-        data.value = data.value.copy(
-            channels = data.value.channels.filter { it.id != event.channel.id }
-        )
+        if (event.channel == data.value.selectedChannel) {
+            data.value = data.value.copy(selectedChannel = getDefaultGuildChannel(event.channel.guildId))
+        }
+
+        data.value =
+            data.value.copy(channels = data.value.channels.filter { it.id != event.channel.id })
     }
 
     private fun onChannelFocus(event: FocusChannelEvent) {
         if (event.channel in data.value.channels) {
             onChannelSelected(event.channel.id)
-        }
-        else if (event.channel.guildId == data.value.selectedGuild?.id) {
+        } else if (event.channel.guildId == data.value.selectedGuild?.id) {
             data.value = data.value.copy(
                 channels = (data.value.channels + event.channel).sortedBy { it.id },
             )
-            onChannelSelected(event.channel.id)
+            onChannelSelected(event.channel)
         }
         data.value = data.value.copy(navDrawerState = DrawerState(DrawerValue.Closed))
     }
@@ -250,7 +230,7 @@ class DefaultSideBarComponent(
                 guilds = (data.value.guilds + event.guild).sortedBy { it.id },
             )
         }
-        onGuildSelected(event.guild.id)
+        onGuildSelected(event.guild)
         data.value = data.value.copy(navDrawerState = DrawerState(DrawerValue.Closed))
     }
 

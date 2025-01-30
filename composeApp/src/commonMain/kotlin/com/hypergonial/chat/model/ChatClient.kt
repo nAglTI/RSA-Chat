@@ -483,11 +483,12 @@ class ChatClient(val scope: CoroutineScope) : Client {
     }
 
     override suspend fun login(username: String, password: Secret<String>) {
-
         token = http.get("users/auth") {
             basicAuth(username, password.expose())
         }.body<AuthResponse>().token
         settings.setToken(token!!.expose())
+
+        eventManager.dispatch(LoginEvent())
     }
 
     override suspend fun register(username: String, password: Secret<String>) {
@@ -580,6 +581,7 @@ class ChatClient(val scope: CoroutineScope) : Client {
         token = null
         settings.removeToken()
         cache.clear()
+        eventManager.dispatch(LogoutEvent())
     }
 
     override fun onDestroy() {

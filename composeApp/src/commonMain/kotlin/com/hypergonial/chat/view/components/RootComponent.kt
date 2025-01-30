@@ -19,7 +19,10 @@ import com.hypergonial.chat.model.ChatClient
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.FocusChannelEvent
 import com.hypergonial.chat.model.FocusGuildEvent
+import com.hypergonial.chat.model.LoginEvent
+import com.hypergonial.chat.model.SessionInvalidatedEvent
 import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.components.prompts.CreateChannelComponent
 import com.hypergonial.chat.view.components.prompts.CreateGuildComponent
 import com.hypergonial.chat.view.components.prompts.DefaultCreateChannelComponent
@@ -28,7 +31,9 @@ import com.hypergonial.chat.view.components.prompts.DefaultJoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.DefaultNewGuildComponent
 import com.hypergonial.chat.view.components.prompts.JoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.NewGuildComponent
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -63,6 +68,10 @@ class DefaultRootComponent(
 
     private val nav = StackNavigation<Config>()
 
+    private var isSuspended = false
+
+    private val logger = KotlinLogging.logger {}
+
     private val _stack = childStack(
         source = nav,
         serializer = null,
@@ -73,6 +82,18 @@ class DefaultRootComponent(
 
     override val stack: Value<ChildStack<*, RootComponent.Child>> = _stack
 
+    init {
+        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onSessionInvalidated)
+        // If we are already logged in, connect to the gateway
+        scope.launch {
+            if (client.isLoggedIn()) client.connect()
+        }
+
+        if (platform.platformType.needsToSuspendGatewaySession()) {
+            setupGatewayLifecycle()
+        }
+    }
+
     /** The child factory for the root component's childStack. */
     private fun child(config: Config, childCtx: ComponentContext): RootComponent.Child =
         when (config) {
@@ -80,7 +101,7 @@ class DefaultRootComponent(
                 DefaultLoginComponent(
                     ctx = childCtx,
                     client = client,
-                    onLogin = { nav.replaceAll(Config.Main) },
+                    onLogin = { onLoginComplete(); nav.replaceAll(Config.Main) },
                     onRegisterRequest = { nav.pushNew(Config.Register) },
                     onDebugSettingsOpen = { nav.pushNew(Config.DebugSettings) }
                 ),
@@ -113,11 +134,8 @@ class DefaultRootComponent(
                     client = client,
                     onGuildCreateRequested = { nav.pushNew(Config.NewGuild) },
                     onChannelCreateRequested = { nav.pushNew(Config.CreateChannel(it)) },
-                    onLogout = {
-                        client.closeGateway()
-                        client.logout()
-                        nav.replaceAll(Config.Login)
-                    })
+                    onLogout = ::onLogout
+                )
             )
 
             is Config.NewGuild -> RootComponent.Child.NewGuildChild(
@@ -173,6 +191,56 @@ class DefaultRootComponent(
                 )
             )
         }
+
+    private fun onLoginComplete() {
+        scope.launch {
+            if (client.isLoggedIn()) {
+                client.connect()
+            }
+        }
+    }
+
+    private fun onLogout() {
+        client.closeGateway()
+        client.logout()
+        nav.replaceAll(Config.Login)
+    }
+
+    private fun onSessionInvalidated(event: SessionInvalidatedEvent) {
+        // If the gateway session dropped while we were not suspended,
+        // assume the worst has happened, and log out the user.
+        if (!isSuspended) {
+            onLogout()
+        }
+    }
+
+    private fun setupGatewayLifecycle() {
+        ctx.lifecycle.doOnResume {
+            // Ignore resume events fired on startup
+            if (!isSuspended) {
+                return@doOnResume
+            }
+
+            scope.launch {
+                // Wait for any pending connection to finish before reconnecting
+                withTimeout(2500) {
+                    client.waitUntilDisconnected()
+                }
+                isSuspended = false
+                logger.info { "App resumed, reconnecting to gateway..." }
+                logger.info { "Is logged in: ${client.isLoggedIn()}" }
+                if (client.isLoggedIn()) {
+                    client.connect()
+                }
+            }
+        }
+
+        ctx.lifecycle.doOnPause {
+            logger.info { "App paused, closing gateway..." }
+            isSuspended = true
+            client.closeGateway()
+        }
+    }
 
     override fun onBackClicked() {
         nav.pop()

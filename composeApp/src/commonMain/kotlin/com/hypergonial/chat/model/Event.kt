@@ -52,6 +52,10 @@ class ReadyEvent(val user: User, val guilds: List<Guild>) : Event()
 /** Event dispatched when a user's presence is updated */
 class PresenceUpdateEvent(val userId: Snowflake, val presence: String) : Event()
 
+class LoginEvent : InternalEvent()
+
+class LogoutEvent : InternalEvent()
+
 enum class InvalidationReason {
     Normal,
     AuthenticationFailure,

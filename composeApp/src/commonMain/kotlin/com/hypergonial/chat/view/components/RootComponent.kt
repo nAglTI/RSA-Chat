@@ -228,7 +228,6 @@ class DefaultRootComponent(
                 }
                 isSuspended = false
                 logger.info { "App resumed, reconnecting to gateway..." }
-                logger.info { "Is logged in: ${client.isLoggedIn()}" }
                 if (client.isLoggedIn()) {
                     client.connect()
                 }

@@ -17,12 +17,7 @@ abstract class AppSettings {
      * @return The object or null if it does not exist
      * */
     private inline fun <reified T> getSerializable(key: String): @Serializable T? {
-        val value = if (secrets == null) {
-            userPreferences.getStringOrNull(key)
-        }
-        else {
-            secrets!!.getStringOrNull(key)
-        }
+        val value = userPreferences.getStringOrNull(key)
 
         return if (value.isNullOrEmpty()) null else Json.decodeFromString(serializer<T>(), value)
     }

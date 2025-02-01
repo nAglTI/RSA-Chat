@@ -2,6 +2,7 @@ package com.hypergonial.chat.model
 
 import com.russhwolf.settings.Settings
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 
@@ -19,7 +20,7 @@ abstract class AppSettings {
     private inline fun <reified T> getSerializable(key: String): @Serializable T? {
         val value = userPreferences.getStringOrNull(key)
 
-        return if (value.isNullOrEmpty()) null else Json.decodeFromString(serializer<T>(), value)
+        return if (value.isNullOrEmpty()) null else Json.decodeFromString(value)
     }
 
     /** Set a serializable object in the settings
@@ -28,7 +29,7 @@ abstract class AppSettings {
      * @param value The object to set
      * */
     private inline fun <reified T> setSerializable(key: String, value: @Serializable T) {
-        val serialized = Json.encodeToString(serializer<T>(), value)
+        val serialized = Json.encodeToString(value)
 
         userPreferences.putString(key, serialized)
     }

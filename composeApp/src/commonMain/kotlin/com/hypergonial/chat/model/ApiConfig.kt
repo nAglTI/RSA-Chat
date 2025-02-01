@@ -12,9 +12,9 @@ data class ApiConfig(
     companion object {
         fun default(): ApiConfig {
             return ApiConfig(
-                apiUrl = "https://chat.hypergonial.com/api/v1",
+                apiUrl = "https://chat.hypergonial.com/api/v1/",
                 gatewayUrl = "wss://chat.hypergonial.com/gateway/v1",
-                objectStoreUrl = "https://chat-cdn.hypergonial.com",
+                objectStoreUrl = "https://chat-cdn.hypergonial.com/",
             )
         }
     }

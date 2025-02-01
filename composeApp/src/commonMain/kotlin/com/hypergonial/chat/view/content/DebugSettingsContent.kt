@@ -47,7 +47,7 @@ import kotlinx.coroutines.launch
 fun DebugSettingsTopBar(component: DebugSettingsComponent) {
     // Add a back button to the left of the top bar
 
-    if (!platform.platformType.needsBackButton()) {
+    if (!platform.needsBackButton()) {
         return
     }
 

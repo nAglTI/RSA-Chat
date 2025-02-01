@@ -42,7 +42,7 @@ import com.hypergonial.chat.view.composables.PasswordTextField
 fun RegisterTopBar(component: RegisterComponent) {
     // Add a back button to the left of the top bar
 
-    if (!platform.platformType.needsBackButton()) {
+    if (!platform.needsBackButton()) {
         return
     }
 

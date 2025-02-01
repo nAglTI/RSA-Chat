@@ -87,7 +87,7 @@ class DefaultRootComponent(
             if (client.isLoggedIn()) client.connect()
         }
 
-        if (platform.platformType.needsToSuspendClient()) {
+        if (platform.needsToSuspendClient()) {
             manageClientLifecycle()
         }
     }

@@ -28,7 +28,7 @@ fun CreateGuildContent(component: CreateGuildComponent) {
 
     FullScreenSpinner(isSpinning = state.isLoading) {
         Box {
-            if (platform.platformType.needsBackButton()) {
+            if (platform.needsBackButton()) {
                 IconButton(
                     onClick = { component.onBackClicked() },
                     modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart)

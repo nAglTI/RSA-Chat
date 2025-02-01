@@ -21,7 +21,7 @@ import com.hypergonial.chat.view.components.prompts.NewGuildComponent
 @Composable
 fun NewGuildContent(component: NewGuildComponent) {
     Box {
-        if (platform.platformType.needsBackButton()) {
+        if (platform.needsBackButton()) {
             IconButton(
                 onClick = { component.onBackClicked() },
                 modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart)

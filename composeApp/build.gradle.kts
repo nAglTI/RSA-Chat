@@ -4,7 +4,9 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
+import org.jetbrains.kotlin.konan.target.Family
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -21,6 +23,19 @@ kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
         }
+    }
+
+    kotlin {
+        targets
+            .filterIsInstance<KotlinNativeTarget>()
+            .filter { it.konanTarget.family == Family.IOS }
+            .forEach {
+                it.binaries.framework {
+                    export("com.arkivanov.decompose:decompose:3.2.2")
+                    export("com.arkivanov.essenty:lifecycle:2.3.0")
+                    export("com.arkivanov.essenty:state-keeper:2.3.0")
+                }
+            }
     }
 
     listOf(

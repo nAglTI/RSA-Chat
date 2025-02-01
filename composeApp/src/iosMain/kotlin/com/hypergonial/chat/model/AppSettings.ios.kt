@@ -3,6 +3,7 @@ package com.hypergonial.chat.model
 import com.russhwolf.settings.ExperimentalSettingsImplementation
 import com.russhwolf.settings.KeychainSettings
 import com.russhwolf.settings.NSUserDefaultsSettings
+import platform.Foundation.NSUserDefaults
 
 
 @OptIn(ExperimentalSettingsImplementation::class)

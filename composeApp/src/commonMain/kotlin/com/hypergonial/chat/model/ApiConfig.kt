@@ -10,24 +10,12 @@ data class ApiConfig(
     val objectStoreUrl: String,
 ) {
     companion object {
-        val DEV = ApiConfig(
-            gatewayUrl = "ws://localhost:8080/gateway/v1",
-            apiUrl = "http://localhost:8080/api/v1",
-            objectStoreUrl = "http://localhost:9000",
-        )
-
-        val PROD = ApiConfig(
-            apiUrl = "https://chat.hypergonial.com/api/v1",
-            gatewayUrl = "wss://chat.hypergonial.com/gateway/v1",
-            objectStoreUrl = "https://chat-cdn.hypergonial.com",
-        )
-
         fun default(): ApiConfig {
-            return if (IS_DEVELOPMENT_BUILD) {
-                DEV
-            } else {
-                PROD
-            }
+            return ApiConfig(
+                apiUrl = "https://chat.hypergonial.com/api/v1",
+                gatewayUrl = "wss://chat.hypergonial.com/gateway/v1",
+                objectStoreUrl = "https://chat-cdn.hypergonial.com",
+            )
         }
     }
 }

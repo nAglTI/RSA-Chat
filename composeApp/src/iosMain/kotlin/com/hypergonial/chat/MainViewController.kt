@@ -4,7 +4,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -21,6 +20,7 @@ import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.ApplicationLifecycle
 import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
 import com.hypergonial.chat.view.components.DefaultRootComponent
+import platform.UIKit.UIViewController
 
 private val lightColorScheme = lightColorScheme(
     primary = Color(0xFF476810),
@@ -55,7 +55,7 @@ fun AppTheme(
 
 @OptIn(ExperimentalDecomposeApi::class)
 @Suppress("FunctionNaming")
-fun MainViewController() {
+fun MainViewController(): UIViewController {
     val stateKeeper = StateKeeperDispatcher()
     val backDispatcher = BackDispatcher()
 
@@ -67,7 +67,7 @@ fun MainViewController() {
         )
     )
 
-    ComposeUIViewController {
+    return ComposeUIViewController {
         PredictiveBackGestureOverlay(
             backDispatcher = backDispatcher,
             endEdgeEnabled = false,

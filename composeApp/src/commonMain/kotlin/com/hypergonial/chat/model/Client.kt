@@ -16,6 +16,11 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     /** If true, the client is paused and will not perform background tasks */
     val isSuspended: Boolean
 
+    /** A random session ID for the client to use
+     * This is generally used to differentiate between sessions of the same user on different devices.
+     */
+    val sessionId: String
+
     /** Replace the coroutine scope of the client with a different one.
      *
      * Stops and restarts all background tasks on the new scope.

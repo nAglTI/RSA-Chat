@@ -3,6 +3,7 @@ package com.hypergonial.chat.model
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.doOnPause
 import com.arkivanov.essenty.lifecycle.doOnResume
+import com.hypergonial.chat.genSessionId
 import com.hypergonial.chat.model.exceptions.NotFoundException
 import com.hypergonial.chat.model.exceptions.getApiException
 import com.hypergonial.chat.model.payloads.Channel
@@ -107,6 +108,8 @@ class ChatClient(scope: CoroutineScope) : Client {
 
     override val scope
         get() = _scope
+
+    override val sessionId: String = genSessionId()
 
     private val readyJob = Job()
     /** The logger used for this class */

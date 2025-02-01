@@ -28,8 +28,6 @@ import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import com.hypergonial.chat.view.content.ChannelContent
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 private const val MESSAGE_BATCH_SIZE = 100u
@@ -208,7 +206,11 @@ class DefaultChannelComponent(
         val lastMessage = currentEntries.firstOrNull()?.lastMessage()?.data?.value?.message
 
         // If we just received the message we recently sent, mark it as not pending
-        if (newMessage.author.id == client.cache.ownUser?.id && !isPending) {
+        if (newMessage.author.id == client.cache.ownUser?.id
+            && !isPending
+            // Check if the session_id is the same as the one that sent the message
+            && newMessage.nonce?.split(".")?.get(0) == client.sessionId
+        ) {
             currentEntries.flatMap { it.data.value.messages }
                 .firstOrNull { it.data.value.message.nonce == newMessage.nonce }
                 ?.onPendingEnd(newMessage)
@@ -289,7 +291,7 @@ class DefaultChannelComponent(
         if (content.isBlank()) return
 
         scope.launch {
-            val nonce = genNonce()
+            val nonce = genNonce(client.sessionId)
             data.value = data.value.copy(chatBarValue = data.value.chatBarValue.copy(text = ""))
             createPendingMessage(content, nonce)
             client.sendMessage(channelId, content = content, nonce = nonce)

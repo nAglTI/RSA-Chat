@@ -118,9 +118,14 @@ fun <T> MutableList<T>.subList(range: IntRange) = subList(range.first, range.end
  */
 fun <T> MutableList<T>.removeRange(range: IntRange) = subList(range).clear()
 
-fun genNonce(): String {
+fun genSessionId(): String {
     val chars = ('a'..'z') + ('A'..'Z') + ('0'..'9')
-    return (1..16).map { chars.random() }.joinToString("")
+    return (0..8).map { chars.random() }.joinToString("")
+}
+
+fun genNonce(sessionId: String): String {
+    val chars = ('a'..'z') + ('A'..'Z') + ('0'..'9')
+    return sessionId + "." + (0..16).map { chars.random() }.joinToString("")
 }
 
 /** Sanitize the text in the chat bar. */

@@ -130,15 +130,16 @@ kotlin {
             implementation(libs.kotlin.logging)
             // Datetime
             implementation(libs.kotlinx.datetime)
+            // Note: The following dependencies are declared as api() to work with iOS
             // Navigation
-            implementation(libs.decompose)
-            implementation(libs.decompose.extensions.compose)
+            api(libs.decompose)
+            api(libs.decompose.extensions.compose)
             // Utils for navigation library
-            implementation(libs.lifecycle)
-            implementation(libs.lifecycle.coroutines)
-            implementation(libs.state.keeper)
-            implementation(libs.instance.keeper)
-            implementation(libs.back.handler)
+            api(libs.lifecycle)
+            api(libs.lifecycle.coroutines)
+            api(libs.state.keeper)
+            api(libs.instance.keeper)
+            api(libs.back.handler)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)

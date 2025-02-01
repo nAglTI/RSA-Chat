@@ -25,19 +25,6 @@ kotlin {
         }
     }
 
-    kotlin {
-        targets
-            .filterIsInstance<KotlinNativeTarget>()
-            .filter { it.konanTarget.family == Family.IOS }
-            .forEach {
-                it.binaries.framework {
-                    export("com.arkivanov.decompose:decompose:3.2.2")
-                    export("com.arkivanov.essenty:lifecycle:2.3.0")
-                    export("com.arkivanov.essenty:state-keeper:2.3.0")
-                }
-            }
-    }
-
     listOf(
         iosX64(),
         iosArm64(),

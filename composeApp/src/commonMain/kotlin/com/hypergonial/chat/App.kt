@@ -44,11 +44,7 @@ fun App(root: RootComponent) {
         Surface {
             Children(
                 stack = root.stack,
-                animation = predictiveBackAnimation(
-                    backHandler = root.backHandler,
-                    fallbackAnimation = stackAnimation(scale() + fade()),
-                    onBack = root::onBackClicked,
-                )
+                animation = platform.backAnimation(root.backHandler, root::onBackClicked),
             ) { child -> child.instance.component.Display() }
         }
 

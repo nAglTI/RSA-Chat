@@ -50,8 +50,7 @@ This can be done by opening a "secret" configuration menu, which is done by clic
 After this is done, you can log in or register with the [chat-backend](https://github.com/hypergonial/chat-backend) server.
 
 > [!IMPORTANT]
-> The Android app doesn't support API endpoints without TLS. This is because Android requires secure connections by default.
-> If you want to use an insecure connection, you need to add a `networkSecurityConfig` in the `AndroidManifest.xml` file.
+> The Android & iOS apps don't support API endpoints without TLS. This is because they require secure connections by default.
 
 ## Development
 

@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -218,8 +220,16 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
             onValueChange = { component.onEditorStateChanged(it) },
             onSubmit = { component.onEditFinish() },
             onFocusLoss = { component.onEditCancel() },
+            onLeadingIconClick = { component.onEditCancel() },
             shouldGrabFocus = true,
             modifier = modifier.fillMaxWidth(),
+            leadingIcon = {
+                Icon(
+                    Icons.Outlined.Close,
+                    contentDescription = "Cancel",
+                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
+                )
+            },
             trailingIcon = {
                 Icon(
                     Icons.Filled.Done,

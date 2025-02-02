@@ -19,6 +19,7 @@ import com.hypergonial.chat.model.ChatClient
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.FocusChannelEvent
 import com.hypergonial.chat.model.FocusGuildEvent
+import com.hypergonial.chat.model.InvalidationReason
 import com.hypergonial.chat.model.SessionInvalidatedEvent
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.platform
@@ -37,14 +38,26 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-
+/** The root component of the application.
+ *
+ * It is responsible for setting up the navigation stack,
+ * handling back button events, and managing the client lifecycle based on platform requirements.
+ * */
 interface RootComponent : BackHandlerOwner {
+    /** The navigation stack of the application */
     val stack: Value<ChildStack<*, Child>>
 
 
+    /** Callback to be called when the back button is clicked */
     fun onBackClicked()
+
+    /** Callback to be called when the back button is clicked
+     *
+     * @param toIndex The index to pop to
+     * */
     fun onBackClicked(toIndex: Int)
 
+    /** The valid child components of the root component */
     sealed class Child(open val component: Displayable) {
         class LoginChild(override val component: LoginComponent) : Child(component)
         class RegisterChild(override val component: RegisterComponent) : Child(component)
@@ -68,8 +81,6 @@ class DefaultRootComponent(
 
     private val nav = StackNavigation<Config>()
 
-    private val logger = KotlinLogging.logger {}
-
     private val _stack = childStack(
         source = nav,
         serializer = null,
@@ -92,6 +103,8 @@ class DefaultRootComponent(
         }
     }
 
+    /** If called during initialization,
+     * the client will be paused and resumed based on the lifecycle of the application */
     private fun manageClientLifecycle() {
         ctx.lifecycle.doOnResume {
             // Ignore resume events fired on startup
@@ -114,7 +127,13 @@ class DefaultRootComponent(
         }
     }
 
-    /** The child factory for the root component's childStack. */
+    /** The child factory for the root component's childStack.
+     *
+     * @param config The requested navigation configuration
+     * @param childCtx The child component context created by the childStack
+     *
+     * @return The child component to be added to the stack
+     * */
     private fun child(config: Config, childCtx: ComponentContext): RootComponent.Child =
         when (config) {
             is Config.Login -> RootComponent.Child.LoginChild(
@@ -212,6 +231,7 @@ class DefaultRootComponent(
             )
         }
 
+    /** Called internally when the login process is complete */
     private fun onLoginComplete() {
         scope.launch {
             if (client.isLoggedIn()) {
@@ -220,6 +240,7 @@ class DefaultRootComponent(
         }
     }
 
+    /** Called internally when the logout process is initiated */
     private fun onLogout() {
         client.closeGateway()
         client.logout()
@@ -229,7 +250,7 @@ class DefaultRootComponent(
     private fun onSessionInvalidated(event: SessionInvalidatedEvent) {
         // If the gateway session dropped while we were not suspended,
         // assume the worst has happened, and log out the user.
-        if (!client.isSuspended) {
+        if (!client.isSuspended && event.reason != InvalidationReason.Normal) {
             onLogout()
         }
     }
@@ -246,11 +267,11 @@ class DefaultRootComponent(
     private companion object {
 
         private fun getInitialStack(isLoggedIn: Boolean): List<Config> {
-            if (!isLoggedIn) {
-                return listOf(Config.Login)
+            return if (!isLoggedIn) {
+                listOf(Config.Login)
+            } else {
+                return listOf(Config.Main)
             }
-
-            return listOf(Config.Main)
         }
     }
 

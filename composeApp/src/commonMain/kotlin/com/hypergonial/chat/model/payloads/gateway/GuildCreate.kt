@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("GUILD_CREATE")
-class GuildCreate(val data: GuildCreatePayload) : GatewayMessage(), EventConvertable {
+class GuildCreate(val data: GuildCreatePayload) : GatewayMessage(), EventConvertible {
     override fun toEvent(): Event {
         return GuildCreateEvent(data.guild, data.channels, data.members)
     }

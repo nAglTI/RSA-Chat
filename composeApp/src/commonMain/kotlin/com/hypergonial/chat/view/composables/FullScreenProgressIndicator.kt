@@ -21,14 +21,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 
+/**
+ * A full-screen progress indicator that can be displayed over the content, blocking user interaction.
+ *
+ * @param isActive Whether the progress indicator should be displayed
+ * If false, the progress indicator will not be displayed and the content will be displayed as normal
+ * @param loadingText The text to display below the progress indicator
+ * @param content The content to display behind the progress indicator
+ */
 @Composable
-fun FullScreenSpinner(
-    isSpinning: Boolean, spinningText: String? = null, content: @Composable () -> Unit
+fun FullScreenProgressIndicator(
+    isActive: Boolean, loadingText: String? = null, content: @Composable () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         content()
         // Semi-transparent box to dim the content behind the spinner
-        AnimatedVisibility(visible = isSpinning, enter = fadeIn(), exit = fadeOut()) {
+        AnimatedVisibility(visible = isActive, enter = fadeIn(), exit = fadeOut()) {
             Box(
                 modifier = Modifier.fillMaxSize().blur(30.dp).pointerInput(Unit) {
                     // Disable touch events
@@ -47,13 +55,13 @@ fun FullScreenSpinner(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxSize()
         ) {
-            if (isSpinning) {
+            if (isActive) {
                 // Spinner
                 CircularProgressIndicator()
-                if (!spinningText.isNullOrBlank()) {
+                if (!loadingText.isNullOrBlank()) {
                     // Text below the spinner
                     Text(
-                        spinningText,
+                        loadingText,
                         color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.padding(0.dp, 20.dp, 0.dp, 0.dp)
                     )

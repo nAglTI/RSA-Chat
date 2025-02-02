@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("READY")
-class Ready(val data: ReadyPayload) : GatewayMessage(), EventConvertable {
+class Ready(val data: ReadyPayload) : GatewayMessage(), EventConvertible {
     override fun toEvent(): Event {
         return ReadyEvent(data.user, data.guilds)
     }

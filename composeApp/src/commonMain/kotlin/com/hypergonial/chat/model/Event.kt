@@ -7,13 +7,16 @@ import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
 
+/** Base class for all events dispatched by the application */
 open class Event
 
-/** Event that is only used inside the application, and is not coming from the gateway directly */
+/** Base class for events that are only used inside the application, and are not coming from the gateway directly */
 open class InternalEvent : Event()
 
+/** Base class for events dispatched when a message related event is received from the gateway. */
 open class MessageEvent(val message: Message) : Event()
 
+/** Event dispatched when the gateway acknowledges a heartbeat sent by the client. */
 class HeartbeatAckEvent : Event()
 
 /** Event dispatched when a message is created */
@@ -52,19 +55,23 @@ class ReadyEvent(val user: User, val guilds: List<Guild>) : Event()
 /** Event dispatched when a user's presence is updated */
 class PresenceUpdateEvent(val userId: Snowflake, val presence: String) : Event()
 
+/** Event dispatched when a user is logged in */
 class LoginEvent : InternalEvent()
 
+/** Event dispatched when a user is logged out */
 class LogoutEvent : InternalEvent()
 
+/** The reason for a gateway session being invalidated */
 enum class InvalidationReason {
     Normal,
     AuthenticationFailure,
     Timeout,
+    Abnormal,
 }
 
 /** Event dispatched when the session is invalidated
  *
- * Listeners should clear all state and return to the login screen
+ * Listeners should clear all state and return to the login screen in case of a non-normal invalidation.
  */
 class SessionInvalidatedEvent(val reason: InvalidationReason) : InternalEvent()
 

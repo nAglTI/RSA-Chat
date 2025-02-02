@@ -2,7 +2,6 @@ package com.hypergonial.chat.view.content
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -38,7 +36,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -48,7 +45,7 @@ import com.hypergonial.chat.view.components.FallbackMainComponent
 import com.hypergonial.chat.view.components.HomeComponent
 import com.hypergonial.chat.view.components.SidebarComponent
 import com.hypergonial.chat.view.composables.AdaptiveDrawer
-import com.hypergonial.chat.view.composables.FullScreenSpinner
+import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 import com.hypergonial.chat.view.composables.GuildIcon
 import com.hypergonial.chat.view.composables.SidebarChannelItem
 import com.hypergonial.chat.view.composables.SidebarGuildItem
@@ -91,7 +88,7 @@ fun MainContent(component: SidebarComponent) {
     val state by component.data.subscribeAsState()
     val mainContent by component.mainContent.subscribeAsState()
 
-    FullScreenSpinner(state.isConnecting, "Connecting...") {
+    FullScreenProgressIndicator(state.isConnecting, "Connecting...") {
         AdaptiveDrawer(drawerState = state.navDrawerState, drawerContent = {
             Row {
                 LazyColumn(

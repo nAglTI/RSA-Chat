@@ -35,12 +35,34 @@ private const val MESSAGE_BATCH_SIZE = 100u
 interface ChannelComponent : MainContentComponent, Displayable {
     val data: Value<ChannelState>
 
+    /** Callback called when the logout button is clicked. */
     fun onLogoutClicked()
+    /** Callback called when the user requests more messages by scrolling the list.
+     *
+     * @param lastMessage The ID of the last message to fetch messages before or after.
+     * @param isAtTop If true, the user is requesting messages at the top of the list.
+     * */
     fun onMoreMessagesRequested(lastMessage: Snowflake? = null, isAtTop: Boolean)
+
+    /** Callback called when the user hits the send message button. */
     fun onMessageSend()
+
+    /** Callback called when the user inputs the "edit last message" action. */
     fun onEditLastMessage()
+
+    /** Callback called when the user requests to attach a file. */
     fun onFileUploadRequested()
+
+    /** Callback called when the user changes the content of the chat bar.
+     *
+     * @param value The new value of the chat bar.
+     * */
     fun onChatBarContentChanged(value: TextFieldValue)
+
+    /** Callback called when the user requests to delete a message.
+     *
+     * @param messageId The ID of the message to delete.
+     * */
     fun onMessageDeleteRequested(messageId: Snowflake)
 
     @Composable
@@ -48,18 +70,25 @@ interface ChannelComponent : MainContentComponent, Displayable {
 
 
     data class ChannelState(
-        // The value of the chat bar
+        /** The value of the chat bar */
         val chatBarValue: TextFieldValue = TextFieldValue(),
-        // The list of message entries to display
+        /** The list of message entries to display */
         val messageEntries: SnapshotStateList<MessageEntryComponent>,
         val lastSentMessageId: Snowflake? = null,
-        // The state of the lazy list that displays the messages
+        /** The state of the lazy list that displays the messages */
         val listState: LazyListState = LazyListState(),
-        // If true, the bottom of the message list is no longer loaded
+        /** If true, the bottom of the message list is no longer loaded */
         val isCruising: Boolean = false,
     )
 }
 
+/** The default channel component implementation.
+ *
+ * @param ctx The component context.
+ * @param client The client to use for API operations.
+ * @param channelId The ID of the channel to display.
+ * @param onLogout The callback to call when the user logs out.
+ */
 class DefaultChannelComponent(
     private val ctx: ComponentContext,
     private val client: Client,
@@ -86,16 +115,34 @@ class DefaultChannelComponent(
 
     override fun onLogoutClicked() = onLogout()
 
+    /** Creates a new message component from a message.
+     *
+     * @param message The message to create a component from.
+     * @param isPending Whether the message is pending or not.
+     *
+     * @return The message component.
+     */
     private fun messageComponent(message: Message, isPending: Boolean = false): MessageComponent {
         return DefaultMessageComponent(ctx, client, message, isPending)
     }
 
+    /** Creates a new message entry component from a list of messages.
+     *
+     * @param messages The list of messages to create a component from.
+     * @param endIndicator The end indicator to display at the end of the list.
+     *
+     * @return The message entry component.
+     */
     private fun messageEntryComponent(
         messages: SnapshotStateList<MessageComponent>, endIndicator: EndIndicator? = null
     ): MessageEntryComponent {
         return DefaultMessageEntryComponent(ctx, client, messages, endIndicator)
     }
 
+    /** Requests more messages from the server.
+     *
+     * @param lastMessage The ID of the last message to fetch messages before.
+     */
     private fun requestMessagesScrollingUp(lastMessage: Snowflake? = null) {
         scope.launch {
             val messages = client.fetchMessages(
@@ -139,6 +186,10 @@ class DefaultChannelComponent(
         }
     }
 
+    /** Requests more messages from the server.
+     *
+     * @param lastMessage The ID of the last message to fetch messages after.
+     */
     private fun requestMessagesScrollingDown(lastMessage: Snowflake? = null) {
         scope.launch {
             val messages = client.fetchMessages(
@@ -247,7 +298,6 @@ class DefaultChannelComponent(
         }
     }
 
-    /** Invoked when a new message is created on the server. */
     private fun onMessageCreate(event: MessageCreateEvent) {
         // If the user is so high up that the messages at the bottom aren't even loaded, just don't bother
         if (event.message.channelId != channelId || data.value.isCruising) {
@@ -283,8 +333,7 @@ class DefaultChannelComponent(
         )
         addMessage(msg, isPending = true)
     }
-
-    /** Invoked when the user hits the message send button. */
+    
     override fun onMessageSend() {
         val content = data.value.chatBarValue.text.trim()
 

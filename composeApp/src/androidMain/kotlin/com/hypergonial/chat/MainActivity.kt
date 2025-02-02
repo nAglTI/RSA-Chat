@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        settings.initialize(getSharedPreferences("settings", Context.MODE_PRIVATE))
+        settings.initialize(getSharedPreferences("settings", MODE_PRIVATE))
     }
 }
 

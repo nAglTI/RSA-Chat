@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("CHANNEL_REMOVE")
-class ChannelRemove(@SerialName("data") val channel: Channel) : GatewayMessage(), EventConvertable {
+class ChannelRemove(@SerialName("data") val channel: Channel) : GatewayMessage(), EventConvertible {
     override fun toEvent(): Event {
         return ChannelRemoveEvent(channel)
     }

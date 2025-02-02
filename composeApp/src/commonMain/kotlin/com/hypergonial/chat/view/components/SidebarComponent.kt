@@ -10,9 +10,6 @@ import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
-import com.arkivanov.essenty.lifecycle.doOnPause
-import com.arkivanov.essenty.lifecycle.doOnResume
 import com.hypergonial.chat.model.ChannelCreateEvent
 import com.hypergonial.chat.model.ChannelRemoveEvent
 import com.hypergonial.chat.model.Client
@@ -22,27 +19,43 @@ import com.hypergonial.chat.model.GuildCreateEvent
 import com.hypergonial.chat.model.GuildRemoveEvent
 import com.hypergonial.chat.model.GuildUpdateEvent
 import com.hypergonial.chat.model.ReadyEvent
-import com.hypergonial.chat.model.SessionInvalidatedEvent
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.view.content.MainContent
 import com.hypergonial.chat.withFallbackValue
-import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 
 /** The main sidebar component that is displayed on the left side of the screen.
  * It also contains the main content in a child slot. */
 interface SidebarComponent : Displayable {
+    /** Called when the user clicks the home button */
     fun onHomeSelected()
+    /** Called when the user clicks a guild in the sidebar
+     *
+     * @param guildId The ID of the guild that was clicked
+     * */
     fun onGuildSelected(guildId: Snowflake)
+    /** Called when the user clicks a guild in the sidebar
+     *
+     * @param guild The guild that was clicked
+     * */
     fun onGuildSelected(guild: Guild)
+    /** Called when the user clicks a channel in the sidebar
+     *
+     * @param channelId The ID of the channel that was clicked
+     * */
     fun onChannelSelected(channelId: Snowflake)
+    /** Called when the user clicks a channel in the sidebar
+     *
+     * @param channel The channel that was clicked
+     * */
     fun onChannelSelected(channel: Channel)
+    /** Called when the user clicks the create guild button */
     fun onGuildCreateClicked()
+    /** Called when the user clicks the create channel button */
     fun onChannelCreateClicked()
+    /** Called when the user clicks the logout button */
     fun onLogoutClicked()
 
     @Composable
@@ -53,17 +66,31 @@ interface SidebarComponent : Displayable {
     val data: Value<SidebarState>
 
     data class SidebarState(
+        /** The guild that is currently selected */
         val selectedGuild: Guild? = null,
+        /** The channel that is currently selected */
         val selectedChannel: Channel? = null,
+        /** The text to be displayed in the top bar of the app */
         val topBarContent: String = "Chat",
+        /** The list of guilds to display in the sidebar */
         val guilds: List<Guild> = emptyList(),
+        /** The list of channels to display in the sidebar */
         val channels: List<Channel> = emptyList(),
+        /** If true, the app is still connecting to the server */
         val isConnecting: Boolean = true,
-        // The state of the navigation drawer
+        /** The state of the navigation drawer */
         val navDrawerState: DrawerState = DrawerState(DrawerValue.Closed),
     )
 }
 
+/** The default implementation of the sidebar component
+ *
+ * @param ctx The component context
+ * @param client The client to use for API calls
+ * @param onGuildCreateRequested The callback to call when the user requests to create a guild
+ * @param onChannelCreateRequested The callback to call when the user requests to create a channel
+ * @param onLogout The callback to call when the user requests to log out
+ * */
 class DefaultSideBarComponent(
     val ctx: ComponentContext,
     val client: Client,
@@ -110,6 +137,11 @@ class DefaultSideBarComponent(
         }
     }
 
+    /** Returns the default channel for a guild
+     *
+     * @param guildId The ID of the guild to get the default channel for
+     * @return The default channel for the guild
+     * */
     private fun getDefaultGuildChannel(guildId: Snowflake): Channel? {
         val id = client.cache.getChannelsForGuild(guildId).keys.minOrNull()
         return id?.let { client.cache.getChannel(it) }

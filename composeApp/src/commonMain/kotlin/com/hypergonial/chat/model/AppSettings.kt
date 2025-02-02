@@ -7,9 +7,18 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 
 abstract class AppSettings {
+    /** The user preferences store
+     *
+     * It should be used to store insensitive user data, such as API settings. */
     protected abstract val userPreferences: Settings
+    /** The secrets store
+     *
+     * It should be used to store sensitive user data, such as tokens.
+     *
+     * Note that not all platforms implement this, in that case, the user preferences store should be used. */
     protected abstract val secrets: Settings?
 
+    /** The cached API settings for faster access */
     private var cachedApiConfig: ApiConfig? = null
 
     /** Get a serializable object from the settings
@@ -105,5 +114,5 @@ abstract class AppSettings {
 
 }
 
-
+/** The persistent settings store for this platform */
 expect val settings: AppSettings

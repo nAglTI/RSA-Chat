@@ -19,24 +19,19 @@ import kotlinx.datetime.Instant
 // See https://arkivanov.github.io/Decompose/component/child-components/#adding-a-child-component-manually
 // for more information.
 
+/** Represents the state of a single message in the message list. */
 interface MessageComponent {
-    data class MessageUIState(
-        val message: Message,
-        val createdAt: Instant,
-        val isPending: Boolean = false,
-        val isBeingEdited: Boolean = false,
-        val editorState: TextFieldValue = TextFieldValue()
-    )
-
 
     val data: Value<MessageUIState>
 
+    /** Returns the key of the message component for use in lazy lists.
+     *
+     * @return The key of the message component */
     fun getKey(): String
 
     /** Invoked when the message is received by the backend server.
      *
-     * @param message The message that was received and validated by the backend
-     * */
+     * @param message The message that was received and validated by the backend */
     fun onPendingEnd(message: Message)
 
     /** Invoked when the user starts editing the message */
@@ -59,8 +54,28 @@ interface MessageComponent {
      * @param event The event that was received
      * */
     fun onMessageUpdate(event: MessageUpdateEvent)
+
+    data class MessageUIState(
+        /** The message that this component represents */
+        val message: Message,
+        /** The time at which the message was created */
+        val createdAt: Instant,
+        /** Whether the message is pending */
+        val isPending: Boolean = false,
+        /** Whether the message editor is open or not */
+        val isBeingEdited: Boolean = false,
+        /** The state of the editor */
+        val editorState: TextFieldValue = TextFieldValue()
+    )
 }
 
+/** A default implementation of the [MessageComponent] interface.
+ *
+ * @param ctx The component context
+ * @param client The client to use for sending messages
+ * @param message The message that this component represents
+ * @param isPending Whether the message is pending or not
+ * */
 class DefaultMessageComponent(
     private val ctx: ComponentContext,
     private val client: Client,

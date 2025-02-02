@@ -27,7 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -43,9 +42,8 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.view.components.LoginComponent
 import com.hypergonial.chat.view.composables.ActionText
 import com.hypergonial.chat.view.composables.ChatButton
-import com.hypergonial.chat.view.composables.FullScreenSpinner
+import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 import com.hypergonial.chat.view.composables.PasswordTextField
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -72,7 +70,7 @@ fun LoginContent(component: LoginComponent) {
 
 
 
-    FullScreenSpinner(state.isLoggingIn, "Logging in...") {
+    FullScreenProgressIndicator(state.isLoggingIn, "Logging in...") {
         Scaffold(bottomBar = { LoginBottomBar(component) }, snackbarHost = { SnackbarHost(snackBarState) }) {
             Column(
                 Modifier.fillMaxHeight().fillMaxWidth().safeDrawingPadding()

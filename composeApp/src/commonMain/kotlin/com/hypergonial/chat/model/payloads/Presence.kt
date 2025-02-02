@@ -9,6 +9,10 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/** The presence or "status" of a user.
+ *
+ * @param value The value of the presence.
+ * */
 @Serializable(with = PresenceSerializer::class)
 enum class Presence(val value: String) {
     Online("ONLINE"),

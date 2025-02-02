@@ -20,21 +20,30 @@ enum class PlatformType {
 
 }
 
+/** Platform information for the app.
+ *
+ * Contains information about the platform the app is running on. */
 interface Platform {
     val platformType: PlatformType
     val name: String
 
+    /** Returns whether the platform needs a back button to be displayed. */
     fun needsBackButton(): Boolean {
         return platformType != PlatformType.ANDROID
     }
 
+    /** Returns whether the platform needs to suspend the client when the app is paused. */
     fun needsToSuspendClient(): Boolean {
         return platformType != PlatformType.JVM
     }
 
     /**
      * Returns the appropriate back animation for the platform
-     */
+     *
+     * @param backHandler The back handler to use for the back gesture.
+     * @param onBack The callback to call when the back gesture is detected.
+     *
+     * @return The appropriate back animation for the platform */
     @OptIn(ExperimentalDecomposeApi::class)
     fun <C : Any, T : Any> backAnimation(
         backHandler: BackHandler,
@@ -52,4 +61,5 @@ interface Platform {
     }
 }
 
+/** Information about the current platform. */
 expect val platform: Platform

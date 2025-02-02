@@ -27,8 +27,6 @@ import com.hypergonial.chat.view.content.prompts.CreateGuildContent
 import com.hypergonial.chat.view.content.prompts.JoinGuildContent
 import com.hypergonial.chat.view.content.prompts.NewGuildContent
 
-const val IS_DEVELOPMENT_BUILD = true
-
 val LocalUsingDarkTheme = compositionLocalOf { false }
 
 @OptIn(ExperimentalDecomposeApi::class)

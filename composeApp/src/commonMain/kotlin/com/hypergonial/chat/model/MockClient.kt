@@ -1,4 +1,7 @@
 package com.hypergonial.chat.model
+
+// TODO: Evaluate if this is still needed
+
 /*
 import com.hypergonial.chat.model.exceptions.AuthorizationFailedException
 import com.hypergonial.chat.model.payloads.Channel

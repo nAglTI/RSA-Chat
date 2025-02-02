@@ -20,13 +20,13 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.components.prompts.CreateChannelComponent
-import com.hypergonial.chat.view.composables.FullScreenSpinner
+import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 
 @Composable
 fun CreateChannelContent(component: CreateChannelComponent) {
     val state by component.data.subscribeAsState()
 
-    FullScreenSpinner(isSpinning = state.isLoading) {
+    FullScreenProgressIndicator(isActive = state.isLoading) {
         Box {
             if (platform.needsBackButton()) {
                 IconButton(

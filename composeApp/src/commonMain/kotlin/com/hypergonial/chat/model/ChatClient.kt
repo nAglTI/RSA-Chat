@@ -1,10 +1,8 @@
 package com.hypergonial.chat.model
 
-import com.arkivanov.essenty.lifecycle.Lifecycle
-import com.arkivanov.essenty.lifecycle.doOnPause
-import com.arkivanov.essenty.lifecycle.doOnResume
 import com.hypergonial.chat.genSessionId
 import com.hypergonial.chat.model.exceptions.NotFoundException
+import com.hypergonial.chat.model.exceptions.ResumeFailureException
 import com.hypergonial.chat.model.exceptions.getApiException
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
@@ -12,7 +10,7 @@ import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
-import com.hypergonial.chat.model.payloads.gateway.EventConvertable
+import com.hypergonial.chat.model.payloads.gateway.EventConvertible
 import com.hypergonial.chat.model.payloads.gateway.GatewayMessage
 import com.hypergonial.chat.model.payloads.gateway.Heartbeat
 import com.hypergonial.chat.model.payloads.gateway.HeartbeatAck
@@ -70,16 +68,13 @@ import io.ktor.websocket.Frame
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
@@ -253,6 +248,14 @@ class ChatClient(scope: CoroutineScope) : Client {
     }
 
     override suspend fun resume() {
+        if (!scope.isActive) {
+            logger.error { "Cannot resume client, scope is inactive" }
+            throw ResumeFailureException(
+                "Cannot resume client, coroutine scope is inactive\n" +
+                "You should call replaceScope() with a new scope before calling resume()"
+            )
+        }
+
         withTimeout(2500) {
             waitUntilDisconnected()
         }
@@ -325,7 +328,7 @@ class ChatClient(scope: CoroutineScope) : Client {
                 continue
             }
 
-            if (msg is EventConvertable) {
+            if (msg is EventConvertible) {
                 val event = msg.toEvent()
                 logger.debug { "Dispatching event: '${event::class.simpleName}'" }
                 eventManager.dispatch(event)

@@ -17,6 +17,13 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimator
 import com.arkivanov.essenty.backhandler.BackHandler
 
 // Taken from: https://arkivanov.github.io/Decompose/extensions/compose/#predictive-back-gesture-on-ios
+
+/**
+ * An iOS-like back animation that uses a predictive back gesture.
+ *
+ * @param backHandler The back handler to use for the back gesture.
+ * @param onBack The callback to call when the back gesture is detected.
+ */
 @OptIn(ExperimentalDecomposeApi::class)
 fun <C : Any, T : Any> iOSBackAnimation(
     backHandler: BackHandler,

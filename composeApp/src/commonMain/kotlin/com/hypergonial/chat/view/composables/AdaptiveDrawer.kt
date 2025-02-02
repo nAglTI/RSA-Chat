@@ -31,6 +31,18 @@ enum class DrawerDirection {
     fun isRight() = this == Right
 }
 
+/**
+ * A drawer that adapts to the window size
+ *
+ * @param drawerContent The content of the drawer
+ * @param modifier The modifier to be applied to the drawer
+ * @param drawerState The state of the drawer
+ * @param gesturesEnabled Whether touch gestures are enabled
+ * @param onLayoutChange The callback to call when the layout changes
+ * @param windowInsets The window insets to be applied to the drawer content
+ * @param drawerDirection Controls which side the drawer is on
+ * @param content The content the drawer is applied to
+ * */
 @Composable
 fun AdaptiveDrawer(
     drawerContent: @Composable () -> Unit,
@@ -93,9 +105,8 @@ fun AdaptiveDrawer(
                     CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDir) {
                         content()
                     }
-                })
+                }
+            )
         }
     }
-
-
 }

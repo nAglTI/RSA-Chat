@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("GUILD_REMOVE")
-class GuildRemove(@SerialName("data") val guild: Guild) : GatewayMessage(), EventConvertable {
+class GuildRemove(@SerialName("data") val guild: Guild) : GatewayMessage(), EventConvertible {
     override fun toEvent(): Event {
         return GuildRemoveEvent(guild)
     }

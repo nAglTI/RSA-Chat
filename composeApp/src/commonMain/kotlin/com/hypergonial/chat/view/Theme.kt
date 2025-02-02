@@ -6,6 +6,16 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.hypergonial.chat.LocalUsingDarkTheme
 
+/**
+ * A custom color scheme for the chat theme.
+ *
+ * @param success The color to be used for success messages.
+ * @param onSuccess The color to be used for text on success messages.
+ * @param warn The color to be used for warning messages.
+ * @param onWarn The color to be used for text on warning messages.
+ * @param misc The color to be used for miscellaneous messages.
+ * @param onMisc The color to be used for text on miscellaneous messages.
+ * */
 data class ChatColorScheme(
     val success: Color,
     val onSuccess: Color,

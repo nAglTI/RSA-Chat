@@ -14,7 +14,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +34,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.components.RegisterComponent
 import com.hypergonial.chat.view.composables.ChatButton
-import com.hypergonial.chat.view.composables.FullScreenSpinner
+import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 import com.hypergonial.chat.view.composables.PasswordTextField
 
 @Composable
@@ -67,7 +66,7 @@ fun RegisterContent(component: RegisterComponent) {
     val state by component.data.subscribeAsState()
     val focusManager = LocalFocusManager.current
 
-    FullScreenSpinner(state.isRegistering, "Creating account...") {
+    FullScreenProgressIndicator(state.isRegistering, "Creating account...") {
         Scaffold(topBar = { RegisterTopBar(component) }) {
             Column(
                 Modifier.fillMaxWidth().fillMaxHeight().safeDrawingPadding(),

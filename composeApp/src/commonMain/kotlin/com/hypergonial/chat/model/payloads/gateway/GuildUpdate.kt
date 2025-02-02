@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("GUILD_UPDATE")
-class GuildUpdate(@SerialName("data") val guild: Guild) : GatewayMessage(), EventConvertable {
+class GuildUpdate(@SerialName("data") val guild: Guild) : GatewayMessage(), EventConvertible {
     override fun toEvent(): Event {
         return GuildUpdateEvent(guild)
     }

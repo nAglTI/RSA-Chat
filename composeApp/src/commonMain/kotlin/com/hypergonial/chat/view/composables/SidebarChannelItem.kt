@@ -20,6 +20,14 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.unit.dp
 
+/**
+ * A composable that represents a channel item in the sidebar.
+ *
+ * @param label The label to display for the channel.
+ * @param isSelected Whether the channel is selected.
+ * @param icon The icon to display for the channel.
+ * @param onSelect The callback to call when the channel is selected.
+ * */
 @Composable
 fun SidebarChannelItem(
     label: String,

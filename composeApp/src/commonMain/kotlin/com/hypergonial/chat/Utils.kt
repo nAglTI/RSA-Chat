@@ -101,6 +101,7 @@ fun <T> KSerializer<T>.withFallbackValue(default: T): KSerializer<T> =
 fun <T> KSerializer<T>.withFallbackValue(default: T, predicate: () -> Boolean): KSerializer<T> =
         FallbackSerializerWithPredicate(this, default, predicate)
 
+/** The value after the last element in the progression. */
 val IntRange.end: Int
     get() = last + 1
 
@@ -118,11 +119,13 @@ fun <T> MutableList<T>.subList(range: IntRange) = subList(range.first, range.end
  */
 fun <T> MutableList<T>.removeRange(range: IntRange) = subList(range).clear()
 
+/** Generate a session ID for a new session. */
 fun genSessionId(): String {
     val chars = ('a'..'z') + ('A'..'Z') + ('0'..'9')
     return (0..8).map { chars.random() }.joinToString("")
 }
 
+/** Generate a nonce for a new message. */
 fun genNonce(sessionId: String): String {
     val chars = ('a'..'z') + ('A'..'Z') + ('0'..'9')
     return sessionId + "." + (0..16).map { chars.random() }.joinToString("")
@@ -172,6 +175,11 @@ private fun Int.zpad(to: Int): String {
     return this.toString().padStart(to, '0')
 }
 
+/** A tooltip position provider that tries to display the
+ * tooltip next to the anchor object, as opposed to above or below it.
+ *
+ * @param spacingBetweenTooltipAndAnchor The spacing between the tooltip and the anchor object.
+ * */
 @Composable
 fun rememberHorizontalTooltipPositionProvider(
     spacingBetweenTooltipAndAnchor: Dp

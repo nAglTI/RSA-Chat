@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("HEARTBEAT_ACK")
-data object HeartbeatAck : GatewayMessage(), EventConvertable {
+data object HeartbeatAck : GatewayMessage(), EventConvertible {
     override fun toEvent(): Event {
         return HeartbeatAckEvent()
     }

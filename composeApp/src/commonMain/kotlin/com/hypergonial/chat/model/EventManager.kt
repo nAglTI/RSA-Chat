@@ -15,11 +15,12 @@ interface EventManagerAware {
     val eventManager: EventManager
 }
 
-/** A wrapper for a suspend subscribe callback. */
+/** A wrapper for a suspend subscribe callback.
+ *
+ * @param callback The callback to call when an event of the given type is dispatched.
+ * */
 private class EventSubscriber<EventT : Event>(val callback: suspend (EventT) -> Unit) {
-    suspend fun invoke(event: EventT) {
-        callback(event)
-    }
+    suspend fun invoke(event: EventT) = callback(event)
 
     override fun equals(other: Any?): Boolean {
         if (other !is EventSubscriber<*>) {
@@ -34,7 +35,7 @@ private class EventSubscriber<EventT : Event>(val callback: suspend (EventT) -> 
     }
 }
 
-/** Instructions for the inner event manager. */
+/** Instructions for the event manager actor. */
 private sealed class Instruction {
     class Subscribe(val event: KClass<out Event>, val subscriber: EventSubscriber<out Event>) : Instruction()
     class Unsubscribe(val event: KClass<out Event>, val subscriber: EventSubscriber<out Event>) : Instruction()
@@ -42,7 +43,7 @@ private sealed class Instruction {
 }
 
 /** Inner class managing the event subscriptions and dispatching. */
-private class EventManagerInner {
+private class EventManagerActor {
     private val subscribers: MutableMap<KClass<out Event>, HashSet<EventSubscriber<out Event>>> =
         mutableMapOf()
 
@@ -113,7 +114,7 @@ private class EventManagerInner {
 
 /** A class for handling event subscriptions and dispatching. */
 class EventManager {
-    private val inner: EventManagerInner = EventManagerInner()
+    private val inner: EventManagerActor = EventManagerActor()
 
     /** Runs the event manager. This call unblocks only when the event manager is stopped. */
     suspend fun run() {
@@ -128,6 +129,8 @@ class EventManager {
     /** Add a subscriber to this event manager.
      * The provided callback will be called when an event of that type is dispatched.
      *
+     * Note that events dispatched before this call will not be received by the subscriber.
+     *
      * @param callback The callback to call when an event of the given type is dispatched.
      * It will be called with the event as the only parameter.
      */
@@ -139,6 +142,8 @@ class EventManager {
      * Add a subscriber to this event manager.
      * The provided callback will be called when an event of that type is dispatched.
      * The eventType parameter may be omitted if the type can be inferred from the callback.
+     *
+     * Note that events dispatched before this call will not be received by the subscriber.
      *
      * @param eventType The type of event to subscribe to.
      * @param callback The callback to call when an event of the given type is dispatched.
@@ -153,6 +158,9 @@ class EventManager {
 
     /** Add a subscriber to this event manager in a lifecycle-aware way.
      * The provided callback will be called when an event of that type is dispatched.
+     * The callback will be automatically unsubscribed when the lifecycle is destroyed.
+     *
+     * Note that events dispatched before this call will not be received by the subscriber.
      *
      * @param callback The callback to call when an event of the given type is dispatched.
      * It will be called with the event as the only parameter.

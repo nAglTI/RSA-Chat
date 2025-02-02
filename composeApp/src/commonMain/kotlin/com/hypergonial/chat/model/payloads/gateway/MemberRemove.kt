@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("MEMBER_REMOVE")
-class MemberRemove(val data: MemberRemovePayload) : GatewayMessage(), EventConvertable {
+class MemberRemove(val data: MemberRemovePayload) : GatewayMessage(), EventConvertible {
     override fun toEvent(): Event {
         return MemberRemoveEvent(data.id, data.guildId)
     }

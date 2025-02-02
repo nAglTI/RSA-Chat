@@ -10,15 +10,14 @@ import com.hypergonial.chat.model.payloads.Snowflake
 import kotlinx.coroutines.CoroutineScope
 
 interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
-    /** The coroutine scope of the client */
+    /** The coroutine scope in use by the client */
     val scope: CoroutineScope
 
     /** If true, the client is paused and will not perform background tasks */
     val isSuspended: Boolean
 
     /** A random session ID for the client to use
-     * This is generally used to differentiate between sessions of the same user on different devices.
-     */
+     * This is generally used to differentiate between sessions of the same user on different devices. */
     val sessionId: String
 
     /** Replace the coroutine scope of the client with a different one.
@@ -27,13 +26,27 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * */
     fun replaceScope(scope: CoroutineScope)
 
+    /** Stops all background tasks and disconnects the client from the gateway.
+     *
+     * State is preserved and the client can be resumed with [resume].
+     * */
     fun pause()
 
+    /** Resumes the client and restarts all background tasks.
+     *
+     * The client must be paused with [pause] before it can be resumed.
+     *
+     * Note that if the coroutine scope became inactive while the client was paused,
+     * the client will not be able to resume. ([scope].isActive will be false)
+     * In these cases, call [replaceScope] with a new scope before calling this function.
+     *
+     * @throws com.hypergonial.chat.model.exceptions.ResumeFailureException If the client cannot be resumed
+     * */
     suspend fun resume()
 
     /** Check if the client is logged in
      *
-     * It returns true if the client has an authorization token stored.
+     * @return True if the client is logged in, false otherwise
      */
     fun isLoggedIn(): Boolean
 
@@ -58,16 +71,33 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     /** Connects to the gateway
      *
      * This function returns immediately, and the client will connect in the background.
+     *
+     * @see waitUntilConnected
+     * @see isConnected
+     * @see waitUntilDisconnected
      */
     suspend fun connect()
 
-    /** Check if the client is connected to the gateway */
+    /** Check if the client is connected to the gateway
+     *
+     * @return True if the client is connected, false otherwise
+     *
+     * @see connect
+     * */
     fun isConnected(): Boolean
 
-    /** Wait until the client is connected to the gateway */
+    /** Wait until the client is connected to the gateway
+     *
+     * This function will return immediately if the client is already connected.
+     *
+     * @see connect
+     * */
     suspend fun waitUntilConnected()
 
-    /** Wait until the client is disconnected from the gateway */
+    /** Wait until the client is disconnected from the gateway
+     *
+     * This function will return immediately if the client is already disconnected.
+     * */
     suspend fun waitUntilDisconnected()
 
 
@@ -89,7 +119,14 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
         limit: UInt = 100u
     ): List<Message>
 
-    /** Send a message to the given channel */
+    /** Send a message to the given channel
+     *
+     * @param channelId The ID of the channel to send the message to
+     * @param content The content of the message
+     * @param nonce An identifier for the message, can be used to track message delivery
+     *
+     * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
+     * */
     suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String? = null): Message
 
     /** Log out the currently authenticated user
@@ -98,39 +135,114 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * */
     fun logout()
 
-    /** Closes the gateway connection, if it is open. */
+    /** Closes the gateway connection, if it is open.
+     * This function returns immediately, and the client will disconnect in the background.
+     *
+     * @see waitUntilDisconnected
+     * */
     fun closeGateway()
 
-    /** Edit a message by its ID */
+    /** Edit a message by its ID
+     *
+     * @param channelId The ID of the channel the message is in
+     * @param messageId The ID of the message to edit
+     * @param content The new content of the message
+     *
+     * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
+     * */
     suspend fun editMessage(channelId: Snowflake, messageId: Snowflake, content: String? = null): Message
 
-    /** Delete a message by its ID */
+    /** Delete a message by its ID
+     *
+     * @param channelId The ID of the channel the message is in
+     * @param messageId The ID of the message to delete
+     *
+     * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
+     * */
     suspend fun deleteMessage(channelId: Snowflake, messageId: Snowflake)
 
-    /** Reloads the client API configuration from disk */
+    /** Reloads the client API configuration from persistent storage.
+     *
+     * This includes all API endpoints, the gateway URL, and other settings. */
     fun reloadConfig()
 
-    /** Wait until the client is ready */
+    /** Wait until the client is ready
+     *
+     * The client is considered ready when it is connected to the gateway and has received all necessary data.
+     *
+     * This function will return immediately if the client is already ready.
+     *
+     * @see isReady
+     * @see connect
+     * */
     suspend fun waitUntilReady()
 
-    /** Check if the client is ready */
+    /** Check if the client is ready
+     *
+     * The client is considered ready when it is connected to the gateway and has received all necessary data.
+     *
+     * @return True if the client is ready, false otherwise
+     *
+     * @see waitUntilReady
+     * @see connect
+     * */
     fun isReady(): Boolean
 
-    /** Fetch a guild by its ID */
+    /** Fetch a guild by its ID
+     *
+     * @param guildId The ID of the guild to fetch
+     *
+     * @return The fetched guild
+     *
+     * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
+     * */
     suspend fun fetchGuild(guildId: Snowflake): Guild
 
-    /** Fetch a channel by its ID */
+    /** Fetch a channel by its ID
+     *
+     * @param channelId The ID of the channel to fetch
+     *
+     * @return The fetched channel
+     *
+     * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
+     * */
     suspend fun fetchChannel(channelId: Snowflake): Channel
 
-    /** Join a new guild as the currently authenticated user */
+    /** Join a new guild as the currently authenticated user
+     *
+     * @param guildId The ID of the guild to join
+     *
+     * @return The created member
+     *
+     * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
+     * */
     suspend fun joinGuild(guildId: Snowflake): Member
 
-    /** Creates a new guild with the given name */
+    /** Creates a new guild with the given name
+     *
+     * @param name The name of the guild to create
+     *
+     * @return The created guild
+     *
+     * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
+     * */
     suspend fun createGuild(name: String): Guild
 
-    /** Creates a new channel in the given guild */
+    /** Creates a new channel in the given guild
+     *
+     * @param guildId The ID of the guild to create the channel in
+     * @param name The name of the channel to create
+     *
+     * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
+     * */
     suspend fun createChannel(guildId: Snowflake, name: String): Channel
 
-    /** Check if the given username is available */
+    /** Check if the given username is available
+     * The endpoint is not authenticated and can be used to check if a username is available before registering.
+     *
+     * @param username The username to check
+     *
+     * @return True if the username is available, false otherwise
+     * */
     suspend fun checkUsernameForAvailability(username: String): Boolean
 }

@@ -2,7 +2,7 @@ package com.hypergonial.chat.model.exceptions
 
 import io.ktor.http.HttpStatusCode
 
-open class ApiException(message: String? = null, cause: Throwable? = null) : Exception(message, cause)
+open class ApiException(message: String? = null, cause: Throwable? = null) : ClientException(message, cause)
 
 /** Throws the appropiate exception based on the status code */
 fun getApiException(status: HttpStatusCode, message: String? = null, cause: Throwable? = null): ApiException {

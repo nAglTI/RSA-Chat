@@ -12,6 +12,14 @@ import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonObject
 
+/** A common base class for a user or a member.
+ *
+ * @param id The ID of the user.
+ * @param username The username of the user.
+ * @param displayName The display name of the user.
+ * @param avatarHash The hash of the user's avatar.
+ * @param presence The presence of the user.
+ * */
 @Serializable(with = PartialUserSerializer::class)
 sealed interface PartialUser {
     val id: Snowflake
@@ -31,6 +39,14 @@ sealed interface PartialUser {
         }
 }
 
+/** A user of the application.
+ *
+ * @param id The ID of the user.
+ * @param username The username of the user.
+ * @param displayName The display name of the user.
+ * @param avatarHash The hash of the user's avatar.
+ * @param presence The presence of the user.
+ * */
 @Serializable
 open class User(
     override val id: Snowflake,
@@ -40,6 +56,16 @@ open class User(
     @SerialName("presence") override val presence: Presence? = null,
 ) : PartialUser
 
+/** A member of a guild.
+ *
+ * @param id The ID of the user.
+ * @param username The username of the user.
+ * @param displayName The display name of the user.
+ * @param avatarHash The hash of the user's avatar.
+ * @param nickname The nickname of the member.
+ * @param guildId The ID of the guild the member is in.
+ * @param joinedAt The time the member joined the guild.
+ * */
 @Serializable(with = MemberSerializer::class)
 class Member(
     id: Snowflake,

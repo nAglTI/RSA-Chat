@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("PRESENCE_UPDATE")
-class PresenceUpdate(val data: PresenceUpdatePayload) : GatewayMessage(), EventConvertable {
+class PresenceUpdate(val data: PresenceUpdatePayload) : GatewayMessage(), EventConvertible {
     override fun toEvent(): Event {
         return PresenceUpdateEvent(data.userId, data.presence)
     }

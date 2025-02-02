@@ -1,11 +1,11 @@
 [versions]
-accompanistPermissions = "0.36.0"
+accompanistPermissions = "0.37.0"
 adaptive = "1.0.1"
 agp = "8.7.3"
-android-compileSdk = "34"
-android-minSdk = "26"
-android-targetSdk = "34"
-androidx-activityCompose = "1.9.3"
+android-compileSdk = "35"
+android-targetSdk = "35"
+android-minSdk = "28"
+androidx-activityCompose = "1.10.0"
 androidx-appcompat = "1.7.0"
 androidx-constraintlayout = "2.2.0"
 androidx-core-ktx = "1.15.0"
@@ -14,22 +14,21 @@ androidx-lifecycle = "2.8.4"
 androidx-material = "1.12.0"
 androidx-test-junit = "1.2.1"
 coilCompose = "3.0.4"
-compose-multiplatform = "1.7.1"
+compose-multiplatform = "1.7.3"
 decompose = "3.2.2"
 junit = "4.13.2"
-kotlin = "2.0.21"
-kotlinx = "1.9.0"
-kotlinxSerializationJson = "1.7.3"
+kotlin = "2.1.0"
+kotlinx-coroutines = "1.10.1"
+kotlinxSerializationJson = "1.8.0"
 kotlinxDatetime = "0.6.1"
+kotlinParcelize = "2.1.0"
+kotlinLogging = "7.0.3"
 essenty = "2.3.0"
-multiplatformMarkdownRenderer = "0.27.0"
+multiplatformMarkdownRenderer = "0.30.0"
 slf4jAndroid = "2.0.7-0"
 startupRuntime = "1.2.0"
-kotlinx-coroutines = "1.9.0"
 ktor = "3.0.3"
-kotlinLogging = "7.0.3"
 detekt = "1.23.7"
-kotlinParcelize = "2.1.0"
 slf4j = "2.0.16"
 multiplatform-settings = "1.2.0"
 
@@ -59,8 +58,8 @@ androidx-startup-runtime = { module = "androidx.startup:startup-runtime", versio
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
 androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx" }
-kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }

@@ -130,6 +130,10 @@ kotlin {
             implementation(libs.kotlin.logging)
             // Datetime
             implementation(libs.kotlinx.datetime)
+            // File picker
+            implementation(libs.filekit.core)
+            implementation(libs.filekit.compose)
+
             // Note: The following dependencies are declared as api() to work with iOS
             // Navigation
             api(libs.decompose)
@@ -208,6 +212,11 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.hypergonial.chat"
             packageVersion = "1.0.0"
+
+            // Needed by filekit
+            linux {
+                modules("jdk.security.auth")
+            }
         }
 
         buildTypes.release.proguard {

@@ -1,6 +1,5 @@
 package com.hypergonial.chat
 
-import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -21,11 +20,13 @@ import com.arkivanov.decompose.defaultComponentContext
 import com.hypergonial.chat.model.AndroidSettings
 import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.view.components.DefaultRootComponent
+import io.github.vinceglb.filekit.core.FileKit
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalDecomposeApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        FileKit.init(this)
         enableEdgeToEdge()
         initializeStorage()
         val root = DefaultRootComponent(defaultComponentContext())

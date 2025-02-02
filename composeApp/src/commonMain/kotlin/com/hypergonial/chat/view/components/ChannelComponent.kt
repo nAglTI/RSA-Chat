@@ -26,6 +26,10 @@ import com.hypergonial.chat.view.components.subcomponents.LoadMoreMessagesIndica
 import com.hypergonial.chat.view.components.subcomponents.MessageComponent
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import com.hypergonial.chat.view.content.ChannelContent
+import io.github.vinceglb.filekit.core.FileKit
+import io.github.vinceglb.filekit.core.PickerMode
+import io.github.vinceglb.filekit.core.PickerType
+import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlin.time.Duration.Companion.minutes
@@ -50,8 +54,17 @@ interface ChannelComponent : MainContentComponent, Displayable {
     /** Callback called when the user inputs the "edit last message" action. */
     fun onEditLastMessage()
 
-    /** Callback called when the user requests to attach a file. */
-    fun onFileUploadRequested()
+    /** Callback called when the user requests to attach a file.
+     *
+     * @param isMedia If true, the user is requesting to upload an image or video.
+     * This controls the file picker type. */
+    fun onFileAttachRequested(isMedia: Boolean = false)
+
+    /** Callback called when the user requests to open the file upload dropdown. */
+    fun onFileUploadDropdownOpen()
+
+    /** Callback called when the user requests to close the file upload dropdown. */
+    fun onFileUploadDropdownClose()
 
     /** Callback called when the user changes the content of the chat bar.
      *
@@ -72,6 +85,8 @@ interface ChannelComponent : MainContentComponent, Displayable {
     data class ChannelState(
         /** The value of the chat bar */
         val chatBarValue: TextFieldValue = TextFieldValue(),
+        /** Attachments awaiting upload */
+        val pendingAttachments: SnapshotStateList<PlatformFile> = mutableStateListOf(),
         /** The list of message entries to display */
         val messageEntries: SnapshotStateList<MessageEntryComponent>,
         val lastSentMessageId: Snowflake? = null,
@@ -79,6 +94,8 @@ interface ChannelComponent : MainContentComponent, Displayable {
         val listState: LazyListState = LazyListState(),
         /** If true, the bottom of the message list is no longer loaded */
         val isCruising: Boolean = false,
+        /** If true, the file upload dropdown is open */
+        val isFileUploadDropdownOpen: Boolean = false
     )
 }
 
@@ -240,8 +257,36 @@ class DefaultChannelComponent(
         }
     }
 
-    override fun onFileUploadRequested() {
-        TODO("Not yet implemented")
+    override fun onFileUploadDropdownOpen() {
+        data.value = data.value.copy(isFileUploadDropdownOpen = true)
+    }
+
+    override fun onFileUploadDropdownClose() {
+        data.value = data.value.copy(isFileUploadDropdownOpen = false)
+    }
+
+    override fun onFileAttachRequested(isMedia: Boolean) {
+        onFileUploadDropdownClose()
+
+        scope.launch {
+            val file = if (isMedia) {
+                 FileKit.pickFile(
+                    PickerType.ImageAndVideo, PickerMode.Single,
+                    title = "Select media to upload"
+                ) ?: return@launch
+            } else {
+                FileKit.pickFile(
+                    PickerType.File(), PickerMode.Single,
+                    title = "Select a file to upload"
+                ) ?: return@launch
+            }
+
+            println("File picked: ${file.name}")
+            // In bytes
+            println("File size: ${file.getSize()}")
+
+            data.value.pendingAttachments.add(file)
+        }
     }
 
     /** Add a new message to the list of message entries.
@@ -333,7 +378,7 @@ class DefaultChannelComponent(
         )
         addMessage(msg, isPending = true)
     }
-    
+
     override fun onMessageSend() {
         val content = data.value.chatBarValue.text.trim()
 

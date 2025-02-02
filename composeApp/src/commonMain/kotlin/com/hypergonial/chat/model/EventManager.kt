@@ -38,21 +38,31 @@ private class EventSubscriber<EventT : Event>(val callback: suspend (EventT) -> 
 
 /** Instructions for the event manager actor. */
 private sealed class Instruction {
+    /** Subscribe to an event type with the provided subscriber. */
     class Subscribe(val event: KClass<out Event>, val subscriber: EventSubscriber<out Event>) : Instruction()
 
+    /** Unsubscribe from an event type with the provided subscriber. */
     class Unsubscribe(val event: KClass<out Event>, val subscriber: EventSubscriber<out Event>) : Instruction()
 
+    /** Dispatch a new event to all current subscribers of this event type. */
     class Dispatch(val event: Event) : Instruction()
 }
 
 /** Inner class managing the event subscriptions and dispatching. */
 private class EventManagerActor {
+    /** A map of event types to their subscribers. */
     private val subscribers: MutableMap<KClass<out Event>, HashSet<EventSubscriber<out Event>>> = mutableMapOf()
 
+    /** A queue of instructions to handle. */
     private var channel = Channel<Instruction>(Channel.Factory.UNLIMITED)
+
+    /** The coroutine scope for this event manager. */
     private var scope: CoroutineScope? = null
+
+    /** The currently running job processing instructions. */
     private var runningJob: Job? = null
 
+    /** Starts processing instructions and blocks until the channel is closed or the runningJob is cancelled. */
     suspend fun run() = coroutineScope {
         if (runningJob != null) {
             runningJob?.cancel()
@@ -61,6 +71,7 @@ private class EventManagerActor {
         runningJob = launch { handleInstructions() }
     }
 
+    /** Stops the event manager. */
     fun stop() {
         runningJob?.cancel()
         runningJob = null
@@ -76,10 +87,19 @@ private class EventManagerActor {
         }
     }
 
+    /** Send an instruction to the event manager.
+     *
+     * @param instruction The instruction to send.
+     * */
     suspend fun sendInstruction(instruction: Instruction) {
         channel.send(instruction)
     }
 
+    /** Try to send an instruction to the event manager.
+     *
+     * @param instruction The instruction to send.
+     * @return True if the instruction was queued successfully, false otherwise.
+     * */
     fun trySendInstruction(instruction: Instruction): Boolean {
         return channel.trySend(instruction).isSuccess
     }
@@ -98,7 +118,7 @@ private class EventManagerActor {
         return this.subscribers[eventType] ?: emptySet()
     }
 
-    @Suppress("UNCHECKED_CAST")
+    @Suppress("UNCHECKED_CAST", "TooGenericExceptionThrown")
     private fun dispatch(event: Event) {
         if (scope == null) {
             throw RuntimeException("Event manager not started")

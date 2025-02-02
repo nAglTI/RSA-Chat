@@ -21,12 +21,14 @@ object ChatImageTransformer : ImageTransformer {
     @Composable
     override fun transform(link: String): ImageData {
         return rememberAsyncImagePainter(
-            model = ImageRequest.Builder(LocalPlatformContext.current)
-                .data(link)
-                .size(coil3.size.Size.ORIGINAL)
-                .build(),
-            contentScale = ContentScale.Fit
-        ).let { ImageData(it) }
+                model =
+                    ImageRequest.Builder(LocalPlatformContext.current)
+                        .data(link)
+                        .size(coil3.size.Size.ORIGINAL)
+                        .build(),
+                contentScale = ContentScale.Fit,
+            )
+            .let { ImageData(it) }
     }
 
     @Composable

@@ -1,18 +1,19 @@
 package com.hypergonial.chat
 
 import com.arkivanov.essenty.statekeeper.SerializableContainer
+import java.io.File
+import javax.swing.SwingUtilities
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.json.encodeToStream
-import java.io.File
-import javax.swing.SwingUtilities
 
-/** A function that runs the given block on the UI thread
+/**
+ * A function that runs the given block on the UI thread
  *
  * @param block The block to run on the UI thread.
- *
- * @return The result of the block. */
+ * @return The result of the block.
+ */
 @Suppress("TooGenericExceptionCaught")
 internal fun <T> runOnUiThread(block: () -> T): T {
     if (SwingUtilities.isEventDispatchThread()) {
@@ -36,22 +37,23 @@ internal fun <T> runOnUiThread(block: () -> T): T {
     return result as T
 }
 
-/** Write a serializable container to a Java file handle
+/**
+ * Write a serializable container to a Java file handle
  *
  * @param file The file to write the serializable container to.
  */
 @OptIn(ExperimentalSerializationApi::class)
 fun SerializableContainer.writeToFile(file: File) {
-    file.outputStream().use { output ->
-        Json.encodeToStream(SerializableContainer.serializer(), this, output)
-    }
+    file.outputStream().use { output -> Json.encodeToStream(SerializableContainer.serializer(), this, output) }
 }
 
-/** Read a serializable container from a Java file handle
+/**
+ * Read a serializable container from a Java file handle
  *
  * @return The serializable container read from the file, or null if the file does not exist or an error occurs.
  */
 @OptIn(ExperimentalSerializationApi::class)
+@Suppress("TooGenericExceptionCaught", "SwallowedException")
 fun File.readToSerializableContainer(): SerializableContainer? =
     takeIf(File::exists)?.inputStream()?.use { input ->
         try {

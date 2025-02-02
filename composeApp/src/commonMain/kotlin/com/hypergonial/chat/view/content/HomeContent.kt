@@ -14,10 +14,12 @@ fun HomeContent(component: HomeComponent) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
     ) {
         Text("Welcome to Chat!")
-        Text("It looks like you're not part of any guilds yet. Click the green + in the sidebar to join or create one!")
+        Text(
+            "It looks like you're not part of any guilds yet. Click the green + in the sidebar to join or create one!"
+        )
         // TODO: Add button here to join guilds as well?
     }
 }

@@ -31,11 +31,7 @@ class MainActivity : ComponentActivity() {
         initializeStorage()
         val root = DefaultRootComponent(defaultComponentContext())
 
-        setContent {
-            AppTheme {
-                App(root)
-            }
-        }
+        setContent { AppTheme { App(root) } }
     }
 
     override fun onResume() {
@@ -52,37 +48,36 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private val lightColorScheme = lightColorScheme(
-    primary = Color(0xFF476810),
-    onPrimary = Color(0xFF476810),
-    primaryContainer = Color(0xFFC7F089),
-    onPrimaryContainer = Color(0xFFC7F089),
-)
-private val darkColorScheme = darkColorScheme(
-    primary = Color(0xFFACD370),
-    onPrimary = Color(0xFF213600),
-    primaryContainer = Color(0xFF324F00),
-    onPrimaryContainer = Color(0xFF324F00),
-)
+private val lightColorScheme =
+    lightColorScheme(
+        primary = Color(0xFF476810),
+        onPrimary = Color(0xFF476810),
+        primaryContainer = Color(0xFFC7F089),
+        onPrimaryContainer = Color(0xFFC7F089),
+    )
+private val darkColorScheme =
+    darkColorScheme(
+        primary = Color(0xFFACD370),
+        onPrimary = Color(0xFF213600),
+        primaryContainer = Color(0xFF324F00),
+        onPrimaryContainer = Color(0xFF324F00),
+    )
 
 /// Adaptive theming depending on system theme.
 @Composable
-fun AppTheme(
-    useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit
-) {
+fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     // Material You is only supported on Android 12+
     val supportsDynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
-    val colorScheme = when {
-        supportsDynamicColor && useDarkTheme -> dynamicDarkColorScheme(LocalContext.current)
-        supportsDynamicColor && !useDarkTheme -> dynamicLightColorScheme(LocalContext.current)
-        useDarkTheme -> darkColorScheme
-        else -> lightColorScheme
-    }
+    val colorScheme =
+        when {
+            supportsDynamicColor && useDarkTheme -> dynamicDarkColorScheme(LocalContext.current)
+            supportsDynamicColor && !useDarkTheme -> dynamicLightColorScheme(LocalContext.current)
+            useDarkTheme -> darkColorScheme
+            else -> lightColorScheme
+        }
 
     CompositionLocalProvider(LocalUsingDarkTheme provides useDarkTheme) {
-        MaterialTheme(
-            colorScheme = colorScheme, content = content
-        )
+        MaterialTheme(colorScheme = colorScheme, content = content)
     }
 }

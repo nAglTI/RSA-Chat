@@ -15,11 +15,9 @@ fun FallbackContent(component: FallbackMainComponent) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
     ) {
         Text("There appear to be no channels in this guild!")
-        Button(onClick = { component.onChannelCreateClicked() }) {
-            Text("Create a channel")
-        }
+        Button(onClick = { component.onChannelCreateClicked() }) { Text("Create a channel") }
     }
 }

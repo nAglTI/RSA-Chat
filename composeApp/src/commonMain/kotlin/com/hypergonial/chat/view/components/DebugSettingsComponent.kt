@@ -9,25 +9,28 @@ import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.view.content.DebugSettingsContent
 
-interface DebugSettingsComponent: Displayable {
+interface DebugSettingsComponent : Displayable {
     val data: Value<Data>
 
-    /** Called when the API endpoint URL changes
+    /**
+     * Called when the API endpoint URL changes
      *
      * @param url The new URL
-     * */
+     */
     fun onApiEndpointChange(url: String)
 
-    /** Called when the gateway endpoint URL changes
+    /**
+     * Called when the gateway endpoint URL changes
      *
      * @param url The new URL
-     * */
+     */
     fun onGatewayEndpointChange(url: String)
 
-    /** Called when the object store endpoint URL changes
+    /**
+     * Called when the object store endpoint URL changes
      *
      * @param url The new URL
-     * */
+     */
     fun onObjectStoreEndpointChange(url: String)
 
     /** Called when the save button is clicked */
@@ -36,8 +39,7 @@ interface DebugSettingsComponent: Displayable {
     /** Called when the back button is clicked */
     fun onBackClicked()
 
-    @Composable
-    override fun Display() = DebugSettingsContent(this)
+    @Composable override fun Display() = DebugSettingsContent(this)
 
     data class Data(
         /** The API endpoint URL */
@@ -69,24 +71,22 @@ interface DebugSettingsComponent: Displayable {
                 ApiConfig(
                     apiEndpoint.ensureSlashAtEnd(),
                     gatewayEndpoint.ensureSlashAtEnd(),
-                    objectStoreEndpoint.ensureSlashAtEnd()
+                    objectStoreEndpoint.ensureSlashAtEnd(),
                 )
             )
         }
     }
 }
 
-/** The default implementation of the DebugSettingsComponent
+/**
+ * The default implementation of the DebugSettingsComponent
  *
  * @param ctx The component context
  * @param client The client to use for API calls
  * @param onBack The callback to call when the back button is clicked
- * */
-class DefaultDebugSettingsComponent(
-    val ctx: ComponentContext,
-    val client: Client,
-    val onBack: () -> Unit,
-) : DebugSettingsComponent, ComponentContext by ctx {
+ */
+class DefaultDebugSettingsComponent(val ctx: ComponentContext, val client: Client, val onBack: () -> Unit) :
+    DebugSettingsComponent, ComponentContext by ctx {
     override val data = MutableValue(DebugSettingsComponent.Data.load())
 
     override fun onApiEndpointChange(url: String) {
@@ -107,18 +107,19 @@ class DefaultDebugSettingsComponent(
     override fun onBackClicked() = onBack()
 
     private fun validate() {
-        data.value = data.value.copy(
-            apiEndpointError = !data.value.apiEndpoint.isHttpUrl(),
-            gatewayEndpointError = !data.value.gatewayEndpoint.isWebSocketUrl(),
-            objectStoreEndpointError = !data.value.objectStoreEndpoint.isHttpUrl()
-        )
+        data.value =
+            data.value.copy(
+                apiEndpointError = !data.value.apiEndpoint.isHttpUrl(),
+                gatewayEndpointError = !data.value.gatewayEndpoint.isWebSocketUrl(),
+                objectStoreEndpointError = !data.value.objectStoreEndpoint.isHttpUrl(),
+            )
     }
 
     private fun canSave(): Boolean {
-        return !data.value.apiEndpointError
-            && !data.value.gatewayEndpointError
-            && !data.value.objectStoreEndpointError
-            && data.value.hasChanged
+        return !data.value.apiEndpointError &&
+            !data.value.gatewayEndpointError &&
+            !data.value.objectStoreEndpointError &&
+            data.value.hasChanged
     }
 
     override fun onSaveClicked() {

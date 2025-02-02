@@ -15,8 +15,4 @@ class Ready(val data: ReadyPayload) : GatewayMessage(), EventConvertible {
     }
 }
 
-@Serializable
-data class ReadyPayload(
-    val user: User,
-    val guilds: List<Guild>
-)
+@Serializable data class ReadyPayload(val user: User, val guilds: List<Guild>)

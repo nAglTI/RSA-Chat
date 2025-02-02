@@ -23,14 +23,12 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 /**
- * A serializer that wraps another serializer and falls back to a default value if the
- * deserialization fails.
+ * A serializer that wraps another serializer and falls back to a default value if the deserialization fails.
  *
  * @param delegate The serializer to delegate to
  * @param default The default value to return if deserialization fails
  */
-class FallbackSerializer<T>(private val delegate: KSerializer<T>, private val default: T) :
-        KSerializer<T> {
+class FallbackSerializer<T>(private val delegate: KSerializer<T>, private val default: T) : KSerializer<T> {
     override val descriptor: SerialDescriptor = delegate.descriptor
 
     private val logger = KotlinLogging.logger {}
@@ -50,17 +48,17 @@ class FallbackSerializer<T>(private val delegate: KSerializer<T>, private val de
 }
 
 /**
- * A serializer that wraps another serializer and falls back to a default value if the
- * deserialization fails, or if a predicate is met.
+ * A serializer that wraps another serializer and falls back to a default value if the deserialization fails, or if a
+ * predicate is met.
  *
  * @param delegate The serializer to delegate to
  * @param default The default value to return if deserialization fails
  * @param predicate The predicate to check if the fallback should be used
  */
 class FallbackSerializerWithPredicate<T>(
-        private val delegate: KSerializer<T>,
-        private val default: T,
-        private val predicate: () -> Boolean
+    private val delegate: KSerializer<T>,
+    private val default: T,
+    private val predicate: () -> Boolean,
 ) : KSerializer<T> {
     override val descriptor: SerialDescriptor = delegate.descriptor
 
@@ -89,8 +87,7 @@ class FallbackSerializerWithPredicate<T>(
  *
  * @param default The default value to return if deserialization fails
  */
-fun <T> KSerializer<T>.withFallbackValue(default: T): KSerializer<T> =
-        FallbackSerializer(this, default)
+fun <T> KSerializer<T>.withFallbackValue(default: T): KSerializer<T> = FallbackSerializer(this, default)
 
 /**
  * Fall back to a default value if the deserialization fails, or if a predicate is met
@@ -99,7 +96,7 @@ fun <T> KSerializer<T>.withFallbackValue(default: T): KSerializer<T> =
  * @param predicate The predicate to check if the fallback should be used
  */
 fun <T> KSerializer<T>.withFallbackValue(default: T, predicate: () -> Boolean): KSerializer<T> =
-        FallbackSerializerWithPredicate(this, default, predicate)
+    FallbackSerializerWithPredicate(this, default, predicate)
 
 /** The value after the last element in the progression. */
 val IntRange.end: Int
@@ -137,8 +134,7 @@ fun TextFieldValue.sanitized(): TextFieldValue {
     // pass
     val tabCount = this.text.count { it == '\t' }
     val text = this.text.replace("\t", "    ")
-    val selection =
-            TextRange(this.selection.start + 3 * tabCount, this.selection.end + 3 * tabCount)
+    val selection = TextRange(this.selection.start + 3 * tabCount, this.selection.end + 3 * tabCount)
     return this.copy(text = text, selection = selection)
 }
 
@@ -175,24 +171,22 @@ private fun Int.zpad(to: Int): String {
     return this.toString().padStart(to, '0')
 }
 
-/** A tooltip position provider that tries to display the
- * tooltip next to the anchor object, as opposed to above or below it.
+/**
+ * A tooltip position provider that tries to display the tooltip next to the anchor object, as opposed to above or below
+ * it.
  *
  * @param spacingBetweenTooltipAndAnchor The spacing between the tooltip and the anchor object.
- * */
+ */
 @Composable
-fun rememberHorizontalTooltipPositionProvider(
-    spacingBetweenTooltipAndAnchor: Dp
-): PopupPositionProvider {
-    val tooltipAnchorSpacing =
-        with(LocalDensity.current) { spacingBetweenTooltipAndAnchor.roundToPx() }
+fun rememberHorizontalTooltipPositionProvider(spacingBetweenTooltipAndAnchor: Dp): PopupPositionProvider {
+    val tooltipAnchorSpacing = with(LocalDensity.current) { spacingBetweenTooltipAndAnchor.roundToPx() }
     return remember(tooltipAnchorSpacing) {
         object : PopupPositionProvider {
             override fun calculatePosition(
                 anchorBounds: IntRect,
                 windowSize: IntSize,
                 layoutDirection: LayoutDirection,
-                popupContentSize: IntSize
+                popupContentSize: IntSize,
             ): IntOffset {
                 // Try to position on the right first
                 var x = anchorBounds.right + tooltipAnchorSpacing
@@ -211,10 +205,7 @@ fun rememberHorizontalTooltipPositionProvider(
     }
 }
 
-/**
- * Toggles the drawer state. If the drawer is closed, it will open it. If the drawer is open, it
- * will close it.
- */
+/** Toggles the drawer state. If the drawer is closed, it will open it. If the drawer is open, it will close it. */
 suspend fun DrawerState.toggle() {
     if (isClosed) {
         open()

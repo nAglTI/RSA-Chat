@@ -4,26 +4,26 @@ import com.hypergonial.chat.model.settings
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** A guild.
+/**
+ * A guild.
  *
  * @param id The ID of the guild.
  * @param name The name of the guild.
  * @param ownerId The ID of the owner of the guild.
  * @param avatarHash The hash of the guild's avatar.
- * */
+ */
 @Serializable
 data class Guild(
     val id: Snowflake,
     val name: String,
-    @SerialName("owner_id")
-    val ownerId: Snowflake,
-    @SerialName("avatar_hash")
-    val avatarHash: String? = null
+    @SerialName("owner_id") val ownerId: Snowflake,
+    @SerialName("avatar_hash") val avatarHash: String? = null,
 ) {
     val avatarUrl: String?
-        get() = avatarHash?.let {
-            "${settings.getApiSettings().objectStoreUrl}/guilds/$id/$it.${
+        get() =
+            avatarHash?.let {
+                "${settings.getApiSettings().objectStoreUrl}/guilds/$id/$it.${
                 it.split("_").last()
             }"
-        }
+            }
 }

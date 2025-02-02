@@ -15,14 +15,14 @@ enum class PlatformType {
     WEB,
     ANDROID,
     IOS,
-    UNKNOWN;
-
-
+    UNKNOWN,
 }
 
-/** Platform information for the app.
+/**
+ * Platform information for the app.
  *
- * Contains information about the platform the app is running on. */
+ * Contains information about the platform the app is running on.
+ */
 interface Platform {
     val platformType: PlatformType
     val name: String
@@ -42,21 +42,14 @@ interface Platform {
      *
      * @param backHandler The back handler to use for the back gesture.
      * @param onBack The callback to call when the back gesture is detected.
-     *
-     * @return The appropriate back animation for the platform */
+     * @return The appropriate back animation for the platform
+     */
     @OptIn(ExperimentalDecomposeApi::class)
-    fun <C : Any, T : Any> backAnimation(
-        backHandler: BackHandler,
-        onBack: () -> Unit,
-    ): StackAnimation<C, T> {
+    fun <C : Any, T : Any> backAnimation(backHandler: BackHandler, onBack: () -> Unit): StackAnimation<C, T> {
         return if (platformType == PlatformType.IOS) {
             iOSBackAnimation(backHandler, onBack = onBack)
         } else {
-            predictiveBackAnimation(
-                backHandler,
-                onBack = onBack,
-                fallbackAnimation = stackAnimation(scale() + fade())
-            )
+            predictiveBackAnimation(backHandler, onBack = onBack, fallbackAnimation = stackAnimation(scale() + fade()))
         }
     }
 }

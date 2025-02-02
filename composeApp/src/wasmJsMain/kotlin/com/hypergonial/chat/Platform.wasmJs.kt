@@ -1,6 +1,6 @@
 package com.hypergonial.chat
 
-object WasmPlatform: Platform {
+object WasmPlatform : Platform {
     override val platformType: PlatformType = PlatformType.WEB
     override val name: String = "Web with Kotlin/Wasm"
 }

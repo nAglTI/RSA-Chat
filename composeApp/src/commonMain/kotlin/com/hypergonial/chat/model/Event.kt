@@ -69,7 +69,8 @@ enum class InvalidationReason {
     Abnormal,
 }
 
-/** Event dispatched when the session is invalidated
+/**
+ * Event dispatched when the session is invalidated
  *
  * Listeners should clear all state and return to the login screen in case of a non-normal invalidation.
  */

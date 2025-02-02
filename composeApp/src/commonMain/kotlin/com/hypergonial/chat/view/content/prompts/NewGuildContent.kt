@@ -24,27 +24,19 @@ fun NewGuildContent(component: NewGuildComponent) {
         if (platform.needsBackButton()) {
             IconButton(
                 onClick = { component.onBackClicked() },
-                modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart)
+                modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart),
             ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back"
-                )
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
         }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
         ) {
-            Button(onClick = { component.onGuildCreateClicked() }) {
-                Text("Create")
-            }
-            Button(onClick = { component.onGuildJoinClicked() }) {
-                Text("Join")
-            }
+            Button(onClick = { component.onGuildCreateClicked() }) { Text("Create") }
+            Button(onClick = { component.onGuildJoinClicked() }) { Text("Join") }
         }
     }
-
-
 }

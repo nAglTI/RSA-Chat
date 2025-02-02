@@ -31,32 +31,31 @@ fun CreateChannelContent(component: CreateChannelComponent) {
             if (platform.needsBackButton()) {
                 IconButton(
                     onClick = { component.onBackClicked() },
-                    modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart)
+                    modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart),
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back"
-                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
             }
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             ) {
-                OutlinedTextField(value = state.channelName,
+                OutlinedTextField(
+                    value = state.channelName,
                     onValueChange = component::onChannelNameChanged,
                     placeholder = { Text("Enter the name of the channel...") },
-                    label = { Text("Channel Name") })
+                    label = { Text("Channel Name") },
+                )
 
                 Button(
                     onClick = { component.onCreateChannelClicked() },
-                    enabled = state.isCreateButtonEnabled
+                    enabled = state.isCreateButtonEnabled,
                 ) {
                     Text("Create")
                 }
             }
         }
     }
-
 }

@@ -48,15 +48,13 @@ fun RegisterTopBar(component: RegisterComponent) {
     Row(
         Modifier.fillMaxWidth().height(50.dp).padding(0.dp, 0.dp, 0.dp, 0.dp),
         horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(
             onClick = { component.onBackClicked() },
-            modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp)
+            modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp),
         ) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back"
-            )
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
     }
 }
@@ -71,13 +69,13 @@ fun RegisterContent(component: RegisterComponent) {
             Column(
                 Modifier.fillMaxWidth().fillMaxHeight().safeDrawingPadding(),
                 verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     "Register an account",
                     fontSize = 24.sp,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 60.dp)
+                    modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 60.dp),
                 )
 
                 OutlinedTextField(
@@ -88,26 +86,20 @@ fun RegisterContent(component: RegisterComponent) {
                     onValueChange = { component.onUsernameChange(it) },
                     label = { Text("Username*") },
                     leadingIcon = {
-                        Icon(
-                            Icons.Filled.AccountCircle, contentDescription = "Username"
-                        )
+                        Icon(Icons.Filled.AccountCircle, contentDescription = "Username")
                     },
-                    keyboardOptions = KeyboardOptions(
-                        autoCorrectEnabled = false,
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(onNext = {
-                        focusManager.moveFocus(FocusDirection.Down)
-                    })
+                    keyboardOptions =
+                        KeyboardOptions(
+                            autoCorrectEnabled = false,
+                            keyboardType = KeyboardType.Text,
+                            imeAction = ImeAction.Next,
+                        ),
+                    keyboardActions =
+                        KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 )
 
                 for (error in state.usernameErrors) {
-                    Row {
-                        Text(
-                            error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error
-                        )
-                    }
+                    Row { Text(error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error) }
                 }
 
                 PasswordTextField(
@@ -115,23 +107,19 @@ fun RegisterContent(component: RegisterComponent) {
                     label = { Text("Password*") },
                     onValueChange = { component.onPasswordChange(password = it) },
                     isError = state.passwordErrors.isNotEmpty(),
-                    keyboardActions = KeyboardActions(onNext = {
-                        focusManager.moveFocus(FocusDirection.Down)
-                    }),
-                    keyboardOptions = KeyboardOptions(
-                        autoCorrectEnabled = false,
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Next
-                    ),
-                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp)
+                    keyboardActions =
+                        KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                    keyboardOptions =
+                        KeyboardOptions(
+                            autoCorrectEnabled = false,
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Next,
+                        ),
+                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
                 )
 
                 for (error in state.passwordErrors) {
-                    Row {
-                        Text(
-                            error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error
-                        )
-                    }
+                    Row { Text(error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error) }
                 }
 
                 PasswordTextField(
@@ -139,25 +127,29 @@ fun RegisterContent(component: RegisterComponent) {
                     label = { Text("Confirm Password*") },
                     isError = state.passwordErrors.isNotEmpty(),
                     onValueChange = { component.onPasswordConfirmChange(it) },
-                    keyboardOptions = KeyboardOptions(
-                        autoCorrectEnabled = false,
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Go
-                    ),
-                    keyboardActions = KeyboardActions(onGo = {
-                        if (state.canRegister) {
-                            component.onRegisterAttempt()
-                            focusManager.clearFocus()
-                        }
-                    }),
-                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp)
+                    keyboardOptions =
+                        KeyboardOptions(
+                            autoCorrectEnabled = false,
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Go,
+                        ),
+                    keyboardActions =
+                        KeyboardActions(
+                            onGo = {
+                                if (state.canRegister) {
+                                    component.onRegisterAttempt()
+                                    focusManager.clearFocus()
+                                }
+                            }
+                        ),
+                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
                 )
 
                 ChatButton(
-                    modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp)
-                        .height(45.dp),
+                    modifier =
+                        Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),
                     onClick = { component.onRegisterAttempt() },
-                    enabled = state.canRegister
+                    enabled = state.canRegister,
                 ) {
                     Text("Register")
                 }

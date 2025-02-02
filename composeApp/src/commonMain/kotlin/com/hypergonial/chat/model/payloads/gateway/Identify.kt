@@ -10,7 +10,4 @@ class Identify(val data: IdentifyPayload) : GatewayMessage() {
     constructor(token: Secret<String>) : this(IdentifyPayload(token))
 }
 
-@Serializable
-data class IdentifyPayload(
-    val token: Secret<String>
-)
+@Serializable data class IdentifyPayload(val token: Secret<String>)

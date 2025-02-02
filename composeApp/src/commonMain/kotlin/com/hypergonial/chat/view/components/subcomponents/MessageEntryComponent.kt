@@ -9,10 +9,11 @@ import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.payloads.PartialUser
 import com.hypergonial.chat.model.payloads.Snowflake
 
-/** Represents a single entry in the message list.
+/**
+ * Represents a single entry in the message list.
  *
- * An entry is a grouping of messages sent by the same author
- * in a short span of time (typically within 5 minutes). */
+ * An entry is a grouping of messages sent by the same author in a short span of time (typically within 5 minutes).
+ */
 interface MessageEntryComponent {
 
     val data: Value<MessageEntryState>
@@ -34,10 +35,11 @@ interface MessageEntryComponent {
         return data.value.messages.firstOrNull()
     }
 
-    /** Pushes a message to the entry.
+    /**
+     * Pushes a message to the entry.
      *
      * @param message The message to push to the entry
-     * */
+     */
     fun pushMessage(message: MessageComponent) {
         require(author == null || message.data.value.message.author.id == author?.id) {
             "Message author does not match the author of the message entry."
@@ -46,19 +48,21 @@ interface MessageEntryComponent {
         data.value.messages.add(message)
     }
 
-    /** Checks if the entry contains a message with the given ID.
+    /**
+     * Checks if the entry contains a message with the given ID.
      *
      * @param messageId The ID of the message to check for
      * @return True if the entry contains the message, false otherwise
-     * */
+     */
     fun containsMessage(messageId: Snowflake): Boolean {
         return data.value.messages.any { it.data.value.message.id == messageId }
     }
 
-    /** Removes a message from the entry.
+    /**
+     * Removes a message from the entry.
      *
      * @param messageId The ID of the message to remove
-     * */
+     */
     fun removeMessage(messageId: Snowflake) {
         val index = data.value.messages.indexOfFirst { it.data.value.message.id == messageId }
         if (index != -1) {
@@ -66,47 +70,46 @@ interface MessageEntryComponent {
         }
     }
 
-    /** Returns the key of the message entry for use in lazy lists.
+    /**
+     * Returns the key of the message entry for use in lazy lists.
      *
      * @return The key of the message entry
-     * */
+     */
     fun getKey(): String {
         return data.value.messages.firstOrNull()?.getKey() ?: "emptykey"
     }
 
-    /** Sets the end indicator for the message entry.
+    /**
+     * Sets the end indicator for the message entry.
      *
      * @param endIndicator The end indicator to set
-     * */
+     */
     fun setEndIndicator(endIndicator: EndIndicator?)
 
     data class MessageEntryState(
         /** The messages in this entry */
         val messages: SnapshotStateList<MessageComponent>,
         /** The end indicator for this entry, if any */
-        val endIndicator: EndIndicator? = null
+        val endIndicator: EndIndicator? = null,
     )
 }
 
-/** A default implementation of the [MessageEntryComponent] interface.
+/**
+ * A default implementation of the [MessageEntryComponent] interface.
  *
  * @param ctx The component context
  * @param client The client to use for sending messages
  * @param messages The messages that this entry represents
  * @param endIndicator The end indicator for this entry, if any
- * */
+ */
 class DefaultMessageEntryComponent(
     val ctx: ComponentContext,
     val client: Client,
     messages: List<MessageComponent>,
-    endIndicator: EndIndicator? = null
+    endIndicator: EndIndicator? = null,
 ) : MessageEntryComponent {
-    override val data = MutableValue(
-        MessageEntryComponent.MessageEntryState(
-            messages.toMutableStateList(),
-            endIndicator
-        )
-    )
+    override val data =
+        MutableValue(MessageEntryComponent.MessageEntryState(messages.toMutableStateList(), endIndicator))
 
     override fun getMessage(messageId: Snowflake): MessageComponent? {
         return data.value.messages.find { it.data.value.message.id == messageId }
@@ -120,15 +123,17 @@ class DefaultMessageEntryComponent(
 /** An indicator that indicates the end of the messages list. */
 sealed interface EndIndicator
 
-/** A loading indicator that indicates the top of the messages list.
- * If this is rendered, it typically indicates that we ran out of messages and need to fetch more.
+/**
+ * A loading indicator that indicates the top of the messages list. If this is rendered, it typically indicates that we
+ * ran out of messages and need to fetch more.
  *
  * @param wasSeen Whether the user has seen this loading indicator.
  * @param isAtTop Whether the loading indicator is at the top of the list.
  */
-data class LoadMoreMessagesIndicator(var wasSeen: Boolean = false, val isAtTop: Boolean = true) :
-    EndIndicator
+data class LoadMoreMessagesIndicator(var wasSeen: Boolean = false, val isAtTop: Boolean = true) : EndIndicator
 
-/** An indicator that indicates the end of the messages list.
- * This should only be inserted in the list if there are no more messages to fetch. */
+/**
+ * An indicator that indicates the end of the messages list. This should only be inserted in the list if there are no
+ * more messages to fetch.
+ */
 data object EndOfMessages : EndIndicator

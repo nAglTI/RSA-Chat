@@ -24,14 +24,18 @@ interface MessageComponent {
 
     val data: Value<MessageUIState>
 
-    /** Returns the key of the message component for use in lazy lists.
+    /**
+     * Returns the key of the message component for use in lazy lists.
      *
-     * @return The key of the message component */
+     * @return The key of the message component
+     */
     fun getKey(): String
 
-    /** Invoked when the message is received by the backend server.
+    /**
+     * Invoked when the message is received by the backend server.
      *
-     * @param message The message that was received and validated by the backend */
+     * @param message The message that was received and validated by the backend
+     */
     fun onPendingEnd(message: Message)
 
     /** Invoked when the user starts editing the message */
@@ -43,16 +47,18 @@ interface MessageComponent {
     /** Invoked when the user cancels editing the message */
     fun onEditCancel()
 
-    /** Invoked when the user changes the editor state (types in the editor)
+    /**
+     * Invoked when the user changes the editor state (types in the editor)
      *
      * @param value The new state of the editor
-     * */
+     */
     fun onEditorStateChanged(value: TextFieldValue)
 
-    /** Invoked when a message update event is received from the backend for this message
+    /**
+     * Invoked when a message update event is received from the backend for this message
      *
      * @param event The event that was received
-     * */
+     */
     fun onMessageUpdate(event: MessageUpdateEvent)
 
     data class MessageUIState(
@@ -65,34 +71,37 @@ interface MessageComponent {
         /** Whether the message editor is open or not */
         val isBeingEdited: Boolean = false,
         /** The state of the editor */
-        val editorState: TextFieldValue = TextFieldValue()
+        val editorState: TextFieldValue = TextFieldValue(),
     )
 }
 
-/** A default implementation of the [MessageComponent] interface.
+/**
+ * A default implementation of the [MessageComponent] interface.
  *
  * @param ctx The component context
  * @param client The client to use for sending messages
  * @param message The message that this component represents
  * @param isPending Whether the message is pending or not
- * */
+ */
 class DefaultMessageComponent(
     private val ctx: ComponentContext,
     private val client: Client,
     message: Message,
     isPending: Boolean = false,
 ) : MessageComponent {
-    override val data = MutableValue(
-        MessageComponent.MessageUIState(
-            message,
-            createdAt = if (isPending) Clock.System.now() else message.createdAt,
-            isPending,
+    override val data =
+        MutableValue(
+            MessageComponent.MessageUIState(
+                message,
+                createdAt = if (isPending) Clock.System.now() else message.createdAt,
+                isPending,
+            )
         )
-    )
     private val wasCreatedAsPending = isPending
 
     override fun getKey(): String {
-        return if (!wasCreatedAsPending) data.value.message.id.toString() else {
+        return if (!wasCreatedAsPending) data.value.message.id.toString()
+        else {
             data.value.message.nonce.toString()
         }
     }
@@ -101,18 +110,20 @@ class DefaultMessageComponent(
         data.value = data.value.copy(isPending = false, message = message, createdAt = message.createdAt)
     }
 
-
     override fun onEditStart() {
         if (data.value.message.author.id != client.cache.ownUser?.id) {
             return
         }
 
-        data.value = data.value.copy(
-            isBeingEdited = true, editorState = TextFieldValue(
-                data.value.message.content ?: "",
-                selection = TextRange(data.value.message.content?.length ?: 0)
+        data.value =
+            data.value.copy(
+                isBeingEdited = true,
+                editorState =
+                    TextFieldValue(
+                        data.value.message.content ?: "",
+                        selection = TextRange(data.value.message.content?.length ?: 0),
+                    ),
             )
-        )
     }
 
     override fun onEditorStateChanged(value: TextFieldValue) {
@@ -127,9 +138,7 @@ class DefaultMessageComponent(
 
         data.value = data.value.copy(isPending = true, isBeingEdited = false)
         ctx.coroutineScope().launch {
-            client.editMessage(
-                data.value.message.channelId, data.value.message.id, data.value.editorState.text
-            )
+            client.editMessage(data.value.message.channelId, data.value.message.id, data.value.editorState.text)
         }
     }
 
@@ -140,5 +149,4 @@ class DefaultMessageComponent(
     override fun onMessageUpdate(event: MessageUpdateEvent) {
         data.value = data.value.copy(message = event.message, isPending = false)
     }
-
 }

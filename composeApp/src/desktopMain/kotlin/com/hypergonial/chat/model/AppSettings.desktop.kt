@@ -9,5 +9,4 @@ class DesktopSettings : AppSettings() {
     override val secrets: Settings? = null
 }
 
-
 actual val settings: AppSettings = DesktopSettings()

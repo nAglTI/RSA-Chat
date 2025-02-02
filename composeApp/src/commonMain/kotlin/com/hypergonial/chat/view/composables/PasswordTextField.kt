@@ -31,7 +31,7 @@ import androidx.compose.ui.text.input.VisualTransformation
  * @param placeholder The placeholder to be displayed in the text field.
  * @param keyboardOptions The options to be applied to the keyboard.
  * @param keyboardActions The actions to be applied to the keyboard.
- * */
+ */
 @Composable
 fun PasswordTextField(
     value: String,
@@ -42,9 +42,8 @@ fun PasswordTextField(
     modifier: Modifier = Modifier,
     label: @Composable (() -> Unit)? = null,
     placeholder: @Composable (() -> Unit)? = null,
-    keyboardOptions: KeyboardOptions = KeyboardOptions(
-        autoCorrectEnabled = false, keyboardType = KeyboardType.Password, imeAction = ImeAction.Done
-    ),
+    keyboardOptions: KeyboardOptions =
+        KeyboardOptions(autoCorrectEnabled = false, keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
     keyboardActions: KeyboardActions = KeyboardActions.Default,
 ) {
     var showPassword by remember { mutableStateOf(false) }
@@ -62,7 +61,7 @@ fun PasswordTextField(
         trailingIcon = {
             IconButton(
                 onClick = { showPassword = !showPassword },
-                modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
+                modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
             ) {
                 if (showPassword) {
                     VisibilityIcon()
@@ -73,11 +72,10 @@ fun PasswordTextField(
         },
         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = keyboardOptions,
-        keyboardActions = keyboardActions
+        keyboardActions = keyboardActions,
     )
 
     if (isError) {
         errorComposable?.invoke()
     }
 }
-

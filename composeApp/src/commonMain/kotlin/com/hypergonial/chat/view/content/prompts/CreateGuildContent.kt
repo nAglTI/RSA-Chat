@@ -31,27 +31,27 @@ fun CreateGuildContent(component: CreateGuildComponent) {
             if (platform.needsBackButton()) {
                 IconButton(
                     onClick = { component.onBackClicked() },
-                    modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart)
+                    modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart),
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back"
-                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
             }
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             ) {
-                OutlinedTextField(value = state.guildName,
+                OutlinedTextField(
+                    value = state.guildName,
                     onValueChange = component::onGuildNameChanged,
                     placeholder = { Text("Enter the name of your guild...") },
-                    label = { Text("Guild Name") })
+                    label = { Text("Guild Name") },
+                )
 
                 Button(
                     onClick = { component.onGuildCreateClicked() },
-                    enabled = state.isCreateButtonEnabled
+                    enabled = state.isCreateButtonEnabled,
                 ) {
                     Text("Create")
                 }

@@ -27,28 +27,24 @@ import androidx.compose.ui.unit.dp
  * @param isSelected Whether the channel is selected.
  * @param icon The icon to display for the channel.
  * @param onSelect The callback to call when the channel is selected.
- * */
+ */
 @Composable
 fun SidebarChannelItem(
     label: String,
     isSelected: Boolean,
     icon: @Composable () -> Unit = { Icon(Icons.Filled.Tag, contentDescription = "Channel Icon") },
-    onSelect: () -> Unit
+    onSelect: () -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth()
             .padding(1.dp)
             .clip(RoundedCornerShape(6.dp))
-            .background(
-                color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-            )
+            .background(color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
             .clickable(onClick = onSelect)
             .pointerHoverIcon(PointerIcon.Hand)
             .padding(5.dp)
     ) {
-        Box(modifier = Modifier.padding(end = 5.dp)) {
-            icon()
-        }
+        Box(modifier = Modifier.padding(end = 5.dp)) { icon() }
         Text(label, softWrap = false)
     }
 }

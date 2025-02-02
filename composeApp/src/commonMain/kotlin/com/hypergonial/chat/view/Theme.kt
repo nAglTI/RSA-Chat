@@ -15,7 +15,7 @@ import com.hypergonial.chat.LocalUsingDarkTheme
  * @param onWarn The color to be used for text on warning messages.
  * @param misc The color to be used for miscellaneous messages.
  * @param onMisc The color to be used for text on miscellaneous messages.
- * */
+ */
 data class ChatColorScheme(
     val success: Color,
     val onSuccess: Color,
@@ -55,26 +55,23 @@ object ChatTheme {
         @Composable get() = LocalChatColorScheme.current
 }
 
-val LocalChatColorScheme =
-    compositionLocalOf<ChatColorScheme> { error("No color scheme provided for ChatTheme.") }
+val LocalChatColorScheme = compositionLocalOf<ChatColorScheme> { error("No color scheme provided for ChatTheme.") }
 
 /**
  * Apply custom palette to the content that supports it.
  *
  * @param content The content to be wrapped in the theme.
  *
- * Note: [LocalUsingDarkTheme] is used to determine if the theme should be dark or light.
- * This should be queried on the respective platform then passed into the composition.
+ * Note: [LocalUsingDarkTheme] is used to determine if the theme should be dark or light. This should be queried on the
+ * respective platform then passed into the composition.
  *
  * @see ChatTheme
- * */
+ */
 @Composable
 fun ChatTheme(content: @Composable () -> Unit) {
     val isDark = LocalUsingDarkTheme.current
 
     val colorScheme = if (isDark) ChatColorScheme.darkColors() else ChatColorScheme.lightColors()
 
-    CompositionLocalProvider(LocalChatColorScheme provides colorScheme) {
-        content()
-    }
+    CompositionLocalProvider(LocalChatColorScheme provides colorScheme) { content() }
 }

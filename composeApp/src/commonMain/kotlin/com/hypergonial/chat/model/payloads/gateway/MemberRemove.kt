@@ -14,5 +14,4 @@ class MemberRemove(val data: MemberRemovePayload) : GatewayMessage(), EventConve
     }
 }
 
-@Serializable
-data class MemberRemovePayload(val id: Snowflake, @SerialName("guild_id") val guildId: Snowflake)
+@Serializable data class MemberRemovePayload(val id: Snowflake, @SerialName("guild_id") val guildId: Snowflake)

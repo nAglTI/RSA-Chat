@@ -8,8 +8,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("MESSAGE_REMOVE")
-class MessageRemove(@SerialName("data") val payload: MessageRemovePayload) : GatewayMessage(),
-    EventConvertible {
+class MessageRemove(@SerialName("data") val payload: MessageRemovePayload) : GatewayMessage(), EventConvertible {
     override fun toEvent(): Event {
         return MessageRemoveEvent(payload.id, payload.channelId, payload.guildId)
     }
@@ -18,8 +17,6 @@ class MessageRemove(@SerialName("data") val payload: MessageRemovePayload) : Gat
 @Serializable
 data class MessageRemovePayload(
     val id: Snowflake,
-    @SerialName("channel_id")
-    val channelId: Snowflake,
-    @SerialName("guild_id")
-    val guildId: Snowflake
+    @SerialName("channel_id") val channelId: Snowflake,
+    @SerialName("guild_id") val guildId: Snowflake,
 )

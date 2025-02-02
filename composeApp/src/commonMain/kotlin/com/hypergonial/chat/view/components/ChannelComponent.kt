@@ -30,9 +30,9 @@ import io.github.vinceglb.filekit.core.FileKit
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import kotlin.time.Duration.Companion.minutes
 
 private const val MESSAGE_BATCH_SIZE = 100u
 
@@ -41,11 +41,13 @@ interface ChannelComponent : MainContentComponent, Displayable {
 
     /** Callback called when the logout button is clicked. */
     fun onLogoutClicked()
-    /** Callback called when the user requests more messages by scrolling the list.
+
+    /**
+     * Callback called when the user requests more messages by scrolling the list.
      *
      * @param lastMessage The ID of the last message to fetch messages before or after.
      * @param isAtTop If true, the user is requesting messages at the top of the list.
-     * */
+     */
     fun onMoreMessagesRequested(lastMessage: Snowflake? = null, isAtTop: Boolean)
 
     /** Callback called when the user hits the send message button. */
@@ -54,10 +56,11 @@ interface ChannelComponent : MainContentComponent, Displayable {
     /** Callback called when the user inputs the "edit last message" action. */
     fun onEditLastMessage()
 
-    /** Callback called when the user requests to attach a file.
+    /**
+     * Callback called when the user requests to attach a file.
      *
-     * @param isMedia If true, the user is requesting to upload an image or video.
-     * This controls the file picker type. */
+     * @param isMedia If true, the user is requesting to upload an image or video. This controls the file picker type.
+     */
     fun onFileAttachRequested(isMedia: Boolean = false)
 
     /** Callback called when the user requests to open the file upload dropdown. */
@@ -66,21 +69,21 @@ interface ChannelComponent : MainContentComponent, Displayable {
     /** Callback called when the user requests to close the file upload dropdown. */
     fun onFileUploadDropdownClose()
 
-    /** Callback called when the user changes the content of the chat bar.
+    /**
+     * Callback called when the user changes the content of the chat bar.
      *
      * @param value The new value of the chat bar.
-     * */
+     */
     fun onChatBarContentChanged(value: TextFieldValue)
 
-    /** Callback called when the user requests to delete a message.
+    /**
+     * Callback called when the user requests to delete a message.
      *
      * @param messageId The ID of the message to delete.
-     * */
+     */
     fun onMessageDeleteRequested(messageId: Snowflake)
 
-    @Composable
-    override fun Display() = ChannelContent(this)
-
+    @Composable override fun Display() = ChannelContent(this)
 
     data class ChannelState(
         /** The value of the chat bar */
@@ -95,11 +98,12 @@ interface ChannelComponent : MainContentComponent, Displayable {
         /** If true, the bottom of the message list is no longer loaded */
         val isCruising: Boolean = false,
         /** If true, the file upload dropdown is open */
-        val isFileUploadDropdownOpen: Boolean = false
+        val isFileUploadDropdownOpen: Boolean = false,
     )
 }
 
-/** The default channel component implementation.
+/**
+ * The default channel component implementation.
  *
  * @param ctx The component context.
  * @param client The client to use for API operations.
@@ -110,19 +114,19 @@ class DefaultChannelComponent(
     private val ctx: ComponentContext,
     private val client: Client,
     private val channelId: Snowflake,
-    private val onLogout: () -> Unit
+    private val onLogout: () -> Unit,
 ) : ChannelComponent, ComponentContext by ctx {
     private val scope = ctx.coroutineScope()
 
-    override val data = MutableValue(
-        ChannelComponent.ChannelState(
-            messageEntries = mutableStateListOf(
-                messageEntryComponent(
-                    mutableStateListOf(), LoadMoreMessagesIndicator(isAtTop = true)
-                )
+    override val data =
+        MutableValue(
+            ChannelComponent.ChannelState(
+                messageEntries =
+                    mutableStateListOf(
+                        messageEntryComponent(mutableStateListOf(), LoadMoreMessagesIndicator(isAtTop = true))
+                    )
             )
         )
-    )
 
     init {
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessageCreate)
@@ -132,39 +136,39 @@ class DefaultChannelComponent(
 
     override fun onLogoutClicked() = onLogout()
 
-    /** Creates a new message component from a message.
+    /**
+     * Creates a new message component from a message.
      *
      * @param message The message to create a component from.
      * @param isPending Whether the message is pending or not.
-     *
      * @return The message component.
      */
     private fun messageComponent(message: Message, isPending: Boolean = false): MessageComponent {
         return DefaultMessageComponent(ctx, client, message, isPending)
     }
 
-    /** Creates a new message entry component from a list of messages.
+    /**
+     * Creates a new message entry component from a list of messages.
      *
      * @param messages The list of messages to create a component from.
      * @param endIndicator The end indicator to display at the end of the list.
-     *
      * @return The message entry component.
      */
     private fun messageEntryComponent(
-        messages: SnapshotStateList<MessageComponent>, endIndicator: EndIndicator? = null
+        messages: SnapshotStateList<MessageComponent>,
+        endIndicator: EndIndicator? = null,
     ): MessageEntryComponent {
         return DefaultMessageEntryComponent(ctx, client, messages, endIndicator)
     }
 
-    /** Requests more messages from the server.
+    /**
+     * Requests more messages from the server.
      *
      * @param lastMessage The ID of the last message to fetch messages before.
      */
     private fun requestMessagesScrollingUp(lastMessage: Snowflake? = null) {
         scope.launch {
-            val messages = client.fetchMessages(
-                channelId = channelId, before = lastMessage, limit = MESSAGE_BATCH_SIZE
-            )
+            val messages = client.fetchMessages(channelId = channelId, before = lastMessage, limit = MESSAGE_BATCH_SIZE)
 
             val currentEntries = data.value.messageEntries
 
@@ -184,15 +188,13 @@ class DefaultChannelComponent(
 
             // Edge-case when the channel is empty
             if (currentEntries.isEmpty()) {
-                currentEntries.add(
-                    messageEntryComponent(mutableStateListOf(), EndOfMessages)
-                )
+                currentEntries.add(messageEntryComponent(mutableStateListOf(), EndOfMessages))
                 return@launch
             }
 
-            currentEntries.last().setEndIndicator(
-                if (isEnd) EndOfMessages else LoadMoreMessagesIndicator(isAtTop = true)
-            )
+            currentEntries
+                .last()
+                .setEndIndicator(if (isEnd) EndOfMessages else LoadMoreMessagesIndicator(isAtTop = true))
 
             // Drop elements from the bottom beyond 300 messages
             if (currentEntries.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
@@ -203,15 +205,14 @@ class DefaultChannelComponent(
         }
     }
 
-    /** Requests more messages from the server.
+    /**
+     * Requests more messages from the server.
      *
      * @param lastMessage The ID of the last message to fetch messages after.
      */
     private fun requestMessagesScrollingDown(lastMessage: Snowflake? = null) {
         scope.launch {
-            val messages = client.fetchMessages(
-                channelId = channelId, after = lastMessage, limit = MESSAGE_BATCH_SIZE
-            )
+            val messages = client.fetchMessages(channelId = channelId, after = lastMessage, limit = MESSAGE_BATCH_SIZE)
 
             val currentEntries = data.value.messageEntries
 
@@ -232,15 +233,11 @@ class DefaultChannelComponent(
             // Append messages to the list
             currentEntries.addAll(0, features)
             // If not at end yet, add a loading indicator
-            if (!isEnd) currentEntries.first().setEndIndicator(
-                LoadMoreMessagesIndicator(isAtTop = false)
-            )
+            if (!isEnd) currentEntries.first().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = false))
 
             // Drop elements beyond from the top 300 messages to prevent memory leaks
             if (currentEntries.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
-                currentEntries.removeRange(
-                    currentEntries.size - MESSAGE_BATCH_SIZE.toInt() until currentEntries.size
-                )
+                currentEntries.removeRange(currentEntries.size - MESSAGE_BATCH_SIZE.toInt() until currentEntries.size)
                 // Add a new loading indicator at the top to allow scrolling up
                 currentEntries.last().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = true))
             }
@@ -269,17 +266,14 @@ class DefaultChannelComponent(
         onFileUploadDropdownClose()
 
         scope.launch {
-            val file = if (isMedia) {
-                 FileKit.pickFile(
-                    PickerType.ImageAndVideo, PickerMode.Single,
-                    title = "Select media to upload"
-                ) ?: return@launch
-            } else {
-                FileKit.pickFile(
-                    PickerType.File(), PickerMode.Single,
-                    title = "Select a file to upload"
-                ) ?: return@launch
-            }
+            val file =
+                if (isMedia) {
+                    FileKit.pickFile(PickerType.ImageAndVideo, PickerMode.Single, title = "Select media to upload")
+                        ?: return@launch
+                } else {
+                    FileKit.pickFile(PickerType.File(), PickerMode.Single, title = "Select a file to upload")
+                        ?: return@launch
+                }
 
             println("File picked: ${file.name}")
             // In bytes
@@ -289,11 +283,12 @@ class DefaultChannelComponent(
         }
     }
 
-    /** Add a new message to the list of message entries.
+    /**
+     * Add a new message to the list of message entries.
      *
      * @param newMessage The message to add to the list.
-     * @param isPending Whether the message is pending or not.
-     * A pending message was sent by the user but not yet received by the server.
+     * @param isPending Whether the message is pending or not. A pending message was sent by the user but not yet
+     *   received by the server.
      */
     private fun addMessage(newMessage: Message, isPending: Boolean = false) {
         if (data.value.isCruising) return
@@ -302,34 +297,27 @@ class DefaultChannelComponent(
         val lastMessage = currentEntries.firstOrNull()?.lastMessage()?.data?.value?.message
 
         // If we just received the message we recently sent, mark it as not pending
-        if (newMessage.author.id == client.cache.ownUser?.id
-            && !isPending
-            // Check if the session_id is the same as the one that sent the message
-            && newMessage.nonce?.split(".")?.get(0) == client.sessionId
+        if (
+            newMessage.author.id == client.cache.ownUser?.id &&
+                !isPending
+                // Check if the session_id is the same as the one that sent the message
+                &&
+                newMessage.nonce?.split(".")?.get(0) == client.sessionId
         ) {
-            currentEntries.flatMap { it.data.value.messages }
+            currentEntries
+                .flatMap { it.data.value.messages }
                 .firstOrNull { it.data.value.message.nonce == newMessage.nonce }
                 ?.onPendingEnd(newMessage)
             return
         }
 
         // Group recent messages by author
-        if (lastMessage?.author?.id == newMessage.author.id
-            && Clock.System.now() - lastMessage.createdAt < 5.minutes) {
-            currentEntries.first().pushMessage(
-                messageComponent(
-                    newMessage, isPending = isPending
-                )
-            )
+        if (lastMessage?.author?.id == newMessage.author.id && Clock.System.now() - lastMessage.createdAt < 5.minutes) {
+            currentEntries.first().pushMessage(messageComponent(newMessage, isPending = isPending))
         } else {
             currentEntries.add(
-                0, messageEntryComponent(
-                    mutableStateListOf(
-                        messageComponent(
-                            newMessage, isPending = isPending
-                        )
-                    )
-                )
+                0,
+                messageEntryComponent(mutableStateListOf(messageComponent(newMessage, isPending = isPending))),
             )
         }
 
@@ -356,9 +344,10 @@ class DefaultChannelComponent(
     private fun onMessageUpdate(event: MessageUpdateEvent) {
         if (event.message.channelId != channelId) return
 
-        data.value.messageEntries.flatMap { it.data.value.messages }
-            .firstOrNull { it.data.value.message.id == event.message.id }?.onMessageUpdate(event)
-
+        data.value.messageEntries
+            .flatMap { it.data.value.messages }
+            .firstOrNull { it.data.value.message.id == event.message.id }
+            ?.onMessageUpdate(event)
     }
 
     private fun onMessageDelete(event: MessageRemoveEvent) {
@@ -369,13 +358,14 @@ class DefaultChannelComponent(
     }
 
     private fun createPendingMessage(content: String, nonce: String) {
-        val msg = Message(
-            Snowflake(0u),
-            channelId,
-            client.cache.ownUser ?: error("Own user not cached, cannot send message"),
-            content,
-            nonce,
-        )
+        val msg =
+            Message(
+                Snowflake(0u),
+                channelId,
+                client.cache.ownUser ?: error("Own user not cached, cannot send message"),
+                content,
+                nonce,
+            )
         addMessage(msg, isPending = true)
     }
 
@@ -393,8 +383,10 @@ class DefaultChannelComponent(
     }
 
     override fun onEditLastMessage() {
-        val lastMessage = data.value.messageEntries.flatMap { it.data.value.messages }
-            .lastOrNull { it.data.value.message.author.id == client.cache.ownUser?.id } ?: return
+        val lastMessage =
+            data.value.messageEntries
+                .flatMap { it.data.value.messages }
+                .lastOrNull { it.data.value.message.author.id == client.cache.ownUser?.id } ?: return
 
         lastMessage.onEditStart()
     }
@@ -407,15 +399,14 @@ class DefaultChannelComponent(
         data.value = data.value.copy(chatBarValue = value.sanitized())
     }
 
-    /** Creates a list of message list features from a list of messages.
-     * This function groups messages by author and creates a list of message entries.
+    /**
+     * Creates a list of message list features from a list of messages. This function groups messages by author and
+     * creates a list of message entries.
      *
      * @param messages The list of messages to create features from.
      * @return A list of message list features.
      */
-    private fun createMessageFeatures(
-        messages: List<Message>
-    ): List<MessageEntryComponent> {
+    private fun createMessageFeatures(messages: List<Message>): List<MessageEntryComponent> {
         if (messages.isEmpty()) {
             return emptyList()
         }
@@ -424,10 +415,11 @@ class DefaultChannelComponent(
 
         // Group messages by author
         for (message in messages) {
-            if (entries.isNotEmpty()
-                && entries.last().author?.id == message.author.id
-                && message.createdAt - entries.last().lastMessage()!!.data.value.message.createdAt < 5.minutes
-                ) {
+            if (
+                entries.isNotEmpty() &&
+                    entries.last().author?.id == message.author.id &&
+                    message.createdAt - entries.last().lastMessage()!!.data.value.message.createdAt < 5.minutes
+            ) {
                 entries.last().pushMessage(messageComponent(message))
             } else {
                 entries.add(messageEntryComponent(mutableStateListOf(messageComponent(message))))

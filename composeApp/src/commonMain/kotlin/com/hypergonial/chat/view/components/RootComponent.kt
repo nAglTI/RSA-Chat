@@ -31,49 +31,54 @@ import com.hypergonial.chat.view.components.prompts.DefaultJoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.DefaultNewGuildComponent
 import com.hypergonial.chat.view.components.prompts.JoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.NewGuildComponent
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** The root component of the application.
+/**
+ * The root component of the application.
  *
- * It is responsible for setting up the navigation stack,
- * handling back button events, and managing the client lifecycle based on platform requirements.
- * */
+ * It is responsible for setting up the navigation stack, handling back button events, and managing the client lifecycle
+ * based on platform requirements.
+ */
 interface RootComponent : BackHandlerOwner {
     /** The navigation stack of the application */
     val stack: Value<ChildStack<*, Child>>
 
-
     /** Callback to be called when the back button is clicked */
     fun onBackClicked()
 
-    /** Callback to be called when the back button is clicked
+    /**
+     * Callback to be called when the back button is clicked
      *
      * @param toIndex The index to pop to
-     * */
+     */
     fun onBackClicked(toIndex: Int)
 
     /** The valid child components of the root component */
     sealed class Child(open val component: Displayable) {
         class LoginChild(override val component: LoginComponent) : Child(component)
+
         class RegisterChild(override val component: RegisterComponent) : Child(component)
+
         class DebugSettingsChild(override val component: DebugSettingsComponent) : Child(component)
+
         class MainChild(override val component: SidebarComponent) : Child(component)
+
         class NotFoundChild(override val component: NotFoundComponent) : Child(component)
+
         class NewGuildChild(override val component: NewGuildComponent) : Child(component)
+
         class CreateGuildChild(override val component: CreateGuildComponent) : Child(component)
+
         class JoinGuildChild(override val component: JoinGuildComponent) : Child(component)
+
         class CreateChannelChild(override val component: CreateChannelComponent) : Child(component)
     }
 }
 
-class DefaultRootComponent(
-    val ctx: ComponentContext,
-) : RootComponent, ComponentContext by ctx {
+class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, ComponentContext by ctx {
 
     private val scope = ctx.coroutineScope()
 
@@ -81,30 +86,30 @@ class DefaultRootComponent(
 
     private val nav = StackNavigation<Config>()
 
-    private val _stack = childStack(
-        source = nav,
-        serializer = null,
-        handleBackButton = true,
-        initialStack = { getInitialStack(isLoggedIn = client.isLoggedIn()) },
-        childFactory = ::child,
-    )
+    private val _stack =
+        childStack(
+            source = nav,
+            serializer = null,
+            handleBackButton = true,
+            initialStack = { getInitialStack(isLoggedIn = client.isLoggedIn()) },
+            childFactory = ::child,
+        )
 
     override val stack: Value<ChildStack<*, RootComponent.Child>> = _stack
 
     init {
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onSessionInvalidated)
         // If we are already logged in, connect to the gateway
-        scope.launch {
-            if (client.isLoggedIn()) client.connect()
-        }
+        scope.launch { if (client.isLoggedIn()) client.connect() }
 
         if (platform.needsToSuspendClient()) {
             manageClientLifecycle()
         }
     }
 
-    /** If called during initialization,
-     * the client will be paused and resumed based on the lifecycle of the application */
+    /**
+     * If called during initialization, the client will be paused and resumed based on the lifecycle of the application
+     */
     private fun manageClientLifecycle() {
         ctx.lifecycle.doOnResume {
             // Ignore resume events fired on startup
@@ -117,118 +122,126 @@ class DefaultRootComponent(
                 client.replaceScope(ctx.coroutineScope())
             }
 
-            scope.launch {
-                client.resume()
-            }
+            scope.launch { client.resume() }
         }
 
-        ctx.lifecycle.doOnPause {
-            client.pause()
-        }
+        ctx.lifecycle.doOnPause { client.pause() }
     }
 
-    /** The child factory for the root component's childStack.
+    /**
+     * The child factory for the root component's childStack.
      *
      * @param config The requested navigation configuration
      * @param childCtx The child component context created by the childStack
-     *
      * @return The child component to be added to the stack
-     * */
+     */
     private fun child(config: Config, childCtx: ComponentContext): RootComponent.Child =
         when (config) {
-            is Config.Login -> RootComponent.Child.LoginChild(
-                DefaultLoginComponent(
-                    ctx = childCtx,
-                    client = client,
-                    onLogin = { onLoginComplete(); nav.replaceAll(Config.Main) },
-                    onRegisterRequest = { nav.pushNew(Config.Register) },
-                    onDebugSettingsOpen = { nav.pushNew(Config.DebugSettings) }
-                ),
-            )
-
-            is Config.Register -> RootComponent.Child.RegisterChild(
-                DefaultRegisterComponent(
-                    ctx = childCtx,
-                    client = client,
-                    onRegister = { nav.replaceAll(Config.Login) },
-                    onBack = { nav.pop() }
-                ),
-            )
-
-            is Config.DebugSettings -> RootComponent.Child.DebugSettingsChild(
-                DefaultDebugSettingsComponent(
-                    ctx = childCtx,
-                    client = client,
-                    onBack = { client.reloadConfig(); nav.pop() }
+            is Config.Login ->
+                RootComponent.Child.LoginChild(
+                    DefaultLoginComponent(
+                        ctx = childCtx,
+                        client = client,
+                        onLogin = {
+                            onLoginComplete()
+                            nav.replaceAll(Config.Main)
+                        },
+                        onRegisterRequest = { nav.pushNew(Config.Register) },
+                        onDebugSettingsOpen = { nav.pushNew(Config.DebugSettings) },
+                    )
                 )
-            )
 
-            is Config.NotFound -> RootComponent.Child.NotFoundChild(
-                DefaultNotFoundComponent(ctx = childCtx)
-            )
-
-            is Config.Main -> RootComponent.Child.MainChild(
-                DefaultSideBarComponent(
-                    ctx = childCtx,
-                    client = client,
-                    onGuildCreateRequested = { nav.pushNew(Config.NewGuild) },
-                    onChannelCreateRequested = { nav.pushNew(Config.CreateChannel(it)) },
-                    onLogout = ::onLogout
+            is Config.Register ->
+                RootComponent.Child.RegisterChild(
+                    DefaultRegisterComponent(
+                        ctx = childCtx,
+                        client = client,
+                        onRegister = { nav.replaceAll(Config.Login) },
+                        onBack = { nav.pop() },
+                    )
                 )
-            )
 
-            is Config.NewGuild -> RootComponent.Child.NewGuildChild(
-                DefaultNewGuildComponent(
-                    ctx = childCtx,
-                    onCreateRequested = { nav.pushNew(Config.CreateGuild) },
-                    onJoinRequested = { nav.pushNew(Config.JoinGuild) },
-                    onCancel = { nav.pop() }
-                )
-            )
-
-            is Config.CreateGuild -> RootComponent.Child.CreateGuildChild(
-                DefaultCreateGuildComponent(
-                    ctx = childCtx,
-                    client = client,
-                    onCreated = {
-                        scope.launch {
-                            nav.popWhile { it !is Config.Main }
-                            client.eventManager.dispatch(FocusGuildEvent(it))
-                        }
-                    },
-                    onCancel = { nav.pop() }
-                )
-            )
-
-            is Config.JoinGuild -> RootComponent.Child.JoinGuildChild(
-                DefaultJoinGuildComponent(
-                    ctx = childCtx,
-                    client = client,
-                    onJoined = {
-                        scope.launch {
-                            nav.popWhile { it !is Config.Main }
-                            val guild = client.cache.getGuild(it.guildId) ?: client.fetchGuild(it.guildId)
-                            client.eventManager.dispatch(FocusGuildEvent(guild))
-                        }
-                    },
-                    onCancel = { nav.pop() }
-                )
-            )
-
-            is Config.CreateChannel -> RootComponent.Child.CreateChannelChild(
-                DefaultCreateChannelComponent(
-                    ctx = childCtx,
-                    client = client,
-                    guildId = config.guildId,
-                    onCreated = {
-                        scope.launch {
+            is Config.DebugSettings ->
+                RootComponent.Child.DebugSettingsChild(
+                    DefaultDebugSettingsComponent(
+                        ctx = childCtx,
+                        client = client,
+                        onBack = {
+                            client.reloadConfig()
                             nav.pop()
-                            client.eventManager.dispatch(FocusChannelEvent(it))
-                        }
-                    },
-                    onCancel = { nav.pop() }
+                        },
+                    )
                 )
-            )
+
+            is Config.NotFound -> RootComponent.Child.NotFoundChild(DefaultNotFoundComponent(ctx = childCtx))
+
+            is Config.Main ->
+                RootComponent.Child.MainChild(
+                    DefaultSideBarComponent(
+                        ctx = childCtx,
+                        client = client,
+                        onGuildCreateRequested = { nav.pushNew(Config.NewGuild) },
+                        onChannelCreateRequested = { nav.pushNew(Config.CreateChannel(it)) },
+                        onLogout = ::onLogout,
+                    )
+                )
+
+            is Config.NewGuild ->
+                RootComponent.Child.NewGuildChild(
+                    DefaultNewGuildComponent(
+                        ctx = childCtx,
+                        onCreateRequested = { nav.pushNew(Config.CreateGuild) },
+                        onJoinRequested = { nav.pushNew(Config.JoinGuild) },
+                        onCancel = { nav.pop() },
+                    )
+                )
+
+            is Config.CreateGuild ->
+                RootComponent.Child.CreateGuildChild(
+                    DefaultCreateGuildComponent(
+                        ctx = childCtx,
+                        client = client,
+                        onCreated = {
+                            scope.launch {
+                                nav.popWhile { it !is Config.Main }
+                                client.eventManager.dispatch(FocusGuildEvent(it))
+                            }
+                        },
+                        onCancel = { nav.pop() },
+                    )
+                )
+
+            is Config.JoinGuild ->
+                RootComponent.Child.JoinGuildChild(
+                    DefaultJoinGuildComponent(
+                        ctx = childCtx,
+                        client = client,
+                        onJoined = {
+                            scope.launch {
+                                nav.popWhile { it !is Config.Main }
+                                val guild = client.cache.getGuild(it.guildId) ?: client.fetchGuild(it.guildId)
+                                client.eventManager.dispatch(FocusGuildEvent(guild))
+                            }
+                        },
+                        onCancel = { nav.pop() },
+                    )
+                )
+
+            is Config.CreateChannel ->
+                RootComponent.Child.CreateChannelChild(
+                    DefaultCreateChannelComponent(
+                        ctx = childCtx,
+                        client = client,
+                        guildId = config.guildId,
+                        onCreated = {
+                            scope.launch {
+                                nav.pop()
+                                client.eventManager.dispatch(FocusChannelEvent(it))
+                            }
+                        },
+                        onCancel = { nav.pop() },
+                    )
+                )
         }
 
     /** Called internally when the login process is complete */
@@ -278,40 +291,22 @@ class DefaultRootComponent(
     /** The navigation state config for the root component. */
     @Serializable
     private sealed class Config {
-        @Serializable
-        @SerialName("MAIN")
-        data object Main : Config()
+        @Serializable @SerialName("MAIN") data object Main : Config()
 
-        @Serializable
-        @SerialName("LOGIN")
-        data object Login : Config()
+        @Serializable @SerialName("LOGIN") data object Login : Config()
 
-        @Serializable
-        @SerialName("REGISTER")
-        data object Register : Config()
+        @Serializable @SerialName("REGISTER") data object Register : Config()
 
-        @Serializable
-        @SerialName("NOT_FOUND")
-        data object NotFound : Config()
+        @Serializable @SerialName("NOT_FOUND") data object NotFound : Config()
 
-        @Serializable
-        @SerialName("DEBUG_SETTINGS")
-        data object DebugSettings : Config()
+        @Serializable @SerialName("DEBUG_SETTINGS") data object DebugSettings : Config()
 
-        @Serializable
-        @SerialName("NEW_GUILD")
-        data object NewGuild : Config()
+        @Serializable @SerialName("NEW_GUILD") data object NewGuild : Config()
 
-        @Serializable
-        @SerialName("CREATE_GUILD")
-        data object CreateGuild : Config()
+        @Serializable @SerialName("CREATE_GUILD") data object CreateGuild : Config()
 
-        @Serializable
-        @SerialName("JOIN_GUILD")
-        data object JoinGuild : Config()
+        @Serializable @SerialName("JOIN_GUILD") data object JoinGuild : Config()
 
-        @Serializable
-        @SerialName("CREATE_CHANNEL")
-        data class CreateChannel(val guildId: Snowflake) : Config()
+        @Serializable @SerialName("CREATE_CHANNEL") data class CreateChannel(val guildId: Snowflake) : Config()
     }
 }

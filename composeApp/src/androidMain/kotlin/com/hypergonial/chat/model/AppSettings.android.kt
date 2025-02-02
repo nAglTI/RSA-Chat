@@ -4,17 +4,19 @@ import android.content.SharedPreferences
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SharedPreferencesSettings
 
-class AndroidSettings: AppSettings() {
+class AndroidSettings : AppSettings() {
     override var userPreferences: Settings
         get() {
             if (potentiallyPendingUserPrefs != null) {
                 return potentiallyPendingUserPrefs!!
-            }
-            else {
+            } else {
                 error("User preferences not initialized")
             }
         }
-        private set(value) { potentiallyPendingUserPrefs = value }
+        set(value) {
+            potentiallyPendingUserPrefs = value
+        }
+
     override val secrets: Settings? = null
 
     private var potentiallyPendingUserPrefs: Settings? = null
@@ -22,7 +24,6 @@ class AndroidSettings: AppSettings() {
     fun initialize(userPreferences: SharedPreferences) {
         this.userPreferences = SharedPreferencesSettings(userPreferences)
     }
-
 }
 
 actual val settings: AppSettings = AndroidSettings()

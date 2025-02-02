@@ -12,22 +12,21 @@ import com.hypergonial.chat.view.components.Displayable
 import com.hypergonial.chat.view.content.prompts.CreateChannelContent
 import kotlinx.coroutines.launch
 
-interface CreateChannelComponent: Displayable {
+interface CreateChannelComponent : Displayable {
     fun onCreateChannelClicked()
 
     fun onBackClicked()
 
     fun onChannelNameChanged(channelName: String)
 
-    @Composable
-    override fun Display() = CreateChannelContent(this)
+    @Composable override fun Display() = CreateChannelContent(this)
 
     val data: Value<State>
 
     data class State(
         val channelName: String = "",
         val isCreateButtonEnabled: Boolean = false,
-        val isLoading: Boolean = false
+        val isLoading: Boolean = false,
     )
 }
 
@@ -36,7 +35,7 @@ class DefaultCreateChannelComponent(
     val client: Client,
     val guildId: Snowflake,
     val onCreated: (Channel) -> Unit,
-    val onCancel: () -> Unit
+    val onCancel: () -> Unit,
 ) : CreateChannelComponent {
     override val data = MutableValue(CreateChannelComponent.State())
 
@@ -52,9 +51,7 @@ class DefaultCreateChannelComponent(
     }
 
     override fun onChannelNameChanged(channelName: String) {
-        data.value = data.value.copy(
-            channelName = channelName, isCreateButtonEnabled = channelName.isNotBlank()
-        )
+        data.value = data.value.copy(channelName = channelName, isCreateButtonEnabled = channelName.isNotBlank())
     }
 
     override fun onBackClicked() {

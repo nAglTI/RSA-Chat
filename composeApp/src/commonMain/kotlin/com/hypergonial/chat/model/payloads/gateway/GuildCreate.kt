@@ -16,9 +16,4 @@ class GuildCreate(val data: GuildCreatePayload) : GatewayMessage(), EventConvert
     }
 }
 
-@Serializable
-class GuildCreatePayload(
-    val guild: Guild,
-    val channels: List<Channel>,
-    val members: List<Member>
-)
+@Serializable class GuildCreatePayload(val guild: Guild, val channels: List<Channel>, val members: List<Member>)

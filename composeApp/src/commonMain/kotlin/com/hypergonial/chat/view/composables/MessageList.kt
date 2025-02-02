@@ -73,7 +73,6 @@ import dev.snipme.highlights.Highlights
 import dev.snipme.highlights.model.SyntaxThemes
 import org.jetbrains.compose.resources.painterResource
 
-
 val LocalHighlights = compositionLocalOf { Highlights.Builder() }
 
 /**
@@ -81,8 +80,8 @@ val LocalHighlights = compositionLocalOf { Highlights.Builder() }
  *
  * @param features The list of messages to display.
  * @param isCruising Whether the user currently has the bottom of the list loaded.
- * @param onMessagesLimitReach The callback that is called when the user scrolled to the top of the list
- * and we need to load more messages.
+ * @param onMessagesLimitReach The callback that is called when the user scrolled to the top of the list and we need to
+ *   load more messages.
  */
 @Composable
 fun MessageList(
@@ -90,22 +89,16 @@ fun MessageList(
     isCruising: Boolean,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
-    onMessagesLimitReach: (Snowflake?, Boolean) -> Unit
+    onMessagesLimitReach: (Snowflake?, Boolean) -> Unit,
 ) {
     val isDarkTheme = LocalUsingDarkTheme.current
-    val highlightsBuilder = remember(isDarkTheme) {
-        Highlights.Builder().theme(SyntaxThemes.monokai(darkMode = isDarkTheme))
-    }
+    val highlightsBuilder =
+        remember(isDarkTheme) { Highlights.Builder().theme(SyntaxThemes.monokai(darkMode = isDarkTheme)) }
 
     CompositionLocalProvider(LocalHighlights provides highlightsBuilder) {
-        LazyColumn(
-            modifier,
-            state = listState,
-            reverseLayout = true,
-        ) {
+        LazyColumn(modifier, state = listState, reverseLayout = true) {
             itemsIndexed(features, key = { _, item -> item.getKey() }) { _, item ->
                 SelectionContainer { Entry(item, onEndReached = onMessagesLimitReach) }
-
             }
         }
     }
@@ -115,24 +108,19 @@ fun MessageList(
  * Composable that displays (potentially) a grouping of messages from the same user.
  *
  * @param component The message entry to display.
- * @param onEndReached The callback that is called when the user scrolled to the end of the list
- * and we need to load more messages. This is only called if the entry contains a LoadMoreMessagesIndicator.
- * The first parameter is the ID of the message to fetch more messages before or after, and the second
- * parameter is whether the message is at the top of the list or not.
+ * @param onEndReached The callback that is called when the user scrolled to the end of the list and we need to load
+ *   more messages. This is only called if the entry contains a LoadMoreMessagesIndicator. The first parameter is the ID
+ *   of the message to fetch more messages before or after, and the second parameter is whether the message is at the
+ *   top of the list or not.
  */
 @Composable
-fun Entry(
-    component: MessageEntryComponent,
-    onEndReached: (Snowflake?, Boolean) -> Unit,
-) {
+fun Entry(component: MessageEntryComponent, onEndReached: (Snowflake?, Boolean) -> Unit) {
     val state by component.data.subscribeAsState()
     val isDarkTheme = LocalUsingDarkTheme.current
-
 
     val endIndicator = state.endIndicator
     val firstItem = state.messages.firstOrNull()
     val lastItem = state.messages.lastOrNull()
-
 
     Column {
         if (state.endIndicator is EndOfMessages) {
@@ -143,32 +131,34 @@ fun Entry(
 
         if (endIndicator is LoadMoreMessagesIndicator && endIndicator.isAtTop) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                LoadingIndicator(endIndicator,
-                    onSeen = { onEndReached(firstItem?.data?.value?.message?.id, true) })
+                LoadingIndicator(endIndicator, onSeen = { onEndReached(firstItem?.data?.value?.message?.id, true) })
             }
         }
-
 
         if (firstItem != null) {
             Row(Modifier.padding(vertical = 10.dp)) {
                 // Avatar
                 Column {
                     val imageModifier =
-                        Modifier.padding(vertical = 6.dp, horizontal = 14.dp).clip(CircleShape)
-                            .height(40.dp).width(40.dp)
+                        Modifier.padding(vertical = 6.dp, horizontal = 14.dp)
+                            .clip(CircleShape)
+                            .height(40.dp)
+                            .width(40.dp)
 
                     if (firstItem.data.value.message.author.avatarUrl == null) {
                         Image(
                             painter = painterResource(Res.drawable.avatar_placeholder),
                             contentDescription = "User avatar",
                             modifier = imageModifier,
-                            colorFilter = if (isDarkTheme) ColorFilter.tint(Color.White) else null
+                            colorFilter = if (isDarkTheme) ColorFilter.tint(Color.White) else null,
                         )
                     } else {
                         AsyncImage(
-                            model = ImageRequest.Builder(LocalPlatformContext.current)
-                                .data(firstItem.data.value.message.author.avatarUrl).crossfade(true)
-                                .build(),
+                            model =
+                                ImageRequest.Builder(LocalPlatformContext.current)
+                                    .data(firstItem.data.value.message.author.avatarUrl)
+                                    .crossfade(true)
+                                    .build(),
                             contentDescription = "Avatar of ${firstItem.data.value.message.author.displayName}",
                             contentScale = ContentScale.Crop,
                             modifier = imageModifier,
@@ -179,17 +169,14 @@ fun Entry(
                 Column {
                     MessageWithHeader(firstItem)
 
-                    state.messages.drop(1).forEach { msgcomp ->
-                        MessageWithoutHeader(msgcomp)
-                    }
+                    state.messages.drop(1).forEach { msgcomp -> MessageWithoutHeader(msgcomp) }
                 }
             }
         }
 
         if (endIndicator is LoadMoreMessagesIndicator && !endIndicator.isAtTop) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                LoadingIndicator(endIndicator,
-                    onSeen = { onEndReached(lastItem?.data?.value?.message?.id, false) })
+                LoadingIndicator(endIndicator, onSeen = { onEndReached(lastItem?.data?.value?.message?.id, false) })
             }
         }
     }
@@ -201,15 +188,10 @@ fun Entry(
 fun MessageWithHeader(component: MessageComponent) {
     val state by component.data.subscribeAsState()
 
-    Column(Modifier.combinedClickable(onDoubleClick = { component.onEditStart() }) { }) {
+    Column(Modifier.combinedClickable(onDoubleClick = { component.onEditStart() }) {}) {
         Row(Modifier.fillMaxWidth()) {
-            Text(
-                state.message.author.displayName
-                    ?: state.message.author.username, Modifier.padding(end = 8.dp)
-            )
-            Text(
-                state.createdAt.toHumanReadable(), fontSize = 10.sp, color = Color.Gray
-            )
+            Text(state.message.author.displayName ?: state.message.author.username, Modifier.padding(end = 8.dp))
+            Text(state.createdAt.toHumanReadable(), fontSize = 10.sp, color = Color.Gray)
         }
         MessageContent(component, Modifier.padding(end = 40.dp))
     }
@@ -219,8 +201,7 @@ fun MessageWithHeader(component: MessageComponent) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageWithoutHeader(component: MessageComponent) {
-    Row(Modifier.fillMaxWidth()
-        .combinedClickable(onDoubleClick = { component.onEditStart() }) { }) {
+    Row(Modifier.fillMaxWidth().combinedClickable(onDoubleClick = { component.onEditStart() }) {}) {
         MessageContent(component, Modifier.padding(end = 40.dp))
     }
 }
@@ -228,13 +209,12 @@ fun MessageWithoutHeader(component: MessageComponent) {
 /** The content of a message in markdown. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MessageContent(
-    component: MessageComponent, modifier: Modifier = Modifier
-) {
+fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
     val state by component.data.subscribeAsState()
 
     if (state.isBeingEdited) {
-        ChatBar(value = state.editorState,
+        ChatBar(
+            value = state.editorState,
             onValueChange = { component.onEditorStateChanged(it) },
             onSubmit = { component.onEditFinish() },
             onFocusLoss = { component.onEditCancel() },
@@ -244,44 +224,42 @@ fun MessageContent(
                 Icon(
                     Icons.Filled.Done,
                     contentDescription = "Done",
-                    modifier = Modifier.pointerHoverIcon(
-                        PointerIcon.Hand
-                    )
+                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
                 )
-            })
+            },
+        )
         return
     }
 
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Markdown(state.message.content ?: "TODO: No content - HANDLEME",
-            colors = markdownColor(
-                text = if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground,
-                linkText = MaterialTheme.colorScheme.primary,
-            ),
+        Markdown(
+            state.message.content ?: "TODO: No content - HANDLEME",
+            colors =
+                markdownColor(
+                    text = if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground,
+                    linkText = MaterialTheme.colorScheme.primary,
+                ),
             imageTransformer = ChatImageTransformer,
             modifier = Modifier.fillMaxHeight().fillMaxWidth(0.9f),
-            components = markdownComponents(codeBlock = {
-                MarkdownHighlightedCodeBlock(
-                    it.content, it.node, LocalHighlights.current
-                )
-            }, codeFence = {
-                MarkdownHighlightedCodeFence(
-                    it.content, it.node, LocalHighlights.current
-                )
-            },
-                // Ignore horizontal lines
-                horizontalRule = { MarkdownText(it.content) }),
-            typography = markdownTypography(
-                text = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
-                paragraph = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
-                quote = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.LightGray, fontWeight = FontWeight.Thin
+            components =
+                markdownComponents(
+                    codeBlock = { MarkdownHighlightedCodeBlock(it.content, it.node, LocalHighlights.current) },
+                    codeFence = { MarkdownHighlightedCodeFence(it.content, it.node, LocalHighlights.current) },
+                    // Ignore horizontal lines
+                    horizontalRule = { MarkdownText(it.content) },
                 ),
-                link = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Normal,
-                    textDecoration = TextDecoration.Underline,
-                )
-            )
+            typography =
+                markdownTypography(
+                    text = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                    paragraph = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                    quote =
+                        MaterialTheme.typography.bodyMedium.copy(color = Color.LightGray, fontWeight = FontWeight.Thin),
+                    link =
+                        MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Normal,
+                            textDecoration = TextDecoration.Underline,
+                        ),
+                ),
         )
         AnimatedVisibility(visible = state.message.isEdited) {
             TooltipBox(
@@ -289,17 +267,18 @@ fun MessageContent(
                 tooltip = {
                     PlainTooltip(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    ) { Text("Edited") }
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    ) {
+                        Text("Edited")
+                    }
                 },
-                state = rememberTooltipState(isPersistent = true)
+                state = rememberTooltipState(isPersistent = true),
             ) {
                 Icon(Icons.Outlined.Edit, contentDescription = "Edited", tint = Color.Gray)
             }
         }
     }
 }
-
 
 @Composable
 fun LoadingIndicator(item: LoadMoreMessagesIndicator, onSeen: () -> Unit) {
@@ -312,5 +291,3 @@ fun LoadingIndicator(item: LoadMoreMessagesIndicator, onSeen: () -> Unit) {
 
     CircularProgressIndicator()
 }
-
-

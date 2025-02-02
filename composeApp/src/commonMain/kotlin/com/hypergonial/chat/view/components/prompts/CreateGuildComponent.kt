@@ -11,20 +11,21 @@ import com.hypergonial.chat.view.components.Displayable
 import com.hypergonial.chat.view.content.prompts.CreateGuildContent
 import kotlinx.coroutines.launch
 
-interface CreateGuildComponent: Displayable {
+interface CreateGuildComponent : Displayable {
     fun onGuildCreateClicked()
 
     fun onBackClicked()
 
     fun onGuildNameChanged(guildName: String)
 
-    @Composable
-    override fun Display() = CreateGuildContent(this)
+    @Composable override fun Display() = CreateGuildContent(this)
 
     val data: Value<State>
 
     data class State(
-        val guildName: String = "", val isCreateButtonEnabled: Boolean = false, val isLoading: Boolean = false
+        val guildName: String = "",
+        val isCreateButtonEnabled: Boolean = false,
+        val isLoading: Boolean = false,
     )
 }
 
@@ -32,7 +33,7 @@ class DefaultCreateGuildComponent(
     val ctx: ComponentContext,
     val client: Client,
     val onCreated: (Guild) -> Unit,
-    val onCancel: () -> Unit
+    val onCancel: () -> Unit,
 ) : CreateGuildComponent {
     private val scope = ctx.coroutineScope()
 
@@ -48,9 +49,7 @@ class DefaultCreateGuildComponent(
     }
 
     override fun onGuildNameChanged(guildName: String) {
-        data.value = data.value.copy(
-            guildName = guildName, isCreateButtonEnabled = guildName.isNotBlank()
-        )
+        data.value = data.value.copy(guildName = guildName, isCreateButtonEnabled = guildName.isNotBlank())
     }
 
     override fun onBackClicked() {

@@ -7,18 +7,13 @@ import chat.composeapp.generated.resources.visibility
 import chat.composeapp.generated.resources.visibility_off
 import org.jetbrains.compose.resources.painterResource
 
-
-/**
- * A composable that displays the "Eye" icon.
- * */
+/** A composable that displays the "Eye" icon. */
 @Composable
 fun VisibilityIcon() {
     Icon(painterResource(Res.drawable.visibility), contentDescription = "Visible")
 }
 
-/**
- * A composable that displays the "Eye Crossed Out" icon.
- * */
+/** A composable that displays the "Eye Crossed Out" icon. */
 @Composable
 fun VisibilityOffIcon() {
     Icon(painterResource(Res.drawable.visibility_off), contentDescription = "Not Visible")

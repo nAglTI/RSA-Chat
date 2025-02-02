@@ -49,10 +49,12 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun LoginBottomBar(component: LoginComponent) {
     Column(
-        Modifier.fillMaxHeight().fillMaxWidth().navigationBarsPadding()
+        Modifier.fillMaxHeight()
+            .fillMaxWidth()
+            .navigationBarsPadding()
             .padding(0.dp, 0.dp, 0.dp, 30.dp),
         verticalArrangement = Arrangement.Bottom,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         ActionText(
             "Don't have an account? Sign up",
@@ -68,23 +70,30 @@ fun LoginContent(component: LoginComponent) {
     val focusManager = LocalFocusManager.current
     val snackBarState = remember { SnackbarHostState() }
 
-
-
     FullScreenProgressIndicator(state.isLoggingIn, "Logging in...") {
-        Scaffold(bottomBar = { LoginBottomBar(component) }, snackbarHost = { SnackbarHost(snackBarState) }) {
+        Scaffold(
+            bottomBar = { LoginBottomBar(component) },
+            snackbarHost = { SnackbarHost(snackBarState) },
+        ) {
             Column(
-                Modifier.fillMaxHeight().fillMaxWidth().safeDrawingPadding()
+                Modifier.fillMaxHeight()
+                    .fillMaxWidth()
+                    .safeDrawingPadding()
                     .padding(0.dp, 0.dp, 0.dp, 50.dp),
                 verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Image(
                     painter = painterResource(Res.drawable.compose_multiplatform),
                     contentDescription = "Logo",
-                    modifier = Modifier.size(200.dp).padding(0.dp, 0.dp, 0.dp, 50.dp)
-                        .clickable(interactionSource = null, indication = null) { component.onLogoClick() },
+                    modifier =
+                        Modifier.size(200.dp).padding(0.dp, 0.dp, 0.dp, 50.dp).clickable(
+                            interactionSource = null,
+                            indication = null,
+                        ) {
+                            component.onLogoClick()
+                        },
                 )
-
 
                 OutlinedTextField(
                     value = state.username,
@@ -95,20 +104,18 @@ fun LoginContent(component: LoginComponent) {
                     onValueChange = { component.onUsernameChange(username = it) },
                     label = { Text("Username") },
                     leadingIcon = {
-                        Icon(
-                            Icons.Filled.AccountCircle, contentDescription = "Username"
-                        )
+                        Icon(Icons.Filled.AccountCircle, contentDescription = "Username")
                     },
                     placeholder = { Text("Enter your username...") },
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.None,
-                        autoCorrectEnabled = false,
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(onNext = {
-                        focusManager.moveFocus(FocusDirection.Down)
-                    })
+                    keyboardOptions =
+                        KeyboardOptions(
+                            capitalization = KeyboardCapitalization.None,
+                            autoCorrectEnabled = false,
+                            keyboardType = KeyboardType.Text,
+                            imeAction = ImeAction.Next,
+                        ),
+                    keyboardActions =
+                        KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 )
 
                 PasswordTextField(
@@ -118,16 +125,18 @@ fun LoginContent(component: LoginComponent) {
                     label = { Text("Password") },
                     placeholder = { Text("Enter your password...") },
                     onValueChange = { component.onPasswordChange(password = it) },
-                    keyboardActions = KeyboardActions(onDone = { if (state.canLogin) component.onLoginAttempt() }),
-                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp)
+                    keyboardActions =
+                        KeyboardActions(
+                            onDone = { if (state.canLogin) component.onLoginAttempt() }
+                        ),
+                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
                 )
 
-
                 ChatButton(
-                    modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp)
-                        .height(45.dp),
+                    modifier =
+                        Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),
                     onClick = { component.onLoginAttempt() },
-                    enabled = state.canLogin && !state.isLoggingIn
+                    enabled = state.canLogin && !state.isLoggingIn,
                 ) {
                     Text("Login")
                 }
@@ -140,12 +149,7 @@ fun LoginContent(component: LoginComponent) {
             return@LaunchedEffect
         }
         component.errors.tryReceive().getOrNull()?.let {
-            val res = snackBarState.showSnackbar(
-                message = it,
-                duration = SnackbarDuration.Long
-            )
+            snackBarState.showSnackbar(message = it, duration = SnackbarDuration.Long)
         }
     }
-
 }
-

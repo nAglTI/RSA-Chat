@@ -11,12 +11,13 @@ import kotlinx.serialization.encoding.Encoder
 
 private const val EPOCH: ULong = 1_672_531_200_000u
 
-/** Represents a snowflake identifier.
+/**
+ * Represents a snowflake identifier.
  *
  * See https://en.wikipedia.org/wiki/Snowflake_ID for more information.
  *
  * @param inner The snowflake as a ULong.
- * */
+ */
 @Serializable(with = SnowflakeSerializer::class)
 data class Snowflake(val inner: ULong) : Comparable<Snowflake> {
     override fun compareTo(other: Snowflake): Int {
@@ -33,8 +34,6 @@ data class Snowflake(val inner: ULong) : Comparable<Snowflake> {
 
     val createdAt: Instant
         get() = Instant.fromEpochMilliseconds(timestampMillis.toLong())
-
-
 }
 
 // Serialize Snowflake as a string in the format of the inner ULong
@@ -49,8 +48,7 @@ private class SnowflakeSerializer : KSerializer<Snowflake> {
     override fun deserialize(decoder: Decoder): Snowflake {
         try {
             return Snowflake(decoder.decodeString().toULong())
-        }
-        catch (e: NumberFormatException) {
+        } catch (e: NumberFormatException) {
             throw IllegalArgumentException("Snowflake must be a number")
         }
     }

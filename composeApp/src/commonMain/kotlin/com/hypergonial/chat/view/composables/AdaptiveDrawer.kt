@@ -24,7 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
 
 enum class DrawerDirection {
-    Left, Right;
+    Left,
+    Right;
 
     fun isLeft() = this == Left
 
@@ -42,7 +43,7 @@ enum class DrawerDirection {
  * @param windowInsets The window insets to be applied to the drawer content
  * @param drawerDirection Controls which side the drawer is on
  * @param content The content the drawer is applied to
- * */
+ */
 @Composable
 fun AdaptiveDrawer(
     drawerContent: @Composable () -> Unit,
@@ -55,57 +56,57 @@ fun AdaptiveDrawer(
     content: @Composable () -> Unit,
 ) {
     val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
-    val isSmall = remember(windowSizeClass) {
-        windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT
-    }
+    val isSmall = remember(windowSizeClass) { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT }
 
     LaunchedEffect(isSmall) {
         if (!isSmall) {
             drawerState.close()
         }
 
-
         onLayoutChange?.invoke(isSmall)
     }
 
     val originalLayoutDir = LocalLayoutDirection.current
-    val drawerLayoutDir = if (drawerDirection.isRight()) {
-        LayoutDirection.Rtl
-    } else {
-        LayoutDirection.Ltr
-    }
-    val shape = if (drawerDirection.isRight()) {
-        RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
-    } else {
-        RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)
-    }
+    val drawerLayoutDir =
+        if (drawerDirection.isRight()) {
+            LayoutDirection.Rtl
+        } else {
+            LayoutDirection.Ltr
+        }
+    val shape =
+        if (drawerDirection.isRight()) {
+            RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
+        } else {
+            RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)
+        }
 
     CompositionLocalProvider(LocalLayoutDirection provides drawerLayoutDir) {
-        PermanentNavigationDrawer({
-            CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDir) {
-                PermanentDrawerSheet(
-                    Modifier.animateContentSize().width(if (!isSmall) 300.dp else 0.dp),
-                    windowInsets = windowInsets
-                ) { drawerContent() }
-            }
-        }, modifier) {
-            ModalNavigationDrawer({
-                if (isSmall) CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDir) {
-                    DrawerDefaults.windowInsets
-                    ModalDrawerSheet(
-                        drawerShape = shape,
-                        windowInsets = windowInsets
-                    ) { drawerContent() }
-                } else Unit
+        PermanentNavigationDrawer(
+            {
+                CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDir) {
+                    PermanentDrawerSheet(
+                        Modifier.animateContentSize().width(if (!isSmall) 300.dp else 0.dp),
+                        windowInsets = windowInsets,
+                    ) {
+                        drawerContent()
+                    }
+                }
             },
+            modifier,
+        ) {
+            ModalNavigationDrawer(
+                drawerContent = {
+                    if (isSmall) {
+                        CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDir) {
+                            DrawerDefaults.windowInsets
+                            ModalDrawerSheet(drawerShape = shape, windowInsets = windowInsets) { drawerContent() }
+                        }
+                    }
+                },
                 modifier,
                 if (isSmall) drawerState else DrawerState(DrawerValue.Closed),
                 if (isSmall) gesturesEnabled else false,
-                content = {
-                    CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDir) {
-                        content()
-                    }
-                }
+                content = { CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDir) { content() } },
             )
         }
     }

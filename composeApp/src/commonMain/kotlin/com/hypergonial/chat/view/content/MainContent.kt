@@ -55,32 +55,40 @@ import kotlinx.coroutines.launch
 @Composable
 fun MainTopBar(component: SidebarComponent) {
     val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
-    val isSmall = remember(windowSizeClass) {
-        windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT
-    }
+    val isSmall =
+        remember(windowSizeClass) {
+            windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT
+        }
     val scope = rememberCoroutineScope()
     val state by component.data.subscribeAsState()
 
-    val topBarText by remember(state.selectedChannel) {
-        derivedStateOf { state.selectedChannel?.name ?: state.selectedGuild?.name ?: "Home" }
-    }
-
-    val icon by remember(state.selectedChannel) {
-        derivedStateOf { if (state.selectedChannel != null) Icons.Filled.Tag else Icons.Filled.Home }
-    }
-
-    TopAppBar(title = {
-        Row {
-            Icon(icon, contentDescription = "Channel Icon", Modifier.padding(end = 5.dp))
-            Text(topBarText)
+    val topBarText by
+        remember(state.selectedChannel) {
+            derivedStateOf { state.selectedChannel?.name ?: state.selectedGuild?.name ?: "Home" }
         }
-    }, navigationIcon = {
-        AnimatedVisibility(visible = isSmall) {
-            IconButton(onClick = { scope.launch { state.navDrawerState.toggle() } }) {
-                Icon(Icons.Filled.Menu, contentDescription = "Menu")
+
+    val icon by
+        remember(state.selectedChannel) {
+            derivedStateOf {
+                if (state.selectedChannel != null) Icons.Filled.Tag else Icons.Filled.Home
             }
         }
-    })
+
+    TopAppBar(
+        title = {
+            Row {
+                Icon(icon, contentDescription = "Channel Icon", Modifier.padding(end = 5.dp))
+                Text(topBarText)
+            }
+        },
+        navigationIcon = {
+            AnimatedVisibility(visible = isSmall) {
+                IconButton(onClick = { scope.launch { state.navDrawerState.toggle() } }) {
+                    Icon(Icons.Filled.Menu, contentDescription = "Menu")
+                }
+            }
+        },
+    )
 }
 
 @Composable
@@ -89,90 +97,114 @@ fun MainContent(component: SidebarComponent) {
     val mainContent by component.mainContent.subscribeAsState()
 
     FullScreenProgressIndicator(state.isConnecting, "Connecting...") {
-        AdaptiveDrawer(drawerState = state.navDrawerState, drawerContent = {
-            Row {
-                LazyColumn(
-                    Modifier.fillMaxHeight().background(
-                            if (state.navDrawerState.targetValue == DrawerValue.Open) {
-                                MaterialTheme.colorScheme.background
-                            } else {
-                                MaterialTheme.colorScheme.surfaceContainerLow
-                            }
-                        ).safeDrawingPadding()
-                ) {
-                    item {
-                        SidebarGuildItem(tooltipText = "Home",
-                            icon = { modifier ->
-                                Icon(
-                                    Icons.Outlined.Home,
-                                    contentDescription = "Home",
-                                    modifier = modifier
-                                )
-                            },
-                            isSelected = state.selectedGuild == null,
-                            onSelect = { component.onHomeSelected() })
-                    }
-
-                    itemsIndexed(state.guilds,
-                        key = { _, item -> item.id.toString() }) { _, guild ->
-                        SidebarGuildItem(tooltipText = guild.name,
-                            icon = { modifier -> GuildIcon(guild, modifier) },
-                            isSelected = guild.id == state.selectedGuild?.id,
-                            onSelect = { component.onGuildSelected(guild.id) })
-                    }
-
-                    item {
-                        SidebarGuildItem(tooltipText = "New Guild", icon = { modifier ->
-                            Icon(
-                                Icons.Outlined.Add,
-                                contentDescription = "New Guild",
-                                modifier = modifier
+        AdaptiveDrawer(
+            drawerState = state.navDrawerState,
+            drawerContent = {
+                Row {
+                    LazyColumn(
+                        Modifier.fillMaxHeight()
+                            .background(
+                                if (state.navDrawerState.targetValue == DrawerValue.Open) {
+                                    MaterialTheme.colorScheme.background
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceContainerLow
+                                }
                             )
-                        }, isSelected = false, onSelect = { component.onGuildCreateClicked() })
-                    }
-                }
-                Column(Modifier.safeDrawingPadding().padding(start = 5.dp)) {
-                    Text(state.selectedGuild?.name ?: "Home", Modifier.padding(vertical = 5.dp))
-
-                    HorizontalDivider(Modifier.fillMaxWidth().padding(vertical = 5.dp))
-
-                    LazyColumn {
-                        itemsIndexed(state.channels,
-                            key = { _, item -> item.id.toString() }) { _, channel ->
-                            SidebarChannelItem(label = channel.name,
-                                isSelected = channel.id == state.selectedChannel?.id,
-                                onSelect = { component.onChannelSelected(channel.id) })
-                        }
-
-                        if (state.selectedGuild != null) {
-                            item {
-                                SidebarChannelItem(label = "New Channel",
-                                    isSelected = false,
-                                    icon = {
-                                        Icon(
-                                            Icons.Filled.Add, contentDescription = "New Channel"
-                                        )
-                                    },
-                                    onSelect = { component.onChannelCreateClicked() })
-                            }
-                        }
-
-
-                        if (state.selectedGuild == null) {
-                            item {
-                                SidebarChannelItem(label = "Logout", isSelected = false, icon = {
+                            .safeDrawingPadding()
+                    ) {
+                        item {
+                            SidebarGuildItem(
+                                tooltipText = "Home",
+                                icon = { modifier ->
                                     Icon(
-                                        Icons.AutoMirrored.Filled.Logout,
-                                        contentDescription = "Logout"
+                                        Icons.Outlined.Home,
+                                        contentDescription = "Home",
+                                        modifier = modifier,
                                     )
-                                }, onSelect = { component.onLogoutClicked() })
+                                },
+                                isSelected = state.selectedGuild == null,
+                                onSelect = { component.onHomeSelected() },
+                            )
+                        }
+
+                        itemsIndexed(state.guilds, key = { _, item -> item.id.toString() }) {
+                            _,
+                            guild ->
+                            SidebarGuildItem(
+                                tooltipText = guild.name,
+                                icon = { modifier -> GuildIcon(guild, modifier) },
+                                isSelected = guild.id == state.selectedGuild?.id,
+                                onSelect = { component.onGuildSelected(guild.id) },
+                            )
+                        }
+
+                        item {
+                            SidebarGuildItem(
+                                tooltipText = "New Guild",
+                                icon = { modifier ->
+                                    Icon(
+                                        Icons.Outlined.Add,
+                                        contentDescription = "New Guild",
+                                        modifier = modifier,
+                                    )
+                                },
+                                isSelected = false,
+                                onSelect = { component.onGuildCreateClicked() },
+                            )
+                        }
+                    }
+                    Column(Modifier.safeDrawingPadding().padding(start = 5.dp)) {
+                        Text(state.selectedGuild?.name ?: "Home", Modifier.padding(vertical = 5.dp))
+
+                        HorizontalDivider(Modifier.fillMaxWidth().padding(vertical = 5.dp))
+
+                        LazyColumn {
+                            itemsIndexed(state.channels, key = { _, item -> item.id.toString() }) {
+                                _,
+                                channel ->
+                                SidebarChannelItem(
+                                    label = channel.name,
+                                    isSelected = channel.id == state.selectedChannel?.id,
+                                    onSelect = { component.onChannelSelected(channel.id) },
+                                )
                             }
 
+                            if (state.selectedGuild != null) {
+                                item {
+                                    SidebarChannelItem(
+                                        label = "New Channel",
+                                        isSelected = false,
+                                        icon = {
+                                            Icon(
+                                                Icons.Filled.Add,
+                                                contentDescription = "New Channel",
+                                            )
+                                        },
+                                        onSelect = { component.onChannelCreateClicked() },
+                                    )
+                                }
+                            }
+
+                            if (state.selectedGuild == null) {
+                                item {
+                                    SidebarChannelItem(
+                                        label = "Logout",
+                                        isSelected = false,
+                                        icon = {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.Logout,
+                                                contentDescription = "Logout",
+                                            )
+                                        },
+                                        onSelect = { component.onLogoutClicked() },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
-            }
-        }) {
+            },
+        ) {
             Scaffold(topBar = { MainTopBar(component) }) { padding ->
                 Box(Modifier.padding(padding).imePadding()) {
                     when (val c = mainContent.child?.instance) {

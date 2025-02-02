@@ -31,34 +31,31 @@ fun JoinGuildContent(component: JoinGuildComponent) {
             if (platform.needsBackButton()) {
                 IconButton(
                     onClick = { component.onBackClicked() },
-                    modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart)
+                    modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart),
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back"
-                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
             }
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             ) {
                 OutlinedTextField(
                     value = state.inviteCode,
                     onValueChange = component::onInviteCodeChanged,
                     placeholder = { Text("Enter invite code...") },
-                    label = { Text("Invite Code") }
+                    label = { Text("Invite Code") },
                 )
 
                 Button(
                     onClick = { component.onGuildJoinClicked() },
-                    enabled = state.isJoinButtonEnabled
+                    enabled = state.isJoinButtonEnabled,
                 ) {
                     Text("Join")
                 }
             }
         }
     }
-
 }

@@ -15,6 +15,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.serialization)
     alias(libs.plugins.detekt)
+    id("com.ncorti.ktfmt.gradle") version "0.21.0"
 }
 
 kotlin {

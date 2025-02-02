@@ -30,16 +30,14 @@ import com.hypergonial.chat.view.composables.MessageList
 fun ChannelContent(component: ChannelComponent) {
     val state by component.data.subscribeAsState()
 
-    Column(
-        Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom
-    ) {
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
         // Is a LazyColumn wrapped in a custom composable
         MessageList(
             features = state.messageEntries,
             modifier = Modifier.fillMaxWidth().weight(1f),
             listState = state.listState,
             isCruising = state.isCruising,
-            onMessagesLimitReach = component::onMoreMessagesRequested
+            onMessagesLimitReach = component::onMoreMessagesRequested,
         )
 
         ChatBar(
@@ -51,7 +49,7 @@ fun ChannelContent(component: ChannelComponent) {
                     Icon(
                         Icons.Filled.AddCircle,
                         contentDescription = "Upload Attachment",
-                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
+                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
                     )
 
                     DropdownMenu(
@@ -59,28 +57,25 @@ fun ChannelContent(component: ChannelComponent) {
                         onDismissRequest = component::onFileUploadDropdownClose,
                         modifier = Modifier.clip(RoundedCornerShape(12.dp)),
                     ) {
-                        DropdownMenuItem(text = { Text("Upload File") },
+                        DropdownMenuItem(
+                            text = { Text("Upload File") },
                             modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
                             onClick = { component.onFileAttachRequested(isMedia = false) },
                             leadingIcon = {
-                                Icon(
-                                    Icons.Outlined.Attachment, contentDescription = "Upload File"
-                                )
-                            }
+                                Icon(Icons.Outlined.Attachment, contentDescription = "Upload File")
+                            },
                         )
 
-                        DropdownMenuItem(text = { Text("Upload Media") },
+                        DropdownMenuItem(
+                            text = { Text("Upload Media") },
                             modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
                             onClick = { component.onFileAttachRequested(isMedia = true) },
                             leadingIcon = {
-                                Icon(
-                                    Icons.Outlined.Image, contentDescription = "Upload Media"
-                                )
-                            }
+                                Icon(Icons.Outlined.Image, contentDescription = "Upload Media")
+                            },
                         )
                     }
                 }
-
             },
             onLeadingIconClick = component::onFileUploadDropdownOpen,
             onSubmit = component::onMessageSend,
@@ -88,4 +83,3 @@ fun ChannelContent(component: ChannelComponent) {
         )
     }
 }
-

@@ -14,9 +14,4 @@ class PresenceUpdate(val data: PresenceUpdatePayload) : GatewayMessage(), EventC
     }
 }
 
-@Serializable
-data class PresenceUpdatePayload(
-    @SerialName("user_id")
-    val userId: Snowflake,
-    val presence: String,
-)
+@Serializable data class PresenceUpdatePayload(@SerialName("user_id") val userId: Snowflake, val presence: String)

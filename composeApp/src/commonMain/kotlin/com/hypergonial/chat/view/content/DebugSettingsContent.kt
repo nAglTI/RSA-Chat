@@ -54,15 +54,13 @@ fun DebugSettingsTopBar(component: DebugSettingsComponent) {
     Row(
         Modifier.fillMaxWidth().height(50.dp).padding(0.dp, 0.dp, 0.dp, 0.dp),
         horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(
             onClick = { component.onBackClicked() },
-            modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp)
+            modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp),
         ) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back"
-            )
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
     }
 }
@@ -74,20 +72,20 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
     val snackbarState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
 
-
     Scaffold(
         topBar = { DebugSettingsTopBar(component) },
-        snackbarHost = { SnackbarHost(snackbarState) }) {
+        snackbarHost = { SnackbarHost(snackbarState) },
+    ) {
         Column(
             Modifier.fillMaxWidth().fillMaxHeight().safeDrawingPadding(),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
                 "Debug Settings",
                 fontSize = 24.sp,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 60.dp)
+                modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 60.dp),
             )
 
             OutlinedTextField(
@@ -98,20 +96,16 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
                 onValueChange = { component.onApiEndpointChange(it) },
                 label = { Text("API Endpoint") },
                 placeholder = { Text("https://example.org/api/v1") },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.Api, contentDescription = "API Endpoint"
-                    )
-                },
-                keyboardOptions = KeyboardOptions(
-                    autoCorrectEnabled = false,
-                    capitalization = KeyboardCapitalization.None,
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Next
-                ),
-                keyboardActions = KeyboardActions(onNext = {
-                    focusManager.moveFocus(FocusDirection.Down)
-                })
+                leadingIcon = { Icon(Icons.Filled.Api, contentDescription = "API Endpoint") },
+                keyboardOptions =
+                    KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        capitalization = KeyboardCapitalization.None,
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next,
+                    ),
+                keyboardActions =
+                    KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
             )
 
             OutlinedTextField(
@@ -122,20 +116,16 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
                 onValueChange = { component.onGatewayEndpointChange(it) },
                 label = { Text("Gateway Endpoint") },
                 placeholder = { Text("wss://example.org/gateway/v1") },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.Route, contentDescription = "Gateway Endpoint"
-                    )
-                },
-                keyboardOptions = KeyboardOptions(
-                    autoCorrectEnabled = false,
-                    capitalization = KeyboardCapitalization.None,
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Next
-                ),
-                keyboardActions = KeyboardActions(onNext = {
-                    focusManager.moveFocus(FocusDirection.Down)
-                })
+                leadingIcon = { Icon(Icons.Filled.Route, contentDescription = "Gateway Endpoint") },
+                keyboardOptions =
+                    KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        capitalization = KeyboardCapitalization.None,
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next,
+                    ),
+                keyboardActions =
+                    KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
             )
 
             OutlinedTextField(
@@ -147,47 +137,46 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
                 label = { Text("Object Store endpoint") },
                 placeholder = { Text("https://cdn.example.org") },
                 leadingIcon = {
-                    Icon(
-                        Icons.Filled.Description, contentDescription = "Object Store endpoint"
-                    )
+                    Icon(Icons.Filled.Description, contentDescription = "Object Store endpoint")
                 },
-                keyboardOptions = KeyboardOptions(
-                    autoCorrectEnabled = false,
-                    capitalization = KeyboardCapitalization.None,
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(onDone = {
-                    if (state.hasChanged
-                        && !state.apiEndpointError
-                        && !state.gatewayEndpointError
-                        && !state.objectStoreEndpointError
-                        ) {
-                        component.onSaveClicked()
-                        scope.launch {
-                            snackbarState.showSnackbar("Settings saved")
+                keyboardOptions =
+                    KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        capitalization = KeyboardCapitalization.None,
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Done,
+                    ),
+                keyboardActions =
+                    KeyboardActions(
+                        onDone = {
+                            if (
+                                state.hasChanged &&
+                                    !state.apiEndpointError &&
+                                    !state.gatewayEndpointError &&
+                                    !state.objectStoreEndpointError
+                            ) {
+                                component.onSaveClicked()
+                                scope.launch { snackbarState.showSnackbar("Settings saved") }
+                                focusManager.clearFocus()
+                            }
                         }
-                        focusManager.clearFocus()
-                    }
-                })
+                    ),
             )
 
             ChatButton(
                 modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),
                 onClick = {
                     component.onSaveClicked()
-                    scope.launch {
-                        snackbarState.showSnackbar("Settings saved")
-                    }
+                    scope.launch { snackbarState.showSnackbar("Settings saved") }
                 },
-                enabled = state.hasChanged
-                    && !state.apiEndpointError
-                    && !state.gatewayEndpointError
-                    && !state.objectStoreEndpointError
+                enabled =
+                    state.hasChanged &&
+                        !state.apiEndpointError &&
+                        !state.gatewayEndpointError &&
+                        !state.objectStoreEndpointError,
             ) {
                 Text("Save")
             }
         }
     }
 }
-

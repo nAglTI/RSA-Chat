@@ -26,40 +26,52 @@ import com.hypergonial.chat.view.content.MainContent
 import com.hypergonial.chat.withFallbackValue
 import kotlinx.serialization.Serializable
 
-/** The main sidebar component that is displayed on the left side of the screen.
- * It also contains the main content in a child slot. */
+/**
+ * The main sidebar component that is displayed on the left side of the screen. It also contains the main content in a
+ * child slot.
+ */
 interface SidebarComponent : Displayable {
     /** Called when the user clicks the home button */
     fun onHomeSelected()
-    /** Called when the user clicks a guild in the sidebar
+
+    /**
+     * Called when the user clicks a guild in the sidebar
      *
      * @param guildId The ID of the guild that was clicked
-     * */
+     */
     fun onGuildSelected(guildId: Snowflake)
-    /** Called when the user clicks a guild in the sidebar
+
+    /**
+     * Called when the user clicks a guild in the sidebar
      *
      * @param guild The guild that was clicked
-     * */
+     */
     fun onGuildSelected(guild: Guild)
-    /** Called when the user clicks a channel in the sidebar
+
+    /**
+     * Called when the user clicks a channel in the sidebar
      *
      * @param channelId The ID of the channel that was clicked
-     * */
+     */
     fun onChannelSelected(channelId: Snowflake)
-    /** Called when the user clicks a channel in the sidebar
+
+    /**
+     * Called when the user clicks a channel in the sidebar
      *
      * @param channel The channel that was clicked
-     * */
+     */
     fun onChannelSelected(channel: Channel)
+
     /** Called when the user clicks the create guild button */
     fun onGuildCreateClicked()
+
     /** Called when the user clicks the create channel button */
     fun onChannelCreateClicked()
+
     /** Called when the user clicks the logout button */
     fun onLogoutClicked()
 
-    @Composable
-    override fun Display() = MainContent(this)
+    @Composable override fun Display() = MainContent(this)
 
     val mainContent: Value<ChildSlot<*, MainContentComponent>>
 
@@ -83,44 +95,40 @@ interface SidebarComponent : Displayable {
     )
 }
 
-/** The default implementation of the sidebar component
+/**
+ * The default implementation of the sidebar component
  *
  * @param ctx The component context
  * @param client The client to use for API calls
  * @param onGuildCreateRequested The callback to call when the user requests to create a guild
  * @param onChannelCreateRequested The callback to call when the user requests to create a channel
  * @param onLogout The callback to call when the user requests to log out
- * */
+ */
 class DefaultSideBarComponent(
     val ctx: ComponentContext,
     val client: Client,
     val onGuildCreateRequested: () -> Unit,
     val onChannelCreateRequested: (Snowflake) -> Unit,
-    val onLogout: () -> Unit
+    val onLogout: () -> Unit,
 ) : SidebarComponent, ComponentContext by ctx {
-    override val data = MutableValue(
-        SidebarComponent.SidebarState(guilds = client.cache.guilds.values.toList()
-            .sortedBy { it.id })
-    )
+    override val data =
+        MutableValue(SidebarComponent.SidebarState(guilds = client.cache.guilds.values.toList().sortedBy { it.id }))
 
     private val slotNavigation = SlotNavigation<SlotConfig>()
 
     override val mainContent: Value<ChildSlot<*, MainContentComponent>> =
-        childSlot(source = slotNavigation,
+        childSlot(
+            source = slotNavigation,
             serializer = SlotConfig.serializer().withFallbackValue(SlotConfig.Home),
             key = "MainContent",
             handleBackButton = false,
-            initialConfiguration = { SlotConfig.Home }) { config, childCtx ->
+            initialConfiguration = { SlotConfig.Home },
+        ) { config, childCtx ->
             when (config) {
                 is SlotConfig.Home -> DefaultHomeComponent(childCtx)
-                is SlotConfig.Fallback -> DefaultFallbackMainComponent(
-                    childCtx,
-                    ::onChannelCreateClicked
-                )
+                is SlotConfig.Fallback -> DefaultFallbackMainComponent(childCtx, ::onChannelCreateClicked)
 
-                is SlotConfig.Channel -> DefaultChannelComponent(
-                    childCtx, client, config.channelId
-                ) { onLogout() }
+                is SlotConfig.Channel -> DefaultChannelComponent(childCtx, client, config.channelId) { onLogout() }
             }
         }
 
@@ -137,19 +145,19 @@ class DefaultSideBarComponent(
         }
     }
 
-    /** Returns the default channel for a guild
+    /**
+     * Returns the default channel for a guild
      *
      * @param guildId The ID of the guild to get the default channel for
      * @return The default channel for the guild
-     * */
+     */
     private fun getDefaultGuildChannel(guildId: Snowflake): Channel? {
         val id = client.cache.getChannelsForGuild(guildId).keys.minOrNull()
         return id?.let { client.cache.getChannel(it) }
     }
 
     override fun onHomeSelected() {
-        data.value =
-            data.value.copy(selectedGuild = null, selectedChannel = null, channels = emptyList())
+        data.value = data.value.copy(selectedGuild = null, selectedChannel = null, channels = emptyList())
         slotNavigation.activate(SlotConfig.Home)
     }
 
@@ -166,9 +174,12 @@ class DefaultSideBarComponent(
         // TODO: Update when channels have positions
         val channel = getDefaultGuildChannel(guild.id)
 
-        data.value = data.value.copy(selectedGuild = guild,
-            selectedChannel = channel,
-            channels = client.cache.getChannelsForGuild(guild.id).values.toList().sortedBy { it.id })
+        data.value =
+            data.value.copy(
+                selectedGuild = guild,
+                selectedChannel = channel,
+                channels = client.cache.getChannelsForGuild(guild.id).values.toList().sortedBy { it.id },
+            )
 
         if (channel?.id != null) {
             slotNavigation.activate(SlotConfig.Channel(channel.id))
@@ -194,16 +205,13 @@ class DefaultSideBarComponent(
     private fun onGuildCreate(event: GuildCreateEvent) {
         // TODO: Update when guilds have positions saved in prefs
         if (event.guild !in data.value.guilds) {
-            data.value =
-                data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
+            data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         }
     }
 
     private fun onGuildUpdate(event: GuildUpdateEvent) {
         if (event.guild !in data.value.guilds) {
-            data.value = data.value.copy(
-                guilds = (data.value.guilds + event.guild).sortedBy { it.id },
-            )
+            data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         } else {
             data.value =
                 data.value.copy(guilds = data.value.guilds.map { if (it.id == event.guild.id) event.guild else it })
@@ -220,9 +228,7 @@ class DefaultSideBarComponent(
         }
 
         if (event.channel !in data.value.channels) {
-            data.value = data.value.copy(
-                channels = (data.value.channels + event.channel).sortedBy { it.id },
-            )
+            data.value = data.value.copy(channels = (data.value.channels + event.channel).sortedBy { it.id })
 
             // Leave fallback slot if it was active
             if (data.value.selectedChannel == null || data.value.selectedGuild != null) {
@@ -240,17 +246,14 @@ class DefaultSideBarComponent(
             data.value = data.value.copy(selectedChannel = getDefaultGuildChannel(event.channel.guildId))
         }
 
-        data.value =
-            data.value.copy(channels = data.value.channels.filter { it.id != event.channel.id })
+        data.value = data.value.copy(channels = data.value.channels.filter { it.id != event.channel.id })
     }
 
     private fun onChannelFocus(event: FocusChannelEvent) {
         if (event.channel in data.value.channels) {
             onChannelSelected(event.channel.id)
         } else if (event.channel.guildId == data.value.selectedGuild?.id) {
-            data.value = data.value.copy(
-                channels = (data.value.channels + event.channel).sortedBy { it.id },
-            )
+            data.value = data.value.copy(channels = (data.value.channels + event.channel).sortedBy { it.id })
             onChannelSelected(event.channel)
         }
         data.value = data.value.copy(navDrawerState = DrawerState(DrawerValue.Closed))
@@ -258,9 +261,7 @@ class DefaultSideBarComponent(
 
     private fun onGuildFocus(event: FocusGuildEvent) {
         if (event.guild !in data.value.guilds) {
-            data.value = data.value.copy(
-                guilds = (data.value.guilds + event.guild).sortedBy { it.id },
-            )
+            data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         }
         onGuildSelected(event.guild)
         data.value = data.value.copy(navDrawerState = DrawerState(DrawerValue.Closed))
@@ -277,15 +278,12 @@ class DefaultSideBarComponent(
     @Serializable
     private sealed class SlotConfig {
         /** Shown when the user has not selected a guild. */
-        @Serializable
-        data object Home : SlotConfig()
+        @Serializable data object Home : SlotConfig()
 
         /** Shown when the user has selected a guild but that guild has no channel. */
-        @Serializable
-        data object Fallback : SlotConfig()
+        @Serializable data object Fallback : SlotConfig()
 
         /** Shown when the user has selected a channel in a guild. */
-        @Serializable
-        data class Channel(val channelId: Snowflake) : SlotConfig()
+        @Serializable data class Channel(val channelId: Snowflake) : SlotConfig()
     }
 }

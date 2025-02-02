@@ -14,18 +14,19 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.TextUnit
 
 /**
- * A text that can contain hyperlinks. Shamelessly stolen from https://gist.github.com/stevdza-san/ff9dbec0e072d8090e1e6d16e6b73c91
+ * A text that can contain hyperlinks. Shamelessly stolen from
+ * https://gist.github.com/stevdza-san/ff9dbec0e072d8090e1e6d16e6b73c91
  *
  * @param modifier The modifier to be applied to the text.
  * @param fullText The full text to be displayed.
- * @param hyperLinks A map of the hyperlinks to be displayed.
- * The key is the text to be hyperlinked, and the value is the URL to be opened.
+ * @param hyperLinks A map of the hyperlinks to be displayed. The key is the text to be hyperlinked, and the value is
+ *   the URL to be opened.
  * @param textStyle The style to be applied to the text.
  * @param linkTextColor The color to be applied to the hyperlinked text.
  * @param linkTextFontWeight The font weight to be applied to the hyperlinked text.
  * @param linkTextDecoration The text decoration to be applied to the hyperlinked text.
  * @param fontSize The font size to be applied to the text.
- * */
+ */
 @Composable
 fun HyperText(
     fullText: String,
@@ -35,7 +36,7 @@ fun HyperText(
     linkTextColor: Color = MaterialTheme.colorScheme.primary,
     linkTextFontWeight: FontWeight = FontWeight.Normal,
     linkTextDecoration: TextDecoration = TextDecoration.None,
-    fontSize: TextUnit = TextUnit.Unspecified
+    fontSize: TextUnit = TextUnit.Unspecified,
 ) {
     val annotatedString = buildAnnotatedString {
         append(fullText)
@@ -45,20 +46,19 @@ fun HyperText(
             val startIndex = fullText.indexOf(text)
             val endIndex = startIndex + text.length
             addStyle(
-                style = SpanStyle(
-                    color = linkTextColor,
-                    fontSize = fontSize,
-                    fontWeight = linkTextFontWeight,
-                    textDecoration = linkTextDecoration
-                ), start = startIndex, end = endIndex
+                style =
+                    SpanStyle(
+                        color = linkTextColor,
+                        fontSize = fontSize,
+                        fontWeight = linkTextFontWeight,
+                        textDecoration = linkTextDecoration,
+                    ),
+                start = startIndex,
+                end = endIndex,
             )
             addLink(LinkAnnotation.Url(url = url), start = startIndex, end = endIndex)
         }
-        addStyle(
-            style = SpanStyle(
-                fontSize = fontSize
-            ), start = 0, end = fullText.length
-        )
+        addStyle(style = SpanStyle(fontSize = fontSize), start = 0, end = fullText.length)
     }
 
     Text(modifier = modifier, text = annotatedString, style = textStyle)

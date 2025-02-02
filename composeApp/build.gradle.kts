@@ -4,9 +4,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
-import org.jetbrains.kotlin.konan.target.Family
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -20,17 +18,10 @@ plugins {
 
 kotlin {
     androidTarget {
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_17)
-        }
+        @OptIn(ExperimentalKotlinGradlePluginApi::class) compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
     }
 
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
+    listOf(iosX64(), iosArm64(), iosSimulatorArm64()).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
@@ -53,13 +44,15 @@ kotlin {
             val projectDirPath = project.projectDir.path
             commonWebpackConfig {
                 outputFileName = "composeApp.js"
-                devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
-                    static = (static ?: mutableListOf()).apply {
-                        // Serve sources to debug inside browser
-                        add(rootDirPath)
-                        add(projectDirPath)
+                devServer =
+                    (devServer ?: KotlinWebpackConfig.DevServer()).apply {
+                        static =
+                            (static ?: mutableListOf()).apply {
+                                // Serve sources to debug inside browser
+                                add(rootDirPath)
+                                add(projectDirPath)
+                            }
                     }
-                }
             }
         }
         binaries.executable()
@@ -68,9 +61,7 @@ kotlin {
     sourceSets {
         val desktopMain by getting
 
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
-        }
+        iosMain.dependencies { implementation(libs.ktor.client.darwin) }
 
         androidMain.dependencies {
             implementation(compose.preview)
@@ -94,13 +85,14 @@ kotlin {
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.material3AdaptiveNavigationSuite)
-            implementation(libs.adaptive)
-            implementation(libs.adaptive.layout)
-            implementation(libs.adaptive.navigation)
             implementation(compose.materialIconsExtended)
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+            implementation(libs.adaptive)
+            implementation(libs.adaptive.layout)
+            implementation(libs.adaptive.navigation)
+
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
             // Settings Handling
@@ -153,9 +145,7 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.slf4j.simple)
         }
-        wasmJsMain.dependencies {
-            implementation(libs.ktor.client.js)
-        }
+        wasmJsMain.dependencies { implementation(libs.ktor.client.js) }
     }
 }
 
@@ -185,10 +175,7 @@ android {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             multiDexKeepProguard = file("multidex-config.pro")
 
             /* TODO: Change when actually releasing */
@@ -201,9 +188,7 @@ android {
     }
 }
 
-dependencies {
-    debugImplementation(compose.uiTooling)
-}
+dependencies { debugImplementation(compose.uiTooling) }
 
 compose.desktop {
     application {
@@ -215,9 +200,7 @@ compose.desktop {
             packageVersion = "1.0.0"
 
             // Needed by filekit
-            linux {
-                modules("jdk.security.auth")
-            }
+            linux { modules("jdk.security.auth") }
         }
 
         buildTypes.release.proguard {
@@ -238,7 +221,7 @@ detekt {
         "src/androidMain/kotlin",
         "src/desktopMain/kotlin",
         "src/iosMain/kotlin",
-        "src/wasmJsMain/kotlin"
+        "src/wasmJsMain/kotlin",
     )
     basePath = projectDir.absolutePath
 }
@@ -252,9 +235,6 @@ tasks.withType<Detekt>().configureEach {
     }
 }
 
-tasks.withType<Detekt>().configureEach {
-    jvmTarget = "17"
-}
-tasks.withType<DetektCreateBaselineTask>().configureEach {
-    jvmTarget = "17"
-}
+tasks.withType<Detekt>().configureEach { jvmTarget = "17" }
+
+tasks.withType<DetektCreateBaselineTask>().configureEach { jvmTarget = "17" }

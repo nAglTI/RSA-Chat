@@ -69,6 +69,12 @@ interface ChannelComponent : MainContentComponent, Displayable {
     /** Callback called when the user requests to close the file upload dropdown. */
     fun onFileUploadDropdownClose()
 
+    /** Callback called when the user drops files into the attachment drop target. */
+    fun onFilesDropped(files: List<PlatformFile>)
+
+    /** Callback called when the user requests to remove a pending file. */
+    fun onPendingFileCancel(file: PlatformFile)
+
     /**
      * Callback called when the user changes the content of the chat bar.
      *
@@ -281,6 +287,20 @@ class DefaultChannelComponent(
 
             data.value.pendingAttachments.add(file)
         }
+    }
+
+    override fun onFilesDropped(files: List<PlatformFile>) {
+        files.forEach {
+            println("File dropped: ${it.name}")
+            // In bytes
+            println("File size: ${it.getSize()}")
+
+            data.value.pendingAttachments.add(it)
+        }
+    }
+
+    override fun onPendingFileCancel(file: PlatformFile) {
+        data.value.pendingAttachments.remove(file)
     }
 
     /**

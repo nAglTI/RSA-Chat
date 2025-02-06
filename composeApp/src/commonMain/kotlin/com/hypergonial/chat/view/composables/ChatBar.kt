@@ -126,7 +126,6 @@ fun ChatBar(
                     }
                     false
                 }
-                .padding(20.dp)
                 .focusRequester(focusRequester)
                 .border(1.dp, borderColor, RoundedCornerShape(16.dp)),
         enabled = enabled,

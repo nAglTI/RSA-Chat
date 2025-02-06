@@ -126,7 +126,9 @@ kotlin {
             // File picker
             implementation(libs.filekit.core)
             implementation(libs.filekit.compose)
-
+            // Blur effects
+            implementation(libs.haze)
+            implementation(libs.haze.materials)
             // Note: The following dependencies are declared as api() to work with iOS
             // Navigation
             api(libs.decompose)

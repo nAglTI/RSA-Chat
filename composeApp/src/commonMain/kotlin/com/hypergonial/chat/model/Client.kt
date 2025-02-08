@@ -6,6 +6,7 @@ import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
+import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.CoroutineScope
 
 interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
@@ -132,9 +133,16 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * @param channelId The ID of the channel to send the message to
      * @param content The content of the message
      * @param nonce An identifier for the message, can be used to track message delivery
+     * MessageCreateEvent and UploadProgressEvent both contain the nonce of the message they are related to.
+     * @param attachments A list of files to upload with the message
      * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
      */
-    suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String? = null): Message
+    suspend fun sendMessage(
+        channelId: Snowflake,
+        content: String,
+        nonce: String? = null,
+        attachments: List<PlatformFile> = emptyList(),
+    ): Message
 
     /**
      * Log out the currently authenticated user

@@ -13,6 +13,7 @@ import com.arkivanov.decompose.value.Value
 import com.hypergonial.chat.model.ChannelCreateEvent
 import com.hypergonial.chat.model.ChannelRemoveEvent
 import com.hypergonial.chat.model.Client
+import com.hypergonial.chat.model.FocusAssetEvent
 import com.hypergonial.chat.model.FocusChannelEvent
 import com.hypergonial.chat.model.FocusGuildEvent
 import com.hypergonial.chat.model.GuildCreateEvent
@@ -71,6 +72,9 @@ interface SidebarComponent : Displayable {
     /** Called when the user clicks the logout button */
     fun onLogoutClicked()
 
+    /** Called when the user closes the asset viewer */
+    fun onAssetViewerClosed()
+
     @Composable override fun Display() = MainContent(this)
 
     val mainContent: Value<ChildSlot<*, MainContentComponent>>
@@ -90,6 +94,10 @@ interface SidebarComponent : Displayable {
         val channels: List<Channel> = emptyList(),
         /** If true, the app is still connecting to the server */
         val isConnecting: Boolean = true,
+        /** The URL of the asset to display in the asset viewer */
+        val assetViewerUrl: String? = null,
+        /** If true, the asset viewer is active */
+        val assetViewerActive: Boolean = false,
         /** The state of the navigation drawer */
         val navDrawerState: DrawerState = DrawerState(DrawerValue.Closed),
     )
@@ -142,6 +150,7 @@ class DefaultSideBarComponent(
             subscribeWithLifeCycle(ctx.lifecycle, ::onChannelRemove)
             subscribeWithLifeCycle(ctx.lifecycle, ::onChannelFocus)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildFocus)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onAssetFocus)
         }
     }
 
@@ -196,6 +205,10 @@ class DefaultSideBarComponent(
     override fun onChannelSelected(channel: Channel) {
         data.value = data.value.copy(selectedChannel = channel)
         slotNavigation.activate(SlotConfig.Channel(channel.id))
+    }
+
+    override fun onAssetViewerClosed() {
+        data.value = data.value.copy(assetViewerActive = false)
     }
 
     private fun onReady(event: ReadyEvent) {
@@ -265,6 +278,10 @@ class DefaultSideBarComponent(
         }
         onGuildSelected(event.guild)
         data.value = data.value.copy(navDrawerState = DrawerState(DrawerValue.Closed))
+    }
+
+    private fun onAssetFocus(event: FocusAssetEvent) {
+        data.value = data.value.copy(assetViewerUrl = event.url, assetViewerActive = true)
     }
 
     override fun onGuildCreateClicked() {

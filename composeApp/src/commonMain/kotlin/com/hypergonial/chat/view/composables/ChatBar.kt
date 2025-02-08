@@ -4,7 +4,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -60,18 +59,20 @@ fun ChatBar(
     enabled: Boolean = true,
     shouldGrabFocus: Boolean = false,
     onValueChange: (TextFieldValue) -> Unit,
+    onFocusGain: (() -> Unit)? = null,
+    onFocusLoss: (() -> Unit)? = null,
+    onEditLastRequested: (() -> Unit)? = null,
+    onLeadingIconClick: (() -> Unit)? = null,
+    trailingButtonEnabled: Boolean = true,
+    leadingButtonEnabled: Boolean = true,
     leadingIcon: @Composable (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = {
         Icon(
             Icons.AutoMirrored.Filled.Send,
             contentDescription = "Send",
-            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
+            modifier = Modifier.pointerHoverIcon(if (trailingButtonEnabled) PointerIcon.Hand else PointerIcon.Default),
         )
     },
-    onFocusGain: (() -> Unit)? = null,
-    onFocusLoss: (() -> Unit)? = null,
-    onEditLastRequested: (() -> Unit)? = null,
-    onLeadingIconClick: (() -> Unit)? = null,
     onSubmit: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
@@ -119,7 +120,7 @@ fun ChatBar(
                             val newText = value.text.insert(cursorPosition, "\n")
                             val newSelection = TextRange(cursorPosition + 1, cursorPosition + 1)
                             onValueChange(value.copy(text = newText, selection = newSelection))
-                        } else if (value.text.isNotBlank()) {
+                        } else {
                             onSubmit()
                         }
                         return@onPreviewKeyEvent true
@@ -142,14 +143,22 @@ fun ChatBar(
             ),
         leadingIcon = {
             if (leadingIcon != null && onLeadingIconClick != null) {
-                IconButton(onClick = onLeadingIconClick, modifier = Modifier.focusProperties { canFocus = false }) {
+                IconButton(
+                    onClick = onLeadingIconClick,
+                    modifier = Modifier.focusProperties { canFocus = false },
+                    enabled = leadingButtonEnabled,
+                ) {
                     leadingIcon()
                 }
             }
         },
         trailingIcon = {
             if (trailingIcon != null) {
-                IconButton(onClick = onSubmit, modifier = Modifier.focusProperties { canFocus = false }) {
+                IconButton(
+                    onClick = onSubmit,
+                    modifier = Modifier.focusProperties { canFocus = false },
+                    enabled = trailingButtonEnabled,
+                ) {
                     trailingIcon()
                 }
             }

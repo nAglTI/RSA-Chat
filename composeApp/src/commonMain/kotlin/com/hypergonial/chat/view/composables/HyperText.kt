@@ -34,8 +34,8 @@ fun HyperText(
     modifier: Modifier = Modifier,
     textStyle: TextStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
     linkTextColor: Color = MaterialTheme.colorScheme.primary,
-    linkTextFontWeight: FontWeight = FontWeight.Normal,
-    linkTextDecoration: TextDecoration = TextDecoration.None,
+    linkTextFontWeight: FontWeight? = null,
+    linkTextDecoration: TextDecoration? = null,
     fontSize: TextUnit = TextUnit.Unspecified,
 ) {
     val annotatedString = buildAnnotatedString {

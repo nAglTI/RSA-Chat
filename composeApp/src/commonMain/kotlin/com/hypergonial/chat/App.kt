@@ -10,13 +10,17 @@ import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.hypergonial.chat.view.ChatTheme
 import com.hypergonial.chat.view.components.RootComponent
+import kotlinx.coroutines.Dispatchers
 
 val LocalUsingDarkTheme = compositionLocalOf { false }
 
 @OptIn(ExperimentalDecomposeApi::class)
 @Composable
 fun App(root: RootComponent) {
-    setSingletonImageLoaderFactory { context -> ImageLoader.Builder(context).crossfade(true).build() }
+    setSingletonImageLoaderFactory { context ->
+        // Fetches images on IO dispatcher by default
+        ImageLoader.Builder(context).crossfade(true).build()
+    }
 
     ChatTheme {
         Surface {

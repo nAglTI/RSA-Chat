@@ -3,6 +3,7 @@ package com.hypergonial.chat.view.composables
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,17 +11,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,6 +50,7 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import chat.composeapp.generated.resources.Res
@@ -57,6 +61,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.LocalUsingDarkTheme
+import com.hypergonial.chat.model.payloads.Attachment
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.toHumanReadable
 import com.hypergonial.chat.view.ChatImageTransformer
@@ -88,8 +93,8 @@ val LocalHighlights = compositionLocalOf { Highlights.Builder() }
 @Composable
 fun MessageList(
     features: List<MessageEntryComponent>,
-    isCruising: Boolean,
     modifier: Modifier = Modifier,
+    isCruising: Boolean,
     listState: LazyListState = rememberLazyListState(),
     onMessagesLimitReach: (Snowflake?, Boolean) -> Unit,
 ) {
@@ -241,50 +246,92 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
         return
     }
 
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Markdown(
-            state.message.content ?: "TODO: No content - HANDLEME",
-            colors =
-                markdownColor(
-                    text = if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground,
-                    linkText = MaterialTheme.colorScheme.primary,
-                ),
-            imageTransformer = ChatImageTransformer,
-            modifier = Modifier.fillMaxHeight().fillMaxWidth(0.9f),
-            components =
-                markdownComponents(
-                    codeBlock = { MarkdownHighlightedCodeBlock(it.content, it.node, LocalHighlights.current) },
-                    codeFence = { MarkdownHighlightedCodeFence(it.content, it.node, LocalHighlights.current) },
-                    // Ignore horizontal lines
-                    horizontalRule = { MarkdownText(it.content) },
-                ),
-            typography =
-                markdownTypography(
-                    text = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
-                    paragraph = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
-                    quote =
-                        MaterialTheme.typography.bodyMedium.copy(color = Color.LightGray, fontWeight = FontWeight.Thin),
-                    link =
-                        MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Normal,
-                            textDecoration = TextDecoration.Underline,
-                        ),
-                ),
-        )
-        AnimatedVisibility(visible = state.message.isEdited) {
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                tooltip = {
-                    PlainTooltip(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    ) {
-                        Text("Edited")
-                    }
-                },
-                state = rememberTooltipState(isPersistent = true),
-            ) {
-                Icon(Icons.Outlined.Edit, contentDescription = "Edited", tint = Color.Gray)
+    Column {
+        Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Markdown(
+                state.message.content ?: "TODO: No content - HANDLEME",
+                colors =
+                    markdownColor(
+                        text =
+                            if (state.isFailed) MaterialTheme.colorScheme.error
+                            else if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground,
+                        linkText = MaterialTheme.colorScheme.primary,
+                    ),
+                imageTransformer = ChatImageTransformer,
+                modifier = Modifier.fillMaxHeight().fillMaxWidth(0.9f),
+                components =
+                    markdownComponents(
+                        codeBlock = { MarkdownHighlightedCodeBlock(it.content, it.node, LocalHighlights.current) },
+                        codeFence = { MarkdownHighlightedCodeFence(it.content, it.node, LocalHighlights.current) },
+                        // Ignore horizontal lines
+                        horizontalRule = { MarkdownText(it.content) },
+                    ),
+                typography =
+                    markdownTypography(
+                        text = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                        paragraph = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                        quote =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                color = Color.LightGray,
+                                fontWeight = FontWeight.Thin,
+                            ),
+                        link =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Normal,
+                                textDecoration = TextDecoration.Underline,
+                            ),
+                    ),
+            )
+            AnimatedVisibility(visible = state.message.isEdited) {
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = {
+                        PlainTooltip(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ) {
+                            Text("Edited")
+                        }
+                    },
+                    state = rememberTooltipState(isPersistent = true),
+                ) {
+                    Icon(Icons.Outlined.Edit, contentDescription = "Edited", tint = Color.Gray)
+                }
+            }
+        }
+
+        if (state.hasUploadingAttachments) {
+            UploadStateCard(state.uploadProgress.toFloat())
+        } else if (state.message.attachments.isNotEmpty()) {
+            if (state.isFailed) {
+                state.message.attachments.forEach { attachment -> FailedAttachmentCard(attachment.filename) }
+                return
+            }
+
+            state.message.attachments.forEach { attachment ->
+                val url = attachment.makeUrl(state.message)
+
+                if (attachment.contentType !in Attachment.supportedEmbedFormats) {
+                    AttachmentCard(
+                        attachment.filename,
+                        attachment.contentType,
+                        url,
+                        modifier = Modifier.padding(top = 8.dp, end = 20.dp),
+                    )
+                } else {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalPlatformContext.current).data(url).crossfade(true).build(),
+                        contentDescription = attachment.filename,
+                        modifier =
+                            Modifier.padding(top = 8.dp, end = 20.dp)
+                                .widthIn(Dp.Unspecified, 500.dp)
+                                .heightIn(Dp.Unspecified, 500.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable(null, indication = null) { component.onAttachmentClicked(attachment.id) }
+                                .pointerHoverIcon(PointerIcon.Hand),
+                        contentScale = ContentScale.Fit,
+                    )
+                }
             }
         }
     }

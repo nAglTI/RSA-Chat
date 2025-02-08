@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.hypergonial.chat.ensureSlashAtEnd
 import com.hypergonial.chat.model.ApiConfig
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.settings
@@ -138,6 +139,3 @@ fun String.isWebSocketUrl(): Boolean {
     return this.startsWith("ws://") || this.startsWith("wss://")
 }
 
-fun String.ensureSlashAtEnd(): String {
-    return if (!this.endsWith("/")) "$this/" else this
-}

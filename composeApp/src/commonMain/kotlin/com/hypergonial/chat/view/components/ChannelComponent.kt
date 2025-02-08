@@ -14,6 +14,10 @@ import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.MessageCreateEvent
 import com.hypergonial.chat.model.MessageRemoveEvent
 import com.hypergonial.chat.model.MessageUpdateEvent
+import com.hypergonial.chat.model.Mime
+import com.hypergonial.chat.model.exceptions.ApiException
+import com.hypergonial.chat.model.getMimeType
+import com.hypergonial.chat.model.payloads.Attachment
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.removeRange
@@ -26,13 +30,14 @@ import com.hypergonial.chat.view.components.subcomponents.LoadMoreMessagesIndica
 import com.hypergonial.chat.view.components.subcomponents.MessageComponent
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import com.hypergonial.chat.view.content.ChannelContent
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.vinceglb.filekit.core.FileKit
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
-import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
+import kotlin.time.Duration.Companion.minutes
 
 private const val MESSAGE_BATCH_SIZE = 100u
 
@@ -115,6 +120,7 @@ interface ChannelComponent : MainContentComponent, Displayable {
  * @param client The client to use for API operations.
  * @param channelId The ID of the channel to display.
  * @param onLogout The callback to call when the user logs out.
+ * Includes the http URL of the asset.
  */
 class DefaultChannelComponent(
     private val ctx: ComponentContext,
@@ -123,6 +129,7 @@ class DefaultChannelComponent(
     private val onLogout: () -> Unit,
 ) : ChannelComponent, ComponentContext by ctx {
     private val scope = ctx.coroutineScope()
+    private val logger = KotlinLogging.logger {}
 
     override val data =
         MutableValue(
@@ -147,10 +154,28 @@ class DefaultChannelComponent(
      *
      * @param message The message to create a component from.
      * @param isPending Whether the message is pending or not.
+     * @param hasUploadingAttachments Whether the message has attachments that are currently being uploaded.
      * @return The message component.
      */
-    private fun messageComponent(message: Message, isPending: Boolean = false): MessageComponent {
-        return DefaultMessageComponent(ctx, client, message, isPending)
+    private fun messageComponent(
+        message: Message,
+        isPending: Boolean = false,
+        hasUploadingAttachments: Boolean = false,
+    ): MessageComponent {
+        return DefaultMessageComponent(ctx, client, message, isPending, hasUploadingAttachments)
+    }
+
+    /** Create dummy attachments from a list of files.
+     *
+     * This is only used while the message is pending to get an accurate enough reading of attachments.
+     *
+     * @param files The list of files to create attachments from.
+     * @return The list of attachments.
+     */
+    private fun makeDummyAttachments(files: List<PlatformFile>): List<Attachment> {
+        return files.mapIndexed { i, file ->
+            Attachment(i, file.name, file.name.getMimeType() ?: Mime.default())
+        }
     }
 
     /**
@@ -281,20 +306,12 @@ class DefaultChannelComponent(
                         ?: return@launch
                 }
 
-            println("File picked: ${file.name}")
-            // In bytes
-            println("File size: ${file.getSize()}")
-
             data.value.pendingAttachments.add(file)
         }
     }
 
     override fun onFilesDropped(files: List<PlatformFile>) {
         files.forEach {
-            println("File dropped: ${it.name}")
-            // In bytes
-            println("File size: ${it.getSize()}")
-
             data.value.pendingAttachments.add(it)
         }
     }
@@ -310,7 +327,7 @@ class DefaultChannelComponent(
      * @param isPending Whether the message is pending or not. A pending message was sent by the user but not yet
      *   received by the server.
      */
-    private fun addMessage(newMessage: Message, isPending: Boolean = false) {
+    private fun addMessage(newMessage: Message, isPending: Boolean = false, hasUploadingAttachments: Boolean = false) {
         if (data.value.isCruising) return
 
         val currentEntries = data.value.messageEntries
@@ -333,11 +350,13 @@ class DefaultChannelComponent(
 
         // Group recent messages by author
         if (lastMessage?.author?.id == newMessage.author.id && Clock.System.now() - lastMessage.createdAt < 5.minutes) {
-            currentEntries.first().pushMessage(messageComponent(newMessage, isPending = isPending))
+            currentEntries.first().pushMessage(messageComponent(newMessage, isPending, hasUploadingAttachments))
         } else {
             currentEntries.add(
                 0,
-                messageEntryComponent(mutableStateListOf(messageComponent(newMessage, isPending = isPending))),
+                messageEntryComponent(
+                    mutableStateListOf(messageComponent(newMessage, isPending, hasUploadingAttachments))
+                ),
             )
         }
 
@@ -377,28 +396,40 @@ class DefaultChannelComponent(
         entry.removeMessage(event.id)
     }
 
-    private fun createPendingMessage(content: String, nonce: String) {
+    private fun createPendingMessage(content: String, nonce: String, attachments: List<PlatformFile>) {
         val msg =
             Message(
                 Snowflake(0u),
                 channelId,
-                client.cache.ownUser ?: error("Own user not cached, cannot send message"),
-                content,
-                nonce,
+                client.cache.ownUser ?: error("Own user not cached, cannot send message (This is a bug)"),
+                content = content,
+                nonce = nonce,
+                attachments = makeDummyAttachments(attachments),
             )
-        addMessage(msg, isPending = true)
+        addMessage(msg, isPending = true, hasUploadingAttachments = attachments.isNotEmpty())
     }
 
     override fun onMessageSend() {
         val content = data.value.chatBarValue.text.trim()
+        val attachments = data.value.pendingAttachments.toList()
 
-        if (content.isBlank()) return
+        if (content.isBlank() && attachments.isEmpty()) return
 
         scope.launch {
             val nonce = genNonce(client.sessionId)
+            data.value.pendingAttachments.clear()
             data.value = data.value.copy(chatBarValue = data.value.chatBarValue.copy(text = ""))
-            createPendingMessage(content, nonce)
-            client.sendMessage(channelId, content = content, nonce = nonce)
+            createPendingMessage(content, nonce, attachments = attachments)
+            try {
+                client.sendMessage(channelId, content = content, nonce = nonce, attachments = attachments)
+            } catch (e: ApiException) {
+                data.value.messageEntries
+                    .flatMap { it.data.value.messages }
+                    .firstOrNull { it.data.value.message.nonce == nonce }
+                    ?.onFailed()
+                logger.error { "Failed to send message: ${e.message}" }
+                e.printStackTrace()
+            }
         }
     }
 
@@ -412,7 +443,7 @@ class DefaultChannelComponent(
     }
 
     override fun onMessageDeleteRequested(messageId: Snowflake) {
-        TODO("Not yet implemented")
+        scope.launch { client.deleteMessage(channelId, messageId) }
     }
 
     override fun onChatBarContentChanged(value: TextFieldValue) {

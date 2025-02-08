@@ -31,12 +31,25 @@ class MainActivity : ComponentActivity() {
         initializeStorage()
         val root = DefaultRootComponent(defaultComponentContext())
 
+        ContextHelper.retrieveAppContext = { this.applicationContext }
+
         setContent { AppTheme { App(root) } }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        ContextHelper.retrieveAppContext = { null }
     }
 
     override fun onResume() {
         super.onResume()
+        ContextHelper.retrieveAppContext = { this.applicationContext }
         initializeStorage()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        ContextHelper.retrieveAppContext = { null }
     }
 
     private fun initializeStorage() {

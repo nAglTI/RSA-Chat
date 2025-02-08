@@ -46,7 +46,7 @@ import java.io.File
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class, ExperimentalHazeMaterialsApi::class)
 @Composable
-actual fun AttachmentDropTarget(onFilesDropped: (List<PlatformFile>) -> Unit, content: @Composable () -> Unit) {
+actual fun FileDropTarget(onFilesDropped: (List<PlatformFile>) -> Unit, content: @Composable () -> Unit) {
     var isActive by remember { mutableStateOf(false) }
     val hazeState = remember { HazeState() }
 

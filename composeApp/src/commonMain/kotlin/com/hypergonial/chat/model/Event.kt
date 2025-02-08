@@ -61,6 +61,9 @@ class LoginEvent : InternalEvent()
 /** Event dispatched when a user is logged out */
 class LogoutEvent : InternalEvent()
 
+/** Event dispatched when the upload status of a set of attachments changes */
+class UploadProgressEvent(val nonce: String, val completionRate: Double) : InternalEvent()
+
 /** The reason for a gateway session being invalidated */
 enum class InvalidationReason {
     Normal,
@@ -81,3 +84,6 @@ class FocusChannelEvent(val channel: Channel) : InternalEvent()
 
 /** Internal event dispatched when the application should bring a guild into focus */
 class FocusGuildEvent(val guild: Guild) : InternalEvent()
+
+/** Internal event dispatched when the application should bring an asset into focus */
+class FocusAssetEvent(val url: String) : InternalEvent()

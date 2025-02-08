@@ -26,6 +26,7 @@ import com.hypergonial.chat.model.payloads.rest.MessageUpdateRequest
 import com.hypergonial.chat.model.payloads.rest.UserRegisterRequest
 import com.hypergonial.chat.platform
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.vinceglb.filekit.core.PlatformFile
 import io.ktor.client.HttpClient
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
@@ -35,6 +36,7 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.UserAgent
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.onUpload
 import io.ktor.client.plugins.timeout
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
@@ -44,6 +46,7 @@ import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.client.request.basicAuth
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
+import io.ktor.client.request.forms.FormPart
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
@@ -591,21 +594,47 @@ class ChatClient(scope: CoroutineScope) : Client {
             .sortedBy { it.id }
     }
 
-    override suspend fun sendMessage(channelId: Snowflake, content: String, nonce: String?): Message {
+    override suspend fun sendMessage(
+        channelId: Snowflake,
+        content: String,
+        nonce: String?,
+        attachments: List<PlatformFile>,
+    ): Message {
         // See https://stackoverflow.com/questions/69830965/ktor-client-post-multipart-form-data
-        // TODO: Add support for file uploads
+        val json = FormPart(
+            "json",
+            Json.encodeToString<MessageCreateRequest>(MessageCreateRequest(content, nonce)),
+            Headers.build { append(HttpHeaders.ContentType, ContentType.Application.Json.toString()) },
+        )
+
+        val files =
+            attachments.mapIndexed { i, item ->
+                FormPart(
+                    "attachment-$i",
+                    /* TODO: Replace with InputProvider(item.getSize()) { item.inputStream().asInput() }
+                    when FileKit moves to kotlinx.io instead of okio */
+                    item.readBytes(),
+                    Headers.build {
+                        append(HttpHeaders.ContentType, Mime.fromUrl(item.name).toString())
+                        append(HttpHeaders.ContentDisposition, "filename=${item.name.quote()}")
+                    },
+                )
+            }
+
         return http
             .submitFormWithBinaryData(
                 url = "channels/$channelId/messages",
-                formData =
-                    formData {
-                        append(
-                            "json".quote(),
-                            Json.encodeToString<MessageCreateRequest>(MessageCreateRequest(content, nonce)),
-                            Headers.build { append(HttpHeaders.ContentType, ContentType.Application.Json.toString()) },
-                        )
-                    },
-            )
+                formData = formData {
+                    append(json)
+                    files.forEach { append(it) }
+                },
+            ) {
+                onUpload { bytesSent, contentLength ->
+                    val completionRate = bytesSent.toDouble() / (contentLength?.toDouble() ?: return@onUpload)
+                    val nonce = nonce ?: return@onUpload
+                    eventManager.dispatch(UploadProgressEvent(nonce, completionRate))
+                }
+            }
             .body<Message>()
     }
 

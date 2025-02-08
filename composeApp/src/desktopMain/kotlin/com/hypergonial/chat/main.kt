@@ -1,5 +1,8 @@
 package com.hypergonial.chat
 
+import androidx.compose.foundation.DarkDefaultContextMenuRepresentation
+import androidx.compose.foundation.LightDefaultContextMenuRepresentation
+import androidx.compose.foundation.LocalContextMenuRepresentation
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -45,8 +48,16 @@ fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
             else -> lightColorScheme
         }
 
+    val contextMenuRepresentation = if (useDarkTheme) {
+        DarkDefaultContextMenuRepresentation
+    } else {
+        LightDefaultContextMenuRepresentation
+    }
+
     CompositionLocalProvider(LocalUsingDarkTheme provides useDarkTheme) {
-        MaterialTheme(colorScheme = colorScheme, content = content)
+        CompositionLocalProvider(LocalContextMenuRepresentation provides contextMenuRepresentation) {
+            MaterialTheme(colorScheme = colorScheme, content = content)
+        }
     }
 }
 

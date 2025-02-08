@@ -1,8 +1,26 @@
 package com.hypergonial.chat
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Android
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Css
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.FilePresent
+import androidx.compose.material.icons.outlined.FolderZip
+import androidx.compose.material.icons.outlined.FormatSize
+import androidx.compose.material.icons.outlined.Html
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Javascript
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.SettingsApplications
+import androidx.compose.material.icons.outlined.Terminal
+import androidx.compose.material.icons.outlined.ViewInAr
 import androidx.compose.material3.DrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -12,6 +30,7 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.PopupPositionProvider
+import com.hypergonial.chat.model.Mime
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -167,9 +186,7 @@ fun Instant.toHumanReadable(): String {
     }
 }
 
-private fun Int.zpad(to: Int): String {
-    return this.toString().padStart(to, '0')
-}
+private fun Int.zpad(to: Int): String = this.toString().padStart(to, '0')
 
 /**
  * A tooltip position provider that tries to display the tooltip next to the anchor object, as opposed to above or below
@@ -206,10 +223,63 @@ fun rememberHorizontalTooltipPositionProvider(spacingBetweenTooltipAndAnchor: Dp
 }
 
 /** Toggles the drawer state. If the drawer is closed, it will open it. If the drawer is open, it will close it. */
-suspend fun DrawerState.toggle() {
-    if (isClosed) {
-        open()
-    } else {
-        close()
+suspend fun DrawerState.toggle() = if (isClosed) open() else close()
+
+/**
+ * Ensures that the string has a slash at the end. If the String had a slash at the end, the original string is
+ * returned.
+ */
+fun String.ensureSlashAtEnd(): String = if (!this.endsWith("/")) "$this/" else this
+
+
+/**
+ * Ensures that the string does not have a slash at the end. If the String had no slash at the end, the original string
+ * is returned.
+ */
+fun String.ensureNoSlashAtEnd(): String = if (this.endsWith("/")) this.dropLast(1) else this
+
+/** Gets the appropriate icon for the mime type. */
+fun Mime.getIcon(): ImageVector {
+    return when (this.type) {
+        "image" -> Icons.Outlined.Image
+        "video" -> Icons.Outlined.Movie
+        "audio" -> Icons.Outlined.MusicNote
+        "text" ->
+            when (this.subtype) {
+                "html" -> Icons.Outlined.Html
+                "xhtml+xml" -> Icons.Outlined.Html
+                "javascript" -> Icons.Outlined.Javascript
+                "css" -> Icons.Outlined.Css
+                "calendar" -> Icons.Outlined.CalendarMonth
+                else -> Icons.Outlined.Description
+            }
+        "application" ->
+            when (this.subtype) {
+                "pdf" -> Icons.Outlined.PictureAsPdf
+                "zip" -> Icons.Outlined.FolderZip
+                "x-zip-compressed" -> Icons.Outlined.FolderZip
+                "zip-compressed" -> Icons.Outlined.FolderZip
+                "vnd.rar" -> Icons.Outlined.FolderZip
+                "x-rar-compressed" -> Icons.Outlined.FolderZip
+                "x-7z-compressed" -> Icons.Outlined.FolderZip
+                "x-tar" -> Icons.Outlined.FolderZip
+                "x-font-ttf" -> Icons.Outlined.FormatSize
+                "vnd.android.package-archive" -> Icons.Outlined.Android
+                "x-msdownload" -> Icons.Outlined.SettingsApplications
+                "x-sh" -> Icons.Outlined.Terminal
+                "x-shellscript" -> Icons.Outlined.Terminal
+                else -> Icons.Outlined.FilePresent
+            }
+        "model" -> Icons.Outlined.ViewInAr
+        else -> Icons.Outlined.FilePresent
     }
+}
+
+/** Trim a filename to a maximum of 20 characters. Keeps the file extension visible. */
+fun String.trimFilename(): String {
+    return if (length > 20) {
+        val ext = substringAfterLast('.', missingDelimiterValue = "")
+
+        substring(0, 15) + "{...}" + if (ext.isNotEmpty()) ".$ext" else ""
+    } else this
 }

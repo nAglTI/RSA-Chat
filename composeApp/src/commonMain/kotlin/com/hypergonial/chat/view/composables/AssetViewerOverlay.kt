@@ -96,7 +96,6 @@ fun AssetViewerOverlay(
                         contentDescription = "Asset being observed",
                         modifier =
                             Modifier.clip(RoundedCornerShape(8.dp))
-                                .shadow(10.dp, shape = RoundedCornerShape(8.dp))
                                 .clickable(null, null) { /* Eat click events */ },
                         contentScale = ContentScale.Fit,
                         clipToBounds = false,

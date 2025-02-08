@@ -1,5 +1,6 @@
 package com.hypergonial.chat.model.payloads
 
+import com.hypergonial.chat.ensureNoSlashAtEnd
 import com.hypergonial.chat.model.settings
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -22,7 +23,7 @@ data class Guild(
     val avatarUrl: String?
         get() =
             avatarHash?.let {
-                "${settings.getApiSettings().objectStoreUrl}/guilds/$id/$it.${
+                "${settings.getApiSettings().objectStoreUrl.ensureNoSlashAtEnd()}/guilds/$id/$it.${
                 it.split("_").last()
             }"
             }

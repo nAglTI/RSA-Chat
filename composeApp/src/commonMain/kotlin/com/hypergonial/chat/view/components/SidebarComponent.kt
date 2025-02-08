@@ -23,6 +23,7 @@ import com.hypergonial.chat.model.ReadyEvent
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.model.payloads.User
 import com.hypergonial.chat.view.content.MainContent
 import com.hypergonial.chat.withFallbackValue
 import kotlinx.serialization.Serializable
@@ -75,6 +76,9 @@ interface SidebarComponent : Displayable {
     /** Called when the user closes the asset viewer */
     fun onAssetViewerClosed()
 
+    /** Called when the user clicks the user settings button */
+    fun onUserSettingsClicked()
+
     @Composable override fun Display() = MainContent(this)
 
     val mainContent: Value<ChildSlot<*, MainContentComponent>>
@@ -82,6 +86,9 @@ interface SidebarComponent : Displayable {
     val data: Value<SidebarState>
 
     data class SidebarState(
+        /** The currently logged in user
+         * May be null if the client is still connecting */
+        val currentUser: User? = null,
         /** The guild that is currently selected */
         val selectedGuild: Guild? = null,
         /** The channel that is currently selected */
@@ -110,6 +117,7 @@ interface SidebarComponent : Displayable {
  * @param client The client to use for API calls
  * @param onGuildCreateRequested The callback to call when the user requests to create a guild
  * @param onChannelCreateRequested The callback to call when the user requests to create a channel
+ * @param onUserSettingsRequested The callback to call when the user requests to view their settings
  * @param onLogout The callback to call when the user requests to log out
  */
 class DefaultSideBarComponent(
@@ -117,10 +125,13 @@ class DefaultSideBarComponent(
     val client: Client,
     val onGuildCreateRequested: () -> Unit,
     val onChannelCreateRequested: (Snowflake) -> Unit,
+    val onUserSettingsRequested: () -> Unit,
     val onLogout: () -> Unit,
 ) : SidebarComponent, ComponentContext by ctx {
     override val data =
-        MutableValue(SidebarComponent.SidebarState(guilds = client.cache.guilds.values.toList().sortedBy { it.id }))
+        MutableValue(SidebarComponent.SidebarState(
+            currentUser = client.cache.ownUser,
+            guilds = client.cache.guilds.values.toList().sortedBy { it.id }))
 
     private val slotNavigation = SlotNavigation<SlotConfig>()
 
@@ -212,7 +223,7 @@ class DefaultSideBarComponent(
     }
 
     private fun onReady(event: ReadyEvent) {
-        data.value = data.value.copy(isConnecting = false)
+        data.value = data.value.copy(isConnecting = false, currentUser = event.user)
     }
 
     private fun onGuildCreate(event: GuildCreateEvent) {
@@ -290,6 +301,10 @@ class DefaultSideBarComponent(
 
     override fun onChannelCreateClicked() {
         onChannelCreateRequested(data.value.selectedGuild?.id ?: return)
+    }
+
+    override fun onUserSettingsClicked() {
+        onUserSettingsRequested()
     }
 
     @Serializable

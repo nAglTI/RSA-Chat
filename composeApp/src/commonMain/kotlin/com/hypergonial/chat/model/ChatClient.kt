@@ -24,7 +24,9 @@ import com.hypergonial.chat.model.payloads.rest.GuildCreateRequest
 import com.hypergonial.chat.model.payloads.rest.MessageCreateRequest
 import com.hypergonial.chat.model.payloads.rest.MessageUpdateRequest
 import com.hypergonial.chat.model.payloads.rest.UserRegisterRequest
+import com.hypergonial.chat.model.payloads.rest.UserUpdateRequest
 import com.hypergonial.chat.platform
+import com.hypergonial.chat.toDataUrl
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.ktor.client.HttpClient
@@ -536,6 +538,18 @@ class ChatClient(scope: CoroutineScope) : Client {
                 }
                 .body<User>()
         cache.putOwnUser(user)
+    }
+
+    override suspend fun updateUser(username: String?, displayName: String?, avatar: PlatformFile?): User {
+        val user =
+            http
+                .patch("users/@me") {
+                    contentType(ContentType.Application.Json)
+                    setBody(UserUpdateRequest(username, displayName, avatar?.toDataUrl()))
+                }
+                .body<User>()
+        cache.putOwnUser(user)
+        return user
     }
 
     override suspend fun fetchGuild(guildId: Snowflake): Guild {

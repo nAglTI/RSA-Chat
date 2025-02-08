@@ -1,5 +1,6 @@
 package com.hypergonial.chat.model.payloads
 
+import com.hypergonial.chat.ensureNoSlashAtEnd
 import com.hypergonial.chat.model.settings
 import kotlinx.datetime.Instant
 import kotlinx.serialization.DeserializationStrategy
@@ -35,10 +36,14 @@ sealed interface PartialUser {
     val avatarUrl: String?
         get() =
             avatarHash?.let {
-                "${settings.getApiSettings().objectStoreUrl}/users/$id/$it.${
+                "${settings.getApiSettings().objectStoreUrl.ensureNoSlashAtEnd()}/users/$id/$it.${
                 it.split("_").last()
             }"
             }
+
+    /** The resolved name of the user. This is what should be shown on GUIs */
+    val resolvedName
+        get() = displayName ?: username
 }
 
 /**
@@ -79,7 +84,10 @@ class Member(
     val nickname: String? = null,
     @SerialName("guild_id") val guildId: Snowflake,
     @SerialName("joined_at") val joinedAt: Instant,
-) : User(id, name, displayName, avatarUrl)
+) : User(id, name, displayName, avatarUrl) {
+    override val resolvedName
+        get() = nickname ?: super.resolvedName
+}
 
 @Serializable
 private data class MemberPayload(

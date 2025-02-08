@@ -75,6 +75,8 @@ interface RootComponent : BackHandlerOwner {
         class JoinGuildChild(override val component: JoinGuildComponent) : Child(component)
 
         class CreateChannelChild(override val component: CreateChannelComponent) : Child(component)
+
+        class UserSettingsChild(override val component: UserSettingsComponent) : Child(component)
     }
 }
 
@@ -182,6 +184,7 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
                         client = client,
                         onGuildCreateRequested = { nav.pushNew(Config.NewGuild) },
                         onChannelCreateRequested = { nav.pushNew(Config.CreateChannel(it)) },
+                        onUserSettingsRequested = { nav.pushNew(Config.UserSettings) },
                         onLogout = ::onLogout,
                     )
                 )
@@ -242,6 +245,9 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
                         onCancel = { nav.pop() },
                     )
                 )
+
+            is Config.UserSettings ->
+                RootComponent.Child.UserSettingsChild(DefaultUserSettingsComponent(ctx = childCtx, client = client))
         }
 
     /** Called internally when the login process is complete */
@@ -308,5 +314,7 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
         @Serializable @SerialName("JOIN_GUILD") data object JoinGuild : Config()
 
         @Serializable @SerialName("CREATE_CHANNEL") data class CreateChannel(val guildId: Snowflake) : Config()
+
+        @Serializable @SerialName("USER_SETTINGS") data object UserSettings : Config()
     }
 }

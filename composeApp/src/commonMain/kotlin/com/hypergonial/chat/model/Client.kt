@@ -6,6 +6,7 @@ import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.model.payloads.User
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.CoroutineScope
 
@@ -74,6 +75,19 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * @param password The password to register with
      */
     suspend fun register(username: String, password: Secret<String>)
+
+    /**
+     * Update the currently authenticated user
+     *
+     * @param username The new username of the user
+     * If not specified, it will not be changed
+     * @param displayName The new display name of the user
+     * If not specified, it will be cleared
+     * @param avatar The new avatar of the user
+     * If not specified, it will not be changed
+     * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
+     */
+    suspend fun updateUser(username: String? = null, displayName: String? = null, avatar: PlatformFile? = null): User
 
     /**
      * Connects to the gateway

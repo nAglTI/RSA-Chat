@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.PopupPositionProvider
 import com.hypergonial.chat.model.Mime
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.vinceglb.filekit.core.PlatformFile
+import io.ktor.util.encodeBase64
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -282,4 +284,17 @@ fun String.trimFilename(): String {
 
         substring(0, 15) + "{...}" + if (ext.isNotEmpty()) ".$ext" else ""
     } else this
+}
+
+/** Get the mime type of the file. */
+fun PlatformFile.getMime(): Mime {
+    return Mime.fromUrl(this.name) ?: Mime.default()
+}
+
+/** Convert the file to a base64 encoded data URL.
+ * 
+ * https://developer.mozilla.org/en-US/docs/Web/URI/Schemes/data
+ */
+suspend fun PlatformFile.toDataUrl(): String {
+    return "data:${this.getMime()};base64,${this.readBytes().encodeBase64()}"
 }

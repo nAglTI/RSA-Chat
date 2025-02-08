@@ -86,11 +86,11 @@ fun AssetViewerOverlay(
 
         AnimatedVisibility(
             isActive,
-            enter = scaleIn(spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioLowBouncy)),
+            enter = scaleIn(spring(stiffness = Spring.StiffnessMedium)),
             exit = scaleOut(spring(stiffness = Spring.StiffnessMedium)),
         ) {
             Box(Modifier.fillMaxSize().clickable(null, indication = null) { onClose() }, Alignment.Center) {
-                Box(modifier = Modifier.padding(imagePadding)) {
+                Box(modifier = Modifier.padding(horizontal = imagePadding, vertical = imagePadding * 2)) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalPlatformContext.current).data(url).crossfade(true).build(),
                         contentDescription = "Asset being observed",

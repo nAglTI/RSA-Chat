@@ -2,7 +2,6 @@ package com.hypergonial.chat.view.composables
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,16 +9,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
@@ -44,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.ContentScale
@@ -53,8 +48,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import chat.composeapp.generated.resources.Res
-import chat.composeapp.generated.resources.avatar_placeholder
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
@@ -78,7 +71,6 @@ import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
 import dev.snipme.highlights.Highlights
 import dev.snipme.highlights.model.SyntaxThemes
-import org.jetbrains.compose.resources.painterResource
 
 val LocalHighlights = compositionLocalOf { Highlights.Builder() }
 
@@ -123,7 +115,7 @@ fun MessageList(
 @Composable
 fun Entry(component: MessageEntryComponent, onEndReached: (Snowflake?, Boolean) -> Unit) {
     val state by component.data.subscribeAsState()
-    val isDarkTheme = LocalUsingDarkTheme.current
+    LocalUsingDarkTheme.current
 
     val endIndicator = state.endIndicator
     val firstItem = state.messages.firstOrNull()
@@ -146,31 +138,10 @@ fun Entry(component: MessageEntryComponent, onEndReached: (Snowflake?, Boolean) 
             Row(Modifier.padding(vertical = 10.dp)) {
                 // Avatar
                 Column {
-                    val imageModifier =
-                        Modifier.padding(vertical = 6.dp, horizontal = 14.dp)
-                            .clip(CircleShape)
-                            .height(40.dp)
-                            .width(40.dp)
-
-                    if (firstItem.data.value.message.author.avatarUrl == null) {
-                        Image(
-                            painter = painterResource(Res.drawable.avatar_placeholder),
-                            contentDescription = "User avatar",
-                            modifier = imageModifier,
-                            colorFilter = if (isDarkTheme) ColorFilter.tint(Color.White) else null,
-                        )
-                    } else {
-                        AsyncImage(
-                            model =
-                                ImageRequest.Builder(LocalPlatformContext.current)
-                                    .data(firstItem.data.value.message.author.avatarUrl)
-                                    .crossfade(true)
-                                    .build(),
-                            contentDescription = "Avatar of ${firstItem.data.value.message.author.displayName}",
-                            contentScale = ContentScale.Crop,
-                            modifier = imageModifier,
-                        )
-                    }
+                    UserAvatar(
+                        firstItem.data.value.message.author.avatarUrl,
+                        firstItem.data.value.message.author.resolvedName,
+                    )
                 }
 
                 Column {

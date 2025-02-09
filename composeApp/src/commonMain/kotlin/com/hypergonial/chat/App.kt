@@ -1,8 +1,10 @@
 package com.hypergonial.chat
 
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.ui.Modifier
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.request.crossfade
@@ -23,7 +25,7 @@ fun App(root: RootComponent) {
     }
 
     ChatTheme {
-        Surface {
+        Surface(Modifier.clickable(null, null) { /* Drop focus when unclickable things are clicked */ }) {
             Children(stack = root.stack, animation = platform.backAnimation(root.backHandler, root::onBackClicked)) {
                 child ->
                 child.instance.component.Display()

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,11 +20,11 @@ import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.components.prompts.NewGuildComponent
 
 @Composable
-fun NewGuildContent(component: NewGuildComponent) {
+fun NewGuildContent(component: NewGuildComponent) = Surface(Modifier.fillMaxSize()) {
     Box {
         if (platform.needsBackButton()) {
             IconButton(
-                onClick = { component.onBackClicked() },
+                onClick = component::onBackClicked,
                 modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart),
             ) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -35,8 +36,8 @@ fun NewGuildContent(component: NewGuildComponent) {
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxSize(),
         ) {
-            Button(onClick = { component.onGuildCreateClicked() }) { Text("Create") }
-            Button(onClick = { component.onGuildJoinClicked() }) { Text("Join") }
+            Button(onClick = component::onGuildCreateClicked) { Text("Create") }
+            Button(onClick = component::onGuildJoinClicked) { Text("Join") }
         }
     }
 }

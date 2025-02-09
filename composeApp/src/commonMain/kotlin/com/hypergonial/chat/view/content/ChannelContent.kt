@@ -25,8 +25,12 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -48,43 +52,54 @@ import io.github.vinceglb.filekit.core.PlatformFile
 
 @Composable
 fun ChannelContent(component: ChannelComponent) {
+
     FileDropTarget(component::onFilesDropped) {
         val state by component.data.subscribeAsState()
+        val snackbarState = remember { SnackbarHostState() }
 
         val canSend by
             remember(state.chatBarValue, state.pendingAttachments) {
                 derivedStateOf { state.chatBarValue.text.isNotEmpty() || state.pendingAttachments.isNotEmpty() }
             }
 
-        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
-            // Is a LazyColumn wrapped in a custom composable
-            MessageList(
-                state.messageEntries,
-                Modifier.fillMaxWidth().weight(1f),
-                listState = state.listState,
-                isCruising = state.isCruising,
-                onMessagesLimitReach = component::onMoreMessagesRequested,
-            )
 
-            Column(
-                Modifier.padding(20.dp, 0.dp, 20.dp, 20.dp)
-                    .background(
-                        MaterialTheme.colorScheme.secondaryContainer,
-                        RoundedCornerShape(16.dp, 16.dp, 16.dp, 16.dp),
-                    )
-            ) {
-                PendingFilesList(state.pendingAttachments, onPendingFileCancel = component::onPendingFileCancel)
-
-                ChatBar(
-                    state.chatBarValue,
-                    Modifier.fillMaxWidth(),
-                    onValueChange = component::onChatBarContentChanged,
-                    onEditLastRequested = component::onEditLastMessage,
-                    leadingIcon = { FileUploadIcon(component) },
-                    onLeadingIconClick = component::onFileUploadDropdownOpen,
-                    trailingButtonEnabled = canSend,
-                    onSubmit = component::onMessageSend,
+        Scaffold(Modifier.fillMaxSize(), snackbarHost = { SnackbarHost(snackbarState) }) {
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
+                // Is a LazyColumn wrapped in a custom composable
+                MessageList(
+                    state.messageEntries,
+                    Modifier.fillMaxWidth().weight(1f),
+                    listState = state.listState,
+                    isCruising = state.isCruising,
+                    onMessagesLimitReach = component::onMoreMessagesRequested,
                 )
+
+                Column(
+                    Modifier.padding(20.dp, 0.dp, 20.dp, 20.dp)
+                        .background(
+                            MaterialTheme.colorScheme.secondaryContainer,
+                            RoundedCornerShape(16.dp, 16.dp, 16.dp, 16.dp),
+                        )
+                ) {
+                    PendingFilesList(state.pendingAttachments, onPendingFileCancel = component::onPendingFileCancel)
+
+                    ChatBar(
+                        state.chatBarValue,
+                        Modifier.fillMaxWidth(),
+                        onValueChange = component::onChatBarContentChanged,
+                        onEditLastRequested = component::onEditLastMessage,
+                        leadingIcon = { FileUploadIcon(component) },
+                        onLeadingIconClick = component::onFileUploadDropdownOpen,
+                        trailingButtonEnabled = canSend,
+                        onSubmit = component::onMessageSend,
+                    )
+                }
+            }
+        }
+
+        LaunchedEffect(state.snackbarMessage) {
+            if (state.snackbarMessage.value.isNotEmpty()) {
+                snackbarState.showSnackbar(state.snackbarMessage.value, withDismissAction = true)
             }
         }
     }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -77,7 +78,7 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
         snackbarHost = { SnackbarHost(snackbarState) },
     ) {
         Column(
-            Modifier.fillMaxWidth().fillMaxHeight().safeDrawingPadding(),
+            Modifier.fillMaxSize().safeDrawingPadding(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

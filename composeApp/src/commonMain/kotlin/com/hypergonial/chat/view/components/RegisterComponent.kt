@@ -5,6 +5,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.Secret
 import com.hypergonial.chat.model.exceptions.ApiException
@@ -66,6 +67,8 @@ interface RegisterComponent : Displayable {
         val isRegistering: Boolean = false,
         /** If true, the registration failed */
         val registrationFailed: Boolean = false,
+        /** The snackbar message to display */
+        val snackbarMessage: SnackbarContainer<String> = SnackbarContainer(""),
     )
 }
 
@@ -223,11 +226,22 @@ class DefaultRegisterComponent(
                 client.register(username, password)
                 data.value = data.value.copy(isRegistering = false, registrationFailed = false)
                 onRegister()
-            } catch (_: ApiException) {
-                data.value = data.value.copy(isRegistering = false, registrationFailed = true)
+            } catch (e: ApiException) {
+                data.value =
+                    data.value.copy(
+                        isRegistering = false,
+                        registrationFailed = true,
+                        snackbarMessage = SnackbarContainer("Failed to register, please try again later."),
+                    )
+                logger.error { "Registration failed: ${e.message}" }
             } catch (e: Exception) {
                 logger.error { "Registration failed: ${e.message}" }
-                data.value = data.value.copy(isRegistering = false, registrationFailed = true)
+                data.value =
+                    data.value.copy(
+                        isRegistering = false,
+                        registrationFailed = true,
+                        snackbarMessage = SnackbarContainer("Unknown error: ${e.message}"),
+                    )
             }
         }
     }

@@ -11,9 +11,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -25,38 +30,50 @@ import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 @Composable
 fun JoinGuildContent(component: JoinGuildComponent) {
     val state by component.data.subscribeAsState()
+    val snackbarState = remember { SnackbarHostState() }
 
     FullScreenProgressIndicator(isActive = state.isLoading) {
-        Box {
-            if (platform.needsBackButton()) {
-                IconButton(
-                    onClick = { component.onBackClicked() },
-                    modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart),
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+        Scaffold(Modifier.fillMaxSize(), snackbarHost = { SnackbarHostState() }) {
+            Box {
+                if (platform.needsBackButton()) {
+                    IconButton(
+                        onClick = component::onBackClicked,
+                        modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart),
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
                 }
-            }
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                OutlinedTextField(
-                    value = state.inviteCode,
-                    onValueChange = component::onInviteCodeChanged,
-                    singleLine = true,
-                    placeholder = { Text("Enter invite code...") },
-                    label = { Text("Invite Code") },
-                )
-
-                Button(
-                    onClick = { component.onGuildJoinClicked() },
-                    enabled = state.isJoinButtonEnabled,
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxSize(),
                 ) {
-                    Text("Join")
+                    OutlinedTextField(
+                        value = state.inviteCode,
+                        onValueChange = component::onInviteCodeChanged,
+                        singleLine = true,
+                        placeholder = { Text("Enter invite code...") },
+                        label = { Text("Invite Code") },
+                    )
+
+                    Button(onClick = component::onGuildJoinClicked, enabled = state.isJoinButtonEnabled) {
+                        Text("Join")
+                    }
                 }
             }
         }
+    }
+
+    LaunchedEffect(state.snackbarMessage) {
+        if (state.snackbarMessage.value.isEmpty()) {
+            return@LaunchedEffect
+        }
+
+        snackbarState.showSnackbar(
+            state.snackbarMessage.value,
+            duration = SnackbarDuration.Long,
+            withDismissAction = true,
+        )
     }
 }

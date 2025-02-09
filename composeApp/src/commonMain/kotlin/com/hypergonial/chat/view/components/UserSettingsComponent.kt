@@ -5,9 +5,12 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.UserUpdateEvent
+import com.hypergonial.chat.model.exceptions.ApiException
 import com.hypergonial.chat.view.content.UserSettingsContent
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.vinceglb.filekit.core.FileKit
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
@@ -40,6 +43,7 @@ interface UserSettingsComponent : Displayable {
         val canSave: Boolean = false,
         val usernameErrors: List<String> = emptyList(),
         val displayNameErrors: List<String> = emptyList(),
+        val snackbarMessage: SnackbarContainer<String> = SnackbarContainer(""),
     )
 }
 
@@ -58,6 +62,7 @@ class DefaultUserSettingsComponent(
         )
     private val scope = ctx.coroutineScope()
     private val usernameRegex = Regex("^([a-z0-9]|[a-z0-9]+(?:[._][a-z0-9]+)*)\$")
+    private val logger = KotlinLogging.logger {}
 
     init {
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onUserUpdate)
@@ -139,7 +144,22 @@ class DefaultUserSettingsComponent(
 
     override fun onSaveClicked() {
         data.value = data.value.copy(canSave = false)
-        scope.launch { client.updateSelf(data.value.username, data.value.displayName.ifEmpty { null }) }
+        scope.launch {
+            try {
+                client.updateSelf(data.value.username, data.value.displayName.ifEmpty { null })
+            }
+            catch (e: ApiException) {
+                data.value =
+                    data.value.copy(
+                        snackbarMessage = SnackbarContainer("Failed to update user settings, please try again later.")
+                    )
+                logger.error { "Failed to update user settings: ${e.message}" }
+                e.printStackTrace()
+                return@launch
+            }
+
+            data.value = data.value.copy(snackbarMessage = SnackbarContainer("User settings updated"))
+        }
     }
 
     override fun onBackClicked() = onBack()
@@ -151,8 +171,29 @@ class DefaultUserSettingsComponent(
         scope.launch {
             val file =
                 FileKit.pickFile(PickerType.Image, PickerMode.Single, title = "Select a new avatar") ?: return@launch
+
+            file.getSize()?.let {
+                if (it > 2 * 1024 * 1024) {
+                    data.value =
+                        data.value.copy(snackbarMessage = SnackbarContainer("Avatar size must be less than 2MB"))
+                    return@launch
+                }
+            }
+
             // TODO: Somehow crop the image to a square? No image manipulation libs though :(
-            client.updateSelf(ownUser.username, ownUser.displayName, file)
+            try {
+                client.updateSelf(ownUser.username, ownUser.displayName, file)
+            } catch (e: ApiException) {
+                data.value =
+                    data.value.copy(
+                        snackbarMessage = SnackbarContainer("Failed to update avatar, please try again later.")
+                    )
+                logger.error { "Failed to update avatar: ${e.message}" }
+                e.printStackTrace()
+                return@launch
+            }
+
+            data.value = data.value.copy(snackbarMessage = SnackbarContainer("Avatar updated"))
         }
     }
 }

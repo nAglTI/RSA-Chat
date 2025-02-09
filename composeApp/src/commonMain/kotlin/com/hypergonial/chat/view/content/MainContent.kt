@@ -39,6 +39,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -181,11 +183,15 @@ fun SidebarContent(component: SidebarComponent) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    UserAvatar(state.currentUser?.avatarUrl, state.currentUser?.resolvedName ?: "Unknown", size = 30.dp)
+                    UserAvatar(state.currentUser?.avatarUrl, state.currentUser?.resolvedName ?: "Unknown", size = 35.dp)
                     Text(state.currentUser?.resolvedName ?: "Connecting...", Modifier.padding(start = 5.dp))
                 }
                 IconButton(onClick = component::onUserSettingsClicked) {
-                    Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                    Icon(
+                        Icons.Filled.Settings,
+                        contentDescription = "Settings",
+                        Modifier.pointerHoverIcon(PointerIcon.Hand),
+                    )
                 }
             }
         }

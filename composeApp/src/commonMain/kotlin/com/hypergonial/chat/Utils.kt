@@ -42,6 +42,10 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlin.random.Random
+
+/** A container that when used as state, always causes a recomposition. */
+data class SnackbarContainer<T>(val value: T, private val randomness: Int = Random.nextInt())
 
 /**
  * A serializer that wraps another serializer and falls back to a default value if the deserialization fails.
@@ -292,7 +296,7 @@ fun PlatformFile.getMime(): Mime {
 }
 
 /** Convert the file to a base64 encoded data URL.
- * 
+ *
  * https://developer.mozilla.org/en-US/docs/Web/URI/Schemes/data
  */
 suspend fun PlatformFile.toDataUrl(): String {

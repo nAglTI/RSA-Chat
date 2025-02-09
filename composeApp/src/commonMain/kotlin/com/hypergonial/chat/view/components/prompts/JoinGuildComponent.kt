@@ -5,7 +5,9 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.model.Client
+import com.hypergonial.chat.model.exceptions.ApiException
 import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.view.components.Displayable
@@ -27,6 +29,7 @@ interface JoinGuildComponent : Displayable {
         val inviteCode: String = "",
         val isJoinButtonEnabled: Boolean = false,
         val isLoading: Boolean = false,
+        val snackbarMessage: SnackbarContainer<String> = SnackbarContainer(""),
     )
 }
 
@@ -44,7 +47,17 @@ class DefaultJoinGuildComponent(
 
         scope.launch {
             data.value = data.value.copy(isLoading = true)
-            val member = client.joinGuild(guildId)
+            val member = try {
+                client.joinGuild(guildId)
+            } catch (e: ApiException) {
+                data.value =
+                    data.value.copy(
+                        isLoading = false,
+                        snackbarMessage =
+                        SnackbarContainer(e.message ?: "An error occurred, please try again later."),
+                    )
+                return@launch
+            }
             data.value = data.value.copy(isLoading = false)
             onJoined(member)
         }

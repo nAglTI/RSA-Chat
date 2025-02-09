@@ -5,13 +5,12 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.Secret
 import com.hypergonial.chat.model.exceptions.UnauthorizedException
 import com.hypergonial.chat.view.content.LoginContent
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.channels.Channel as QueueChannel
-import kotlinx.coroutines.channels.ReceiveChannel as QueueReceiveChannel
 import kotlinx.coroutines.launch
 
 /**
@@ -47,9 +46,6 @@ interface LoginComponent : Displayable {
 
     @Composable override fun Display() = LoginContent(this)
 
-    /** The error channel for retrieval errors */
-    val errors: QueueReceiveChannel<String>
-
     data class Data(
         /** The username entered by the user */
         val username: String = "",
@@ -63,6 +59,8 @@ interface LoginComponent : Displayable {
         val loginFailed: Boolean = false,
         /** The number of times the logo has been clicked This is used to open the debug menu */
         val logoClickCount: Int = 0,
+        /** The snackbar message to display */
+        val snackbarMessage: SnackbarContainer<String> = SnackbarContainer(""),
     )
 }
 
@@ -83,7 +81,6 @@ class DefaultLoginComponent(
     val onDebugSettingsOpen: () -> Unit,
 ) : LoginComponent, ComponentContext by ctx {
     override val data = MutableValue(LoginComponent.Data())
-    override val errors = QueueChannel<String>(1)
     private val scope = ctx.coroutineScope()
     private val logger = KotlinLogging.logger {}
 
@@ -93,7 +90,7 @@ class DefaultLoginComponent(
     }
 
     override fun onUsernameChange(username: String) {
-        data.value = data.value.copy(username = username.lowercase(), canLogin = queryCanLogin())
+        data.value = data.value.copy(username = username.lowercase().take(32), canLogin = queryCanLogin())
     }
 
     override fun onPasswordChange(password: String) {
@@ -121,11 +118,20 @@ class DefaultLoginComponent(
                 data.value = data.value.copy(isLoggingIn = false, loginFailed = false)
                 onLogin()
             } catch (_: UnauthorizedException) {
-                data.value = data.value.copy(isLoggingIn = false, loginFailed = true)
+                data.value =
+                    data.value.copy(
+                        isLoggingIn = false,
+                        loginFailed = true,
+                        snackbarMessage = SnackbarContainer("Invalid username or password"),
+                    )
             } catch (e: Exception) {
                 logger.error { "Login failed: ${e.message}" }
-                errors.trySend("Failed to connect, please try again later.")
-                data.value = data.value.copy(isLoggingIn = false, loginFailed = true)
+                data.value =
+                    data.value.copy(
+                        isLoggingIn = false,
+                        loginFailed = true,
+                        snackbarMessage = SnackbarContainer("Login failed: ${e.message}"),
+                    )
             }
         }
     }

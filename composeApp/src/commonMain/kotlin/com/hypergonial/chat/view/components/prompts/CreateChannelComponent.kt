@@ -5,11 +5,14 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.model.Client
+import com.hypergonial.chat.model.exceptions.ApiException
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.view.components.Displayable
 import com.hypergonial.chat.view.content.prompts.CreateChannelContent
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.launch
 
 interface CreateChannelComponent : Displayable {
@@ -27,6 +30,7 @@ interface CreateChannelComponent : Displayable {
         val channelName: String = "",
         val isCreateButtonEnabled: Boolean = false,
         val isLoading: Boolean = false,
+        val snackbarMessage: SnackbarContainer<String> = SnackbarContainer(""),
     )
 }
 
@@ -40,18 +44,36 @@ class DefaultCreateChannelComponent(
     override val data = MutableValue(CreateChannelComponent.State())
 
     private val scope = ctx.coroutineScope()
+    private val logger = KotlinLogging.logger {}
 
     override fun onCreateChannelClicked() {
         scope.launch {
             data.value = data.value.copy(isLoading = true)
-            val channel = client.createChannel(guildId, data.value.channelName)
+            val channel = try {
+                client.createChannel(guildId, data.value.channelName)
+            }
+            catch (e: ApiException) {
+                logger.error { "Failed to create channel: ${e.message}" }
+                data.value =
+                    data.value.copy(
+                        isLoading = false,
+                        snackbarMessage =
+                            SnackbarContainer(e.message ?: "An error occurred, please try again later."),
+                    )
+                return@launch
+            }
+
             data.value = data.value.copy(isLoading = false)
             onCreated(channel)
         }
     }
 
     override fun onChannelNameChanged(channelName: String) {
-        data.value = data.value.copy(channelName = channelName, isCreateButtonEnabled = channelName.isNotBlank())
+        data.value =
+            data.value.copy(
+                channelName = channelName.replace(" ", "_").lowercase(),
+                isCreateButtonEnabled = channelName.isNotBlank(),
+            )
     }
 
     override fun onBackClicked() {

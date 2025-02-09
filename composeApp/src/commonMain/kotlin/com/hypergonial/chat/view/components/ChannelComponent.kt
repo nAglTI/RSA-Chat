@@ -9,6 +9,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.genNonce
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.MessageCreateEvent
@@ -35,9 +36,9 @@ import io.github.vinceglb.filekit.core.FileKit
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import kotlin.time.Duration.Companion.minutes
 
 private const val MESSAGE_BATCH_SIZE = 100u
 
@@ -101,6 +102,8 @@ interface ChannelComponent : MainContentComponent, Displayable {
         val chatBarValue: TextFieldValue = TextFieldValue(),
         /** Attachments awaiting upload */
         val pendingAttachments: SnapshotStateList<PlatformFile> = mutableStateListOf(),
+        /** The cumulative file size of all pending attachments */
+        val cumulativeFileSize: Long = 0,
         /** The list of message entries to display */
         val messageEntries: SnapshotStateList<MessageEntryComponent>,
         val lastSentMessageId: Snowflake? = null,
@@ -110,6 +113,8 @@ interface ChannelComponent : MainContentComponent, Displayable {
         val isCruising: Boolean = false,
         /** If true, the file upload dropdown is open */
         val isFileUploadDropdownOpen: Boolean = false,
+        /** The message to be displayed in the snackbar */
+        val snackbarMessage: SnackbarContainer<String> = SnackbarContainer(""),
     )
 }
 
@@ -119,8 +124,7 @@ interface ChannelComponent : MainContentComponent, Displayable {
  * @param ctx The component context.
  * @param client The client to use for API operations.
  * @param channelId The ID of the channel to display.
- * @param onLogout The callback to call when the user logs out.
- * Includes the http URL of the asset.
+ * @param onLogout The callback to call when the user logs out. Includes the http URL of the asset.
  */
 class DefaultChannelComponent(
     private val ctx: ComponentContext,
@@ -165,7 +169,8 @@ class DefaultChannelComponent(
         return DefaultMessageComponent(ctx, client, message, isPending, hasUploadingAttachments)
     }
 
-    /** Create dummy attachments from a list of files.
+    /**
+     * Create dummy attachments from a list of files.
      *
      * This is only used while the message is pending to get an accurate enough reading of attachments.
      *
@@ -173,9 +178,7 @@ class DefaultChannelComponent(
      * @return The list of attachments.
      */
     private fun makeDummyAttachments(files: List<PlatformFile>): List<Attachment> {
-        return files.mapIndexed { i, file ->
-            Attachment(i, file.name, file.name.getMimeType() ?: Mime.default())
-        }
+        return files.mapIndexed { i, file -> Attachment(i, file.name, file.name.getMimeType() ?: Mime.default()) }
     }
 
     /**
@@ -306,18 +309,40 @@ class DefaultChannelComponent(
                         ?: return@launch
                 }
 
+            val size = file.getSize() ?: 0
+
+            if (data.value.cumulativeFileSize + size > 8 * 1024 * 1024) {
+                data.value =
+                    data.value.copy(
+                        snackbarMessage = SnackbarContainer("Upload size exceeds 8MB, cannot upload more files")
+                    )
+                return@launch
+            }
+
             data.value.pendingAttachments.add(file)
         }
     }
 
     override fun onFilesDropped(files: List<PlatformFile>) {
         files.forEach {
+            val size = it.getSize() ?: 0
+
+            if (data.value.cumulativeFileSize + size > 8 * 1024 * 1024) {
+                data.value =
+                    data.value.copy(
+                        snackbarMessage = SnackbarContainer("Upload size exceeds 8MB, cannot upload more files")
+                    )
+                return
+            }
+
             data.value.pendingAttachments.add(it)
+            data.value = data.value.copy(cumulativeFileSize = data.value.cumulativeFileSize + size)
         }
     }
 
     override fun onPendingFileCancel(file: PlatformFile) {
         data.value.pendingAttachments.remove(file)
+        data.value = data.value.copy(cumulativeFileSize = data.value.cumulativeFileSize - (file.getSize() ?: 0))
     }
 
     /**
@@ -418,7 +443,7 @@ class DefaultChannelComponent(
         scope.launch {
             val nonce = genNonce(client.sessionId)
             data.value.pendingAttachments.clear()
-            data.value = data.value.copy(chatBarValue = data.value.chatBarValue.copy(text = ""))
+            data.value = data.value.copy(chatBarValue = data.value.chatBarValue.copy(text = ""), cumulativeFileSize = 0)
             createPendingMessage(content, nonce, attachments = attachments)
             try {
                 client.sendMessage(channelId, content = content, nonce = nonce, attachments = attachments)
@@ -427,6 +452,8 @@ class DefaultChannelComponent(
                     .flatMap { it.data.value.messages }
                     .firstOrNull { it.data.value.message.nonce == nonce }
                     ?.onFailed()
+                data.value =
+                    data.value.copy(snackbarMessage = SnackbarContainer("Failed to send message: ${e.message}"))
                 logger.error { "Failed to send message: ${e.message}" }
                 e.printStackTrace()
             }

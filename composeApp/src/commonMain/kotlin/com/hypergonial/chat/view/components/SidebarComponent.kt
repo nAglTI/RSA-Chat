@@ -20,6 +20,7 @@ import com.hypergonial.chat.model.GuildCreateEvent
 import com.hypergonial.chat.model.GuildRemoveEvent
 import com.hypergonial.chat.model.GuildUpdateEvent
 import com.hypergonial.chat.model.ReadyEvent
+import com.hypergonial.chat.model.UserUpdateEvent
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Snowflake
@@ -162,6 +163,7 @@ class DefaultSideBarComponent(
             subscribeWithLifeCycle(ctx.lifecycle, ::onChannelFocus)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildFocus)
             subscribeWithLifeCycle(ctx.lifecycle, ::onAssetFocus)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onUserUpdate)
         }
     }
 
@@ -293,6 +295,12 @@ class DefaultSideBarComponent(
 
     private fun onAssetFocus(event: FocusAssetEvent) {
         data.value = data.value.copy(assetViewerUrl = event.url, assetViewerActive = true)
+    }
+
+    private fun onUserUpdate(event: UserUpdateEvent) {
+        if (event.user.id != data.value.currentUser?.id) return
+
+        data.value = data.value.copy(currentUser = event.user)
     }
 
     override fun onGuildCreateClicked() {

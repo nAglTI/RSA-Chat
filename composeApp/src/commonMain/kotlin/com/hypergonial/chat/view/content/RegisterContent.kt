@@ -51,7 +51,7 @@ fun RegisterTopBar(component: RegisterComponent) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(
-            onClick = { component.onBackClicked() },
+            onClick = component::onBackClicked,
             modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp),
         ) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

@@ -45,6 +45,7 @@ fun JoinGuildContent(component: JoinGuildComponent) {
                 OutlinedTextField(
                     value = state.inviteCode,
                     onValueChange = component::onInviteCodeChanged,
+                    singleLine = true,
                     placeholder = { Text("Enter invite code...") },
                     label = { Text("Invite Code") },
                 )

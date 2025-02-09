@@ -240,6 +240,7 @@ class ChatClient(scope: CoroutineScope) : Client {
         eventManager.subscribe(::onMessageRemove)
         eventManager.subscribe(::onMemberCreate)
         eventManager.subscribe(::onMemberRemove)
+        eventManager.subscribe(::onUserUpdate)
     }
 
     override fun replaceScope(scope: CoroutineScope) {
@@ -499,10 +500,18 @@ class ChatClient(scope: CoroutineScope) : Client {
 
     private fun onMessageCreate(event: MessageCreateEvent) {
         cache.addMessage(event.message)
+
+        if (event.message.author is Member) {
+            cache.putMember(event.message.author)
+        }
     }
 
     private fun onMessageUpdate(event: MessageUpdateEvent) {
         cache.updateMessage(event.message)
+
+        if (event.message.author is Member) {
+            cache.putMember(event.message.author)
+        }
     }
 
     private fun onMessageRemove(event: MessageRemoveEvent) {
@@ -516,6 +525,14 @@ class ChatClient(scope: CoroutineScope) : Client {
 
     private fun onMemberRemove(event: MemberRemoveEvent) {
         cache.dropMember(event.guildId, event.id)
+    }
+
+    private fun onUserUpdate(event: UserUpdateEvent) {
+        cache.putUser(event.user)
+
+        if (event.user.id == cache.ownUser?.id) {
+            cache.putOwnUser(event.user)
+        }
     }
 
     override suspend fun waitUntilReady() {
@@ -540,7 +557,7 @@ class ChatClient(scope: CoroutineScope) : Client {
         cache.putOwnUser(user)
     }
 
-    override suspend fun updateUser(username: String?, displayName: String?, avatar: PlatformFile?): User {
+    override suspend fun updateSelf(username: String?, displayName: String?, avatar: PlatformFile?): User {
         val user =
             http
                 .patch("users/@me") {

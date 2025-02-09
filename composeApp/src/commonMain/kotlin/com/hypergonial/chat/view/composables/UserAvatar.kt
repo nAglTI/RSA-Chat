@@ -3,6 +3,7 @@ package com.hypergonial.chat.view.composables
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
@@ -27,9 +28,9 @@ fun UserAvatar(avatarUrl: String? = null, displayName: String, size: Dp = 40.dp)
     val isDarkTheme = LocalUsingDarkTheme.current
     val imageModifier =
         Modifier.padding(vertical = 6.dp, horizontal = 14.dp)
+            .requiredSize(size)
             .clip(CircleShape)
-            .height(size)
-            .width(size)
+
 
     if (avatarUrl == null) {
         Image(

@@ -149,7 +149,6 @@ class DefaultMessageComponent(
     }
 
     override fun onFailed() {
-        println("Failed")
         data.value = data.value.copy(isFailed = true, hasUploadingAttachments = false)
     }
 

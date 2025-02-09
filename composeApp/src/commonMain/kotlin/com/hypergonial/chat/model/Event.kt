@@ -25,6 +25,9 @@ class MessageCreateEvent(message: Message) : MessageEvent(message)
 /** Event dispatched when a message is edited */
 class MessageUpdateEvent(message: Message) : MessageEvent(message)
 
+/** Event dispatched when a user is updated */
+class UserUpdateEvent(val user: User) : Event()
+
 /** Event dispatched when a message is deleted */
 class MessageRemoveEvent(val id: Snowflake, val channelId: Snowflake, val guildId: Snowflake) : Event()
 

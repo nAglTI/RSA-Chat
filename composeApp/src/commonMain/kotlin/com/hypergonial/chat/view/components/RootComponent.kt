@@ -247,7 +247,9 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
                 )
 
             is Config.UserSettings ->
-                RootComponent.Child.UserSettingsChild(DefaultUserSettingsComponent(ctx = childCtx, client = client))
+                RootComponent.Child.UserSettingsChild(
+                    DefaultUserSettingsComponent(ctx = childCtx, client = client, onBack = { nav.pop() })
+                )
         }
 
     /** Called internally when the login process is complete */

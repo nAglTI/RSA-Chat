@@ -45,6 +45,7 @@ fun CreateGuildContent(component: CreateGuildComponent) {
                 OutlinedTextField(
                     value = state.guildName,
                     onValueChange = component::onGuildNameChanged,
+                    singleLine = true,
                     placeholder = { Text("Enter the name of your guild...") },
                     label = { Text("Guild Name") },
                 )

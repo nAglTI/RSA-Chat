@@ -45,6 +45,7 @@ fun CreateChannelContent(component: CreateChannelComponent) {
                 OutlinedTextField(
                     value = state.channelName,
                     onValueChange = component::onChannelNameChanged,
+                    singleLine = true,
                     placeholder = { Text("Enter the name of the channel...") },
                     label = { Text("Channel Name") },
                 )

@@ -87,7 +87,7 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * If not specified, it will not be changed
      * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
      */
-    suspend fun updateUser(username: String? = null, displayName: String? = null, avatar: PlatformFile? = null): User
+    suspend fun updateSelf(username: String? = null, displayName: String? = null, avatar: PlatformFile? = null): User
 
     /**
      * Connects to the gateway

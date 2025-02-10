@@ -138,6 +138,7 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
         channelId: Snowflake,
         before: Snowflake? = null,
         after: Snowflake? = null,
+        around: Snowflake? = null,
         limit: UInt = 100u,
     ): List<Message>
 

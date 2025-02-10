@@ -4,14 +4,17 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.text.input.TextFieldValue
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.SnackbarContainer
+import com.hypergonial.chat.appendMessages
 import com.hypergonial.chat.genNonce
 import com.hypergonial.chat.model.Client
+import com.hypergonial.chat.model.LifecycleResumedEvent
 import com.hypergonial.chat.model.MessageCreateEvent
 import com.hypergonial.chat.model.MessageRemoveEvent
 import com.hypergonial.chat.model.MessageUpdateEvent
@@ -21,8 +24,11 @@ import com.hypergonial.chat.model.getMimeType
 import com.hypergonial.chat.model.payloads.Attachment
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
-import com.hypergonial.chat.removeRange
+import com.hypergonial.chat.prependMessages
+import com.hypergonial.chat.removeFirstMessages
+import com.hypergonial.chat.removeLastMessages
 import com.hypergonial.chat.sanitized
+import com.hypergonial.chat.totalMessageCount
 import com.hypergonial.chat.view.components.subcomponents.DefaultMessageComponent
 import com.hypergonial.chat.view.components.subcomponents.DefaultMessageEntryComponent
 import com.hypergonial.chat.view.components.subcomponents.EndIndicator
@@ -36,10 +42,13 @@ import io.github.vinceglb.filekit.core.FileKit
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
-import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
+import kotlin.math.max
+import kotlin.time.Duration.Companion.minutes
 
+// Note: Do not raise this above 100 as the API will never return more than 100 messages at a time
+// but the client will incorrectly assume that it got less messages than it requested
 private const val MESSAGE_BATCH_SIZE = 100u
 
 interface ChannelComponent : MainContentComponent, Displayable {
@@ -105,7 +114,8 @@ interface ChannelComponent : MainContentComponent, Displayable {
         /** The cumulative file size of all pending attachments */
         val cumulativeFileSize: Long = 0,
         /** The list of message entries to display */
-        val messageEntries: SnapshotStateList<MessageEntryComponent>,
+        var messageEntries: SnapshotStateList<MessageEntryComponent>,
+        /** The ID of the last message sent by the user */
         val lastSentMessageId: Snowflake? = null,
         /** The state of the lazy list that displays the messages */
         val listState: LazyListState = LazyListState(),
@@ -140,7 +150,7 @@ class DefaultChannelComponent(
             ChannelComponent.ChannelState(
                 messageEntries =
                     mutableStateListOf(
-                        messageEntryComponent(mutableStateListOf(), LoadMoreMessagesIndicator(isAtTop = true))
+                        messageEntryComponent(mutableStateListOf(), topEndIndicator = LoadMoreMessagesIndicator())
                     )
             )
         )
@@ -149,9 +159,16 @@ class DefaultChannelComponent(
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessageCreate)
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessageUpdate)
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessageDelete)
+        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onResume)
     }
 
     override fun onLogoutClicked() = onLogout()
+
+    /** The number of messages currently visible in the UI. This is used to determine when to page out messages. */
+    private fun visibleMessageCount(): UInt = data.value.listState.layoutInfo.visibleItemsInfo.size.toUInt()
+
+    /** The maximum number of messages to keep in memory. */
+    private fun maximumMessageCount(): UInt = max(visibleMessageCount(), MESSAGE_BATCH_SIZE * 3u)
 
     /**
      * Creates a new message component from a message.
@@ -190,9 +207,17 @@ class DefaultChannelComponent(
      */
     private fun messageEntryComponent(
         messages: SnapshotStateList<MessageComponent>,
-        endIndicator: EndIndicator? = null,
+        topEndIndicator: EndIndicator? = null,
+        bottomEndIndicator: LoadMoreMessagesIndicator? = null,
     ): MessageEntryComponent {
-        return DefaultMessageEntryComponent(ctx, client, messages, endIndicator)
+        return DefaultMessageEntryComponent(
+            ctx,
+            client,
+            messages,
+            topEndIndicator,
+            bottomEndIndicator,
+            onEndReached = ::onMoreMessagesRequested,
+        )
     }
 
     /**
@@ -202,38 +227,43 @@ class DefaultChannelComponent(
      */
     private fun requestMessagesScrollingUp(lastMessage: Snowflake? = null) {
         scope.launch {
+            logger.info { "Requesting more messages before $lastMessage..." }
+
             val messages = client.fetchMessages(channelId = channelId, before = lastMessage, limit = MESSAGE_BATCH_SIZE)
-
             val currentEntries = data.value.messageEntries
-
             val features = createMessageFeatures(messages)
-
             val isEnd = messages.size.toUInt() < MESSAGE_BATCH_SIZE
 
             // Remove the EOF/LoadMore indicator
-            currentEntries.last().setEndIndicator(null)
+            currentEntries.last().setTopEndIndicator(null)
+
             if (lastMessage == null) {
                 // Remove the placeholder feature that is added when opening a channel
                 currentEntries.removeLast()
             }
 
-            // Prepend messages to the list
-            currentEntries.addAll(features)
+            // Append messages to the list
+            currentEntries.appendMessages(features.reversed())
 
             // Edge-case when the channel is empty
             if (currentEntries.isEmpty()) {
-                currentEntries.add(messageEntryComponent(mutableStateListOf(), EndOfMessages))
+                currentEntries.add(messageEntryComponent(mutableStateListOf(), topEndIndicator = EndOfMessages))
                 return@launch
             }
 
             currentEntries
                 .last()
-                .setEndIndicator(if (isEnd) EndOfMessages else LoadMoreMessagesIndicator(isAtTop = true))
+                .setTopEndIndicator(if (isEnd) EndOfMessages else LoadMoreMessagesIndicator())
 
             // Drop elements from the bottom beyond 300 messages
-            if (currentEntries.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
-                currentEntries.removeRange(0 until currentEntries.size - MESSAGE_BATCH_SIZE.toInt() * 3)
-                currentEntries.first().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = false))
+            if (currentEntries.totalMessageCount().toUInt() > maximumMessageCount() * 3u) {
+                logger.info {
+                    "Dropping ${currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3} messages from the bottom"
+                }
+                currentEntries.removeFirstMessages(
+                    currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3
+                )
+                currentEntries.first().setBottomEndIndicator(LoadMoreMessagesIndicator())
                 data.value = data.value.copy(isCruising = true)
             }
         }
@@ -242,41 +272,92 @@ class DefaultChannelComponent(
     /**
      * Requests more messages from the server.
      *
-     * @param lastMessage The ID of the last message to fetch messages after.
+     * @param firstMessage The ID of the last message to fetch messages after.
      */
-    private fun requestMessagesScrollingDown(lastMessage: Snowflake? = null) {
+    private fun requestMessagesScrollingDown(firstMessage: Snowflake? = null) {
         scope.launch {
-            val messages = client.fetchMessages(channelId = channelId, after = lastMessage, limit = MESSAGE_BATCH_SIZE)
+            logger.info { "Requesting more messages after $firstMessage..." }
+
+            val messages = client.fetchMessages(channelId = channelId, after = firstMessage, limit = MESSAGE_BATCH_SIZE)
 
             val currentEntries = data.value.messageEntries
-
-            // If we can't fetch more, then drop the loading indicator that triggered this request
-            if (messages.isEmpty()) {
-                currentEntries.first().setEndIndicator(null)
-                data.value = data.value.copy(isCruising = false)
-                return@launch
-            }
-
             val isEnd = messages.size.toUInt() < MESSAGE_BATCH_SIZE
-
             val features = createMessageFeatures(messages)
 
-            // Remove the EOF/LoadMore indicator
-            currentEntries.first().setEndIndicator(null)
+            // Remove the EOF/LoadMore indicator that triggered this request
+            currentEntries.firstOrNull()?.setBottomEndIndicator(null)
 
-            // Append messages to the list
-            currentEntries.addAll(0, features)
-            // If not at end yet, add a loading indicator
-            if (!isEnd) currentEntries.first().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = false))
+            currentEntries.prependMessages(features.reversed())
 
-            // Drop elements beyond from the top 300 messages to prevent memory leaks
-            if (currentEntries.size.toUInt() > MESSAGE_BATCH_SIZE * 3u) {
-                currentEntries.removeRange(currentEntries.size - MESSAGE_BATCH_SIZE.toInt() until currentEntries.size)
-                // Add a new loading indicator at the top to allow scrolling up
-                currentEntries.last().setEndIndicator(LoadMoreMessagesIndicator(isAtTop = true))
+            if (isEnd) {
+                // Leave cruising mode if we reached the last chunk of messages
+                data.value = data.value.copy(isCruising = false)
+            } else {
+                // If not at end yet, add a loading indicator at the bottom
+                currentEntries.first().setBottomEndIndicator(LoadMoreMessagesIndicator())
             }
 
-            data.value = data.value.copy(isCruising = data.value.isCruising && !isEnd)
+            data.value.listState.layoutInfo.visibleItemsInfo.size
+
+            // Drop elements beyond from the top 300 messages to prevent memory leaks
+            if (currentEntries.totalMessageCount().toUInt() > maximumMessageCount() * 3u) {
+                logger.info {
+                    "Dropping ${currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3} messages from the top"
+                }
+                currentEntries.removeLastMessages(
+                    currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3
+                )
+                // Add a new loading indicator at the top to allow scrolling up
+                currentEntries.last().setTopEndIndicator(LoadMoreMessagesIndicator())
+            }
+        }
+    }
+
+    /**
+     * Refresh the message list completely by fetching the latest messages from the server
+     * around the message centered on screen. Discards all messages currently in the list
+     * and replaces them with the new ones. If all goes well, the user should not notice any changes.
+     */
+    private fun refreshMessageList() {
+        scope.launch {
+            logger.info { "Refreshing message list..." }
+            // Determine message at the center of the screen
+            val visibleItems = data.value.listState.layoutInfo.visibleItemsInfo
+            val centerIndex = visibleItems.getOrNull(visibleItems.size / 2)?.index
+            val entry = data.value.messageEntries.getOrNull(centerIndex ?: 0)
+            val entryCenterIndex = entry?.data?.value?.messages?.size?.div(2) ?: 0
+            val middle = entry?.data?.value?.messages?.getOrNull(entryCenterIndex)?.data?.value?.message
+
+            // Fetch messages around it
+            val messages =
+                client.fetchMessages(
+                    channelId = channelId,
+                    around = middle?.id,
+                    limit = MESSAGE_BATCH_SIZE,
+                )
+
+            // Note: middle message may not exist anymore (if it was deleted), do not use !=
+            val topMessages = messages.takeWhile { middle?.id?.let { it1 -> it.id < it1 } == true }
+            val bottomMessages = messages.dropWhile { middle?.id?.let { it1 -> it.id < it1 } == true }.drop(1)
+
+            val entries = createMessageFeatures(messages).reversed()
+
+            // Figure out if either end is a possible end of the channel
+            val isTopEnd = topMessages.size.toUInt() < (MESSAGE_BATCH_SIZE / 2u) - 1u
+            val isBottomEnd = bottomMessages.size.toUInt() < (MESSAGE_BATCH_SIZE / 2u) - 1u
+
+            if (!isTopEnd) {
+                entries.last().setTopEndIndicator(LoadMoreMessagesIndicator())
+            }
+            else {
+                entries.last().setTopEndIndicator(EndOfMessages)
+            }
+
+            if (!isBottomEnd) {
+                entries.first().setBottomEndIndicator(LoadMoreMessagesIndicator())
+            }
+
+            data.value = data.value.copy(messageEntries = entries.toMutableStateList(), isCruising = !isBottomEnd)
         }
     }
 
@@ -374,7 +455,11 @@ class DefaultChannelComponent(
         }
 
         // Group recent messages by author
-        if (lastMessage?.author?.id == newMessage.author.id && Clock.System.now() - lastMessage.createdAt < 5.minutes) {
+        if (
+            lastMessage?.author?.id == newMessage.author.id &&
+                Clock.System.now() - lastMessage.createdAt < 5.minutes &&
+                currentEntries.totalMessageCount() >= 100
+        ) {
             currentEntries.first().pushMessage(messageComponent(newMessage, isPending, hasUploadingAttachments))
         } else {
             currentEntries.add(
@@ -419,6 +504,10 @@ class DefaultChannelComponent(
 
         val entry = data.value.messageEntries.firstOrNull { it.containsMessage(event.id) } ?: return
         entry.removeMessage(event.id)
+    }
+
+    private fun onResume(event: LifecycleResumedEvent) {
+        refreshMessageList()
     }
 
     private fun createPendingMessage(content: String, nonce: String, attachments: List<PlatformFile>) {
@@ -504,6 +593,6 @@ class DefaultChannelComponent(
             }
         }
 
-        return entries.reversed()
+        return entries
     }
 }

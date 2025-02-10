@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.PopupPositionProvider
 import com.hypergonial.chat.model.Mime
+import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.ktor.util.encodeBase64
@@ -43,6 +44,7 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.minutes
 
 /** A container that when used as state, always causes a recomposition. */
 data class SnackbarContainer<T>(val value: T, private val randomness: Int = Random.nextInt())
@@ -153,6 +155,132 @@ fun genNonce(sessionId: String): String {
     return sessionId + "." + (0..16).map { chars.random() }.joinToString("")
 }
 
+/** Returns the total number of messages in a list of message entry components. */
+fun List<MessageEntryComponent>.totalMessageCount(): Int = this.sumOf { it.data.value.messages.size }
+
+/**
+ * Removes the first n messages from the list of message entry components.
+ *
+ * @param n The number of messages to remove
+ */
+fun MutableList<MessageEntryComponent>.removeFirstMessages(n: Int) {
+    var count = n
+    while (count > 0) {
+        val first = this.firstOrNull()
+
+        if (first == null) {
+            break
+        }
+
+        val messages = first.data.value.messages
+        val toRemove = minOf(count, messages.size)
+        messages.removeRange(0 until toRemove)
+        if (messages.isEmpty()) {
+            this.removeFirst()
+        }
+        count -= toRemove
+    }
+}
+
+/**
+ * Removes the last n messages from the list of message entry components.
+ *
+ * @param n The number of messages to remove
+ */
+fun MutableList<MessageEntryComponent>.removeLastMessages(n: Int) {
+    var count = n
+    while (count > 0) {
+        val last = this.lastOrNull()
+
+        if (last == null) {
+            break
+        }
+
+        val messages = last.data.value.messages
+        val toRemove = minOf(count, messages.size)
+        messages.removeRange(messages.size - toRemove until messages.size)
+        if (messages.isEmpty()) {
+            this.removeLast()
+        }
+        count -= toRemove
+    }
+}
+
+/**
+ * Append another list of entries to this list. If the criteria for merging are met, the entries on the boundary will be
+ * merged.
+ *
+ * @param messages The list of entries to append
+ */
+fun MutableList<MessageEntryComponent>.appendMessages(messages: List<MessageEntryComponent>) {
+    if (messages.isEmpty()) {
+        return
+    }
+
+    val last = this.lastOrNull()
+
+    if (last != null && last.author?.id == messages.firstOrNull()?.author?.id) {
+        val newCreation = messages.first().firstMessage()?.data?.value?.createdAt
+        val lastCreation = last.lastMessage()?.data?.value?.createdAt
+
+        if (newCreation == null || lastCreation == null || newCreation - lastCreation > 5.minutes) {
+            this.addAll(messages)
+            return
+        }
+
+        if (this.totalMessageCount() + messages.totalMessageCount() > 100) {
+            this.addAll(messages)
+            return
+        }
+
+        last.data.value.messages.addAll(0, messages.first().data.value.messages)
+
+        this.addAll(messages.drop(1))
+    } else {
+        this.addAll(messages)
+    }
+}
+
+/**
+ * Prepend another list of entries to this list. If the criteria for merging are met, the entries on the boundary will
+ * be merged.
+ *
+ * @param messages The list of entries to prepend
+ */
+fun MutableList<MessageEntryComponent>.prependMessages(messages: List<MessageEntryComponent>) {
+    if (messages.isEmpty()) {
+        return
+    }
+
+    val first = this.firstOrNull()
+
+    if (first != null && first.author?.id == messages.lastOrNull()?.author?.id) {
+        val newCreation = messages.last().lastMessage()?.data?.value?.createdAt
+        val firstCreation = first.firstMessage()?.data?.value?.createdAt
+
+        if (newCreation == null || firstCreation == null || firstCreation - newCreation > 5.minutes) {
+            this.addAll(0, messages)
+            return
+        }
+
+        if (this.totalMessageCount() + messages.totalMessageCount() > 100) {
+            this.addAll(0, messages)
+            return
+        }
+
+        first.data.value.messages.addAll(messages.last().data.value.messages)
+        this.addAll(0, messages.dropLast(1))
+    } else {
+        this.addAll(0, messages)
+    }
+}
+
+fun <T> List<T>.forEachReversed(action: (T) -> Unit) {
+    for (i in size - 1 downTo 0) {
+        action(this[i])
+    }
+}
+
 /** Sanitize the text in the chat bar. */
 fun TextFieldValue.sanitized(): TextFieldValue {
     // TODO: If editor perf becomes a problem, consider doing the tab count and replacement in one
@@ -237,7 +365,6 @@ suspend fun DrawerState.toggle() = if (isClosed) open() else close()
  */
 fun String.ensureSlashAtEnd(): String = if (!this.endsWith("/")) "$this/" else this
 
-
 /**
  * Ensures that the string does not have a slash at the end. If the String had no slash at the end, the original string
  * is returned.
@@ -295,7 +422,8 @@ fun PlatformFile.getMime(): Mime {
     return Mime.fromUrl(this.name) ?: Mime.default()
 }
 
-/** Convert the file to a base64 encoded data URL.
+/**
+ * Convert the file to a base64 encoded data URL.
  *
  * https://developer.mozilla.org/en-US/docs/Web/URI/Schemes/data
  */

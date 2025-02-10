@@ -71,7 +71,6 @@ fun ChannelContent(component: ChannelComponent) {
                     Modifier.fillMaxWidth().weight(1f),
                     listState = state.listState,
                     isCruising = state.isCruising,
-                    onMessagesLimitReach = component::onMoreMessagesRequested,
                 )
 
                 Column(

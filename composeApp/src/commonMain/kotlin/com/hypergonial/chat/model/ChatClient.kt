@@ -253,6 +253,7 @@ class ChatClient(scope: CoroutineScope) : Client {
     override fun pause() {
         _isSuspended = true
         closeGateway()
+        eventManager.dispatch(LifecyclePausedEvent())
     }
 
     override suspend fun resume() {
@@ -270,6 +271,7 @@ class ChatClient(scope: CoroutineScope) : Client {
         if (isLoggedIn()) {
             connect()
         }
+        eventManager.dispatch(LifecycleResumedEvent())
     }
 
     override fun isLoggedIn(): Boolean {
@@ -613,12 +615,18 @@ class ChatClient(scope: CoroutineScope) : Client {
         channelId: Snowflake,
         before: Snowflake?,
         after: Snowflake?,
+        around: Snowflake?,
         limit: UInt,
     ): List<Message> {
+        require(
+            listOfNotNull(before, after, around).size <= 1
+        ) { "Only one of before, after, or around can be set" }
+
         return http
             .get("channels/$channelId/messages") {
                 parameter("before", before?.toString())
                 parameter("after", after?.toString())
+                parameter("around", around?.toString())
                 parameter("limit", limit.toString())
             }
             .body<List<Message>>()

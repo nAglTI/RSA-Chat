@@ -5,6 +5,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -36,13 +37,18 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
@@ -55,7 +61,6 @@ import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.LocalUsingDarkTheme
 import com.hypergonial.chat.model.payloads.Attachment
-import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.toHumanReadable
 import com.hypergonial.chat.view.ChatImageTransformer
 import com.hypergonial.chat.view.components.subcomponents.EndOfMessages
@@ -88,7 +93,6 @@ fun MessageList(
     modifier: Modifier = Modifier,
     isCruising: Boolean,
     listState: LazyListState = rememberLazyListState(),
-    onMessagesLimitReach: (Snowflake?, Boolean) -> Unit,
 ) {
     val isDarkTheme = LocalUsingDarkTheme.current
     val highlightsBuilder =
@@ -96,9 +100,7 @@ fun MessageList(
 
     CompositionLocalProvider(LocalHighlights provides highlightsBuilder) {
         LazyColumn(modifier, state = listState, reverseLayout = true) {
-            itemsIndexed(features, key = { _, item -> item.getKey() }) { _, item ->
-                SelectionContainer { Entry(item, onEndReached = onMessagesLimitReach) }
-            }
+            itemsIndexed(features, key = { _, item -> item.getKey() }) { _, item -> SelectionContainer { Entry(item) } }
         }
     }
 }
@@ -113,24 +115,24 @@ fun MessageList(
  *   top of the list or not.
  */
 @Composable
-fun Entry(component: MessageEntryComponent, onEndReached: (Snowflake?, Boolean) -> Unit) {
+fun Entry(component: MessageEntryComponent) {
     val state by component.data.subscribeAsState()
     LocalUsingDarkTheme.current
 
-    val endIndicator = state.endIndicator
+    val topEndIndicator = state.topEndIndicator
+    val bottomEndIndicator = state.bottomEndIndicator
     val firstItem = state.messages.firstOrNull()
-    val lastItem = state.messages.lastOrNull()
 
     Column {
-        if (state.endIndicator is EndOfMessages) {
+        if (state.topEndIndicator is EndOfMessages) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                 Text("End of messages", color = Color.Red)
             }
         }
 
-        if (endIndicator is LoadMoreMessagesIndicator && endIndicator.isAtTop) {
+        if (topEndIndicator is LoadMoreMessagesIndicator) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                LoadingIndicator(endIndicator, onSeen = { onEndReached(firstItem?.data?.value?.message?.id, true) })
+                LoadingIndicator(topEndIndicator, onSeen = { component.onEndReached(isAtTop = true) })
             }
         }
 
@@ -152,9 +154,9 @@ fun Entry(component: MessageEntryComponent, onEndReached: (Snowflake?, Boolean) 
             }
         }
 
-        if (endIndicator is LoadMoreMessagesIndicator && !endIndicator.isAtTop) {
+        if (bottomEndIndicator != null) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                LoadingIndicator(endIndicator, onSeen = { onEndReached(lastItem?.data?.value?.message?.id, false) })
+                LoadingIndicator(bottomEndIndicator, onSeen = { component.onEndReached(isAtTop = false) })
             }
         }
     }

@@ -143,8 +143,8 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.slf4j.api)
-            implementation(libs.ktor.client.okhttp)
             implementation(libs.slf4j.simple)
+            implementation(libs.ktor.client.okhttp)
         }
         wasmJsMain.dependencies { implementation(libs.ktor.client.js) }
     }

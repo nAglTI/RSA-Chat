@@ -75,22 +75,20 @@ interface MessageEntryComponent {
      *
      * @return The key of the message entry
      */
-    fun getKey(): String {
-        return data.value.messages.firstOrNull()?.getKey() ?: "emptykey"
-    }
+    fun getKey(): String
 
-    /**
-     * Sets the end indicator for the message entry.
-     *
-     * @param endIndicator The end indicator to set
-     */
-    fun setEndIndicator(endIndicator: EndIndicator?)
+    fun onEndReached(isAtTop: Boolean)
+
+    fun setTopEndIndicator(endIndicator: EndIndicator?)
+
+    fun setBottomEndIndicator(endIndicator: LoadMoreMessagesIndicator?)
 
     data class MessageEntryState(
         /** The messages in this entry */
         val messages: SnapshotStateList<MessageComponent>,
         /** The end indicator for this entry, if any */
-        val endIndicator: EndIndicator? = null,
+        val topEndIndicator: EndIndicator? = null,
+        val bottomEndIndicator: LoadMoreMessagesIndicator? = null,
     )
 }
 
@@ -106,17 +104,34 @@ class DefaultMessageEntryComponent(
     val ctx: ComponentContext,
     val client: Client,
     messages: List<MessageComponent>,
-    endIndicator: EndIndicator? = null,
+    topEndIndicator: EndIndicator? = null,
+    bottomEndIndicator: LoadMoreMessagesIndicator? = null,
+    private val onEndReached: (Snowflake?, Boolean) -> Unit,
 ) : MessageEntryComponent {
     override val data =
-        MutableValue(MessageEntryComponent.MessageEntryState(messages.toMutableStateList(), endIndicator))
+        MutableValue(
+            MessageEntryComponent.MessageEntryState(messages.toMutableStateList(), topEndIndicator, bottomEndIndicator)
+        )
+    // Ensure the entry key remains the same even if the messages change
+    private val key = (messages.firstOrNull()?.data?.value?.message?.id ?: hashCode()).toString()
+
+    override fun getKey(): String = key
 
     override fun getMessage(messageId: Snowflake): MessageComponent? {
         return data.value.messages.find { it.data.value.message.id == messageId }
     }
 
-    override fun setEndIndicator(endIndicator: EndIndicator?) {
-        data.value = data.value.copy(endIndicator = endIndicator)
+    override fun setTopEndIndicator(endIndicator: EndIndicator?) {
+        data.value = data.value.copy(topEndIndicator = endIndicator)
+    }
+
+    override fun setBottomEndIndicator(endIndicator: LoadMoreMessagesIndicator?) {
+        data.value = data.value.copy(bottomEndIndicator = endIndicator)
+    }
+
+    override fun onEndReached(isAtTop: Boolean) {
+        val borderMsg = if (isAtTop) firstMessage() else lastMessage()
+        onEndReached(borderMsg?.data?.value?.message?.id, isAtTop)
     }
 }
 
@@ -128,9 +143,10 @@ sealed interface EndIndicator
  * ran out of messages and need to fetch more.
  *
  * @param wasSeen Whether the user has seen this loading indicator.
- * @param isAtTop Whether the loading indicator is at the top of the list.
  */
-data class LoadMoreMessagesIndicator(var wasSeen: Boolean = false, val isAtTop: Boolean = true) : EndIndicator
+class LoadMoreMessagesIndicator : EndIndicator {
+    var wasSeen: Boolean = false
+}
 
 /**
  * An indicator that indicates the end of the messages list. This should only be inserted in the list if there are no

@@ -90,3 +90,9 @@ class FocusGuildEvent(val guild: Guild) : InternalEvent()
 
 /** Internal event dispatched when the application should bring an asset into focus */
 class FocusAssetEvent(val url: String) : InternalEvent()
+
+/** Internal event dispatched when the client was resumed */
+class LifecycleResumedEvent : InternalEvent()
+
+/** Internal event dispatched when the client was paused */
+class LifecyclePausedEvent : InternalEvent()

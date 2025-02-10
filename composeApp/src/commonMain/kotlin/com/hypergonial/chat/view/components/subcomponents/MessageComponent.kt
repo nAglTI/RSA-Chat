@@ -126,7 +126,9 @@ class DefaultMessageComponent(
     private val wasCreatedAsPending = isPending
 
     init {
-        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, this::onUploadStatusChange)
+        if (hasUploadingAttachments) {
+            client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, this::onUploadStatusChange)
+        }
     }
 
     override fun getKey(): String {
@@ -137,6 +139,9 @@ class DefaultMessageComponent(
     }
 
     override fun onPendingEnd(message: Message) {
+        if (data.value.hasUploadingAttachments) {
+            client.eventManager.unsubscribe(this::onUploadStatusChange)
+        }
         data.value =
             data.value.copy(
                 isPending = false,
@@ -145,7 +150,6 @@ class DefaultMessageComponent(
                 message = message,
                 createdAt = message.createdAt,
             )
-        client.eventManager.unsubscribe(this::onUploadStatusChange)
     }
 
     override fun onFailed() {

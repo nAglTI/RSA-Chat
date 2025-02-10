@@ -35,6 +35,8 @@ import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.ktor.util.encodeBase64
+import kotlin.random.Random
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -43,8 +45,6 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlin.random.Random
-import kotlin.time.Duration.Companion.minutes
 
 /** A container that when used as state, always causes a recomposition. */
 data class SnackbarContainer<T>(val value: T, private val randomness: Int = Random.nextInt())
@@ -155,7 +155,11 @@ fun genNonce(sessionId: String): String {
     return sessionId + "." + (0..16).map { chars.random() }.joinToString("")
 }
 
-/** Returns the total number of messages in a list of message entry components. */
+/**
+ * Returns the total number of messages in a list of message entry components.
+ *
+ * @return The total number of messages contained in the entries
+ */
 fun List<MessageEntryComponent>.totalMessageCount(): Int = this.sumOf { it.data.value.messages.size }
 
 /**
@@ -166,11 +170,7 @@ fun List<MessageEntryComponent>.totalMessageCount(): Int = this.sumOf { it.data.
 fun MutableList<MessageEntryComponent>.removeFirstMessages(n: Int) {
     var count = n
     while (count > 0) {
-        val first = this.firstOrNull()
-
-        if (first == null) {
-            break
-        }
+        val first = this.firstOrNull() ?: break
 
         val messages = first.data.value.messages
         val toRemove = minOf(count, messages.size)
@@ -190,11 +190,7 @@ fun MutableList<MessageEntryComponent>.removeFirstMessages(n: Int) {
 fun MutableList<MessageEntryComponent>.removeLastMessages(n: Int) {
     var count = n
     while (count > 0) {
-        val last = this.lastOrNull()
-
-        if (last == null) {
-            break
-        }
+        val last = this.lastOrNull() ?: break
 
         val messages = last.data.value.messages
         val toRemove = minOf(count, messages.size)
@@ -223,12 +219,12 @@ fun MutableList<MessageEntryComponent>.appendMessages(messages: List<MessageEntr
         val newCreation = messages.first().firstMessage()?.data?.value?.createdAt
         val lastCreation = last.lastMessage()?.data?.value?.createdAt
 
-        if (newCreation == null || lastCreation == null || newCreation - lastCreation > 5.minutes) {
-            this.addAll(messages)
-            return
-        }
-
-        if (this.totalMessageCount() + messages.totalMessageCount() > 100) {
+        if (
+            newCreation == null ||
+                lastCreation == null ||
+                newCreation - lastCreation > 5.minutes ||
+                last.data.value.messages.size + messages.first().data.value.messages.size > 100
+        ) {
             this.addAll(messages)
             return
         }
@@ -258,12 +254,12 @@ fun MutableList<MessageEntryComponent>.prependMessages(messages: List<MessageEnt
         val newCreation = messages.last().lastMessage()?.data?.value?.createdAt
         val firstCreation = first.firstMessage()?.data?.value?.createdAt
 
-        if (newCreation == null || firstCreation == null || firstCreation - newCreation > 5.minutes) {
-            this.addAll(0, messages)
-            return
-        }
-
-        if (this.totalMessageCount() + messages.totalMessageCount() > 100) {
+        if (
+            newCreation == null ||
+                firstCreation == null ||
+                firstCreation - newCreation > 5.minutes ||
+                first.data.value.messages.size + messages.last().data.value.messages.size > 100
+        ) {
             this.addAll(0, messages)
             return
         }

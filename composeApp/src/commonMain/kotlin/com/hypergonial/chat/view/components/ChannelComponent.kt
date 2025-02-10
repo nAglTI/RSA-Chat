@@ -156,10 +156,12 @@ class DefaultChannelComponent(
         )
 
     init {
-        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessageCreate)
-        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessageUpdate)
-        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessageDelete)
-        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onResume)
+        client.eventManager.apply {
+            subscribeWithLifeCycle(ctx.lifecycle, ::onMessageCreate)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onMessageUpdate)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onMessageDelete)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onResume)
+        }
     }
 
     override fun onLogoutClicked() = onLogout()
@@ -202,7 +204,8 @@ class DefaultChannelComponent(
      * Creates a new message entry component from a list of messages.
      *
      * @param messages The list of messages to create a component from.
-     * @param endIndicator The end indicator to display at the end of the list.
+     * @param topEndIndicator The indicator to display at the top of the list.
+     * @param bottomEndIndicator The indicator to display at the bottom of the list.
      * @return The message entry component.
      */
     private fun messageEntryComponent(
@@ -257,12 +260,10 @@ class DefaultChannelComponent(
 
             // Drop elements from the bottom beyond 300 messages
             if (currentEntries.totalMessageCount().toUInt() > maximumMessageCount() * 3u) {
-                logger.info {
-                    "Dropping ${currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3} messages from the bottom"
-                }
-                currentEntries.removeFirstMessages(
-                    currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3
-                )
+                val dropCount = currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3
+
+                logger.info { "Dropping $dropCount messages from the bottom" }
+                currentEntries.removeFirstMessages(dropCount)
                 currentEntries.first().setBottomEndIndicator(LoadMoreMessagesIndicator())
                 data.value = data.value.copy(isCruising = true)
             }
@@ -301,12 +302,10 @@ class DefaultChannelComponent(
 
             // Drop elements beyond from the top 300 messages to prevent memory leaks
             if (currentEntries.totalMessageCount().toUInt() > maximumMessageCount() * 3u) {
-                logger.info {
-                    "Dropping ${currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3} messages from the top"
-                }
-                currentEntries.removeLastMessages(
-                    currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3
-                )
+                val dropCount = currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3
+
+                logger.info { "Dropping $dropCount messages from the top" }
+                currentEntries.removeLastMessages(dropCount)
                 // Add a new loading indicator at the top to allow scrolling up
                 currentEntries.last().setTopEndIndicator(LoadMoreMessagesIndicator())
             }
@@ -504,13 +503,23 @@ class DefaultChannelComponent(
 
         val entry = data.value.messageEntries.firstOrNull { it.containsMessage(event.id) } ?: return
         entry.removeMessage(event.id)
+
+        if (entry.isEmpty()) {
+            data.value.messageEntries.remove(entry)
+        }
     }
 
     private fun onResume(event: LifecycleResumedEvent) {
         refreshMessageList()
     }
 
-    private fun createPendingMessage(content: String, nonce: String, attachments: List<PlatformFile>) {
+    /** Add a dummy message to display in the UI while the message is pending.
+     *
+     * @param content The content of the message.
+     * @param nonce The nonce of the message.
+     * @param attachments The attachments of the message. These may be used for placeholders to display upload progress.
+     * */
+    private fun addPendingMessage(content: String, nonce: String, attachments: List<PlatformFile>) {
         val msg =
             Message(
                 Snowflake(0u),
@@ -533,7 +542,7 @@ class DefaultChannelComponent(
             val nonce = genNonce(client.sessionId)
             data.value.pendingAttachments.clear()
             data.value = data.value.copy(chatBarValue = data.value.chatBarValue.copy(text = ""), cumulativeFileSize = 0)
-            createPendingMessage(content, nonce, attachments = attachments)
+            addPendingMessage(content, nonce, attachments = attachments)
             try {
                 client.sendMessage(channelId, content = content, nonce = nonce, attachments = attachments)
             } catch (e: ApiException) {

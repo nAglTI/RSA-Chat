@@ -71,6 +71,15 @@ interface MessageEntryComponent {
     }
 
     /**
+     * Checks if the entry is empty.
+     *
+     * @return True if the entry is empty, false otherwise
+     */
+    fun isEmpty(): Boolean {
+        return data.value.messages.isEmpty()
+    }
+
+    /**
      * Returns the key of the message entry for use in lazy lists.
      *
      * @return The key of the message entry
@@ -98,7 +107,8 @@ interface MessageEntryComponent {
  * @param ctx The component context
  * @param client The client to use for sending messages
  * @param messages The messages that this entry represents
- * @param endIndicator The end indicator for this entry, if any
+ * @param topEndIndicator The end indicator at the top of the entry, if any
+ * @param bottomEndIndicator The end indicator at the bottom of the entry, if any
  */
 class DefaultMessageEntryComponent(
     val ctx: ComponentContext,

@@ -1,5 +1,10 @@
 package com.hypergonial.chat
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.PointerMatcher
+import androidx.compose.foundation.onClick
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerButton
 import com.arkivanov.essenty.statekeeper.SerializableContainer
 import java.io.File
 import javax.swing.SwingUtilities
@@ -7,6 +12,14 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.json.encodeToStream
+
+@OptIn(ExperimentalFoundationApi::class)
+actual fun Modifier.altClickable(onClick: () -> Unit): Modifier {
+    return this.onClick(
+        matcher = PointerMatcher.mouse(PointerButton.Secondary),
+        onClick = onClick,
+    )
+}
 
 /**
  * A function that runs the given block on the UI thread

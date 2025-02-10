@@ -1,5 +1,9 @@
 package com.hypergonial.chat
 
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.forEachGesture
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -20,7 +24,12 @@ import androidx.compose.material.icons.outlined.ViewInAr
 import androidx.compose.material3.DrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -35,6 +44,9 @@ import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.ktor.util.encodeBase64
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.datetime.Clock
@@ -426,3 +438,12 @@ fun PlatformFile.getMime(): Mime {
 suspend fun PlatformFile.toDataUrl(): String {
     return "data:${this.getMime()};base64,${this.readBytes().encodeBase64()}"
 }
+
+
+/** A modifier that adds an alt-click listener to the component.
+ *
+ * On desktop platforms this registers a right-click, on mobile platforms this registers a long press.
+ *
+ * @param onClick The callback to call when the alt-click is detected
+ * */
+expect fun Modifier.altClickable(onClick: () -> Unit): Modifier

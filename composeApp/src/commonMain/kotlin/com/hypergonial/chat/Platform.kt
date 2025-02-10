@@ -37,6 +37,12 @@ interface Platform {
         return platformType != PlatformType.JVM
     }
 
+    /** Returns whether the platform is a desktop platform. */
+    fun isDesktop(): Boolean {
+        // TODO: Detect if web is running on mobile or not?
+        return platformType == PlatformType.JVM || platformType == PlatformType.WEB
+    }
+
     /**
      * Returns the appropriate back animation for the platform
      *

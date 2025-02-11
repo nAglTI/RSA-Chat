@@ -3,7 +3,6 @@ package com.hypergonial.chat.view.content
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -56,10 +55,7 @@ fun RegisterTopBar(component: RegisterComponent) {
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(
-            onClick = component::onBackClicked,
-            modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp),
-        ) {
+        IconButton(onClick = component::onBackClicked, modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp)) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
     }
@@ -92,17 +88,14 @@ fun RegisterContent(component: RegisterComponent) {
                     isError = state.usernameErrors.isNotEmpty(),
                     onValueChange = { component.onUsernameChange(it) },
                     label = { Text("Username*") },
-                    leadingIcon = {
-                        Icon(Icons.Filled.AccountCircle, contentDescription = "Username")
-                    },
+                    leadingIcon = { Icon(Icons.Filled.AccountCircle, contentDescription = "Username") },
                     keyboardOptions =
                         KeyboardOptions(
                             autoCorrectEnabled = false,
                             keyboardType = KeyboardType.Text,
                             imeAction = ImeAction.Next,
                         ),
-                    keyboardActions =
-                        KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 )
 
                 for (error in state.usernameErrors) {
@@ -114,8 +107,7 @@ fun RegisterContent(component: RegisterComponent) {
                     label = { Text("Password*") },
                     onValueChange = { component.onPasswordChange(password = it) },
                     isError = state.passwordErrors.isNotEmpty(),
-                    keyboardActions =
-                        KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                     keyboardOptions =
                         KeyboardOptions(
                             autoCorrectEnabled = false,
@@ -144,8 +136,8 @@ fun RegisterContent(component: RegisterComponent) {
                         KeyboardActions(
                             onGo = {
                                 if (state.canRegister) {
-                                    component.onRegisterAttempt()
                                     focusManager.clearFocus()
+                                    component.onRegisterAttempt()
                                 }
                             }
                         ),
@@ -153,9 +145,11 @@ fun RegisterContent(component: RegisterComponent) {
                 )
 
                 ChatButton(
-                    modifier =
-                        Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),
-                    onClick = { component.onRegisterAttempt() },
+                    modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),
+                    onClick = {
+                        focusManager.clearFocus()
+                        component.onRegisterAttempt()
+                    },
                     enabled = state.canRegister,
                 ) {
                     Text("Register")

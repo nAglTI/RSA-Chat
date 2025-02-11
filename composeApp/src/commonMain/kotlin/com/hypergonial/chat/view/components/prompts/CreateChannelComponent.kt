@@ -71,7 +71,7 @@ class DefaultCreateChannelComponent(
     override fun onChannelNameChanged(channelName: String) {
         data.value =
             data.value.copy(
-                channelName = channelName.replace(" ", "_").lowercase(),
+                channelName = channelName.replace(Regex("\\s+"), "_").lowercase().trim().take(32),
                 isCreateButtonEnabled = channelName.isNotBlank(),
             )
     }

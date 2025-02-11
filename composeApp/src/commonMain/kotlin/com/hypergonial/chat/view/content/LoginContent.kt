@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,7 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -46,8 +44,6 @@ import com.hypergonial.chat.view.composables.ActionText
 import com.hypergonial.chat.view.composables.ChatButton
 import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 import com.hypergonial.chat.view.composables.PasswordTextField
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -117,13 +113,22 @@ fun LoginContent(component: LoginComponent) {
                     label = { Text("Password") },
                     placeholder = { Text("Enter your password...") },
                     onValueChange = { component.onPasswordChange(password = it) },
-                    keyboardActions = KeyboardActions(onDone = { if (state.canLogin) component.onLoginAttempt() }),
+                    keyboardActions =
+                        KeyboardActions(
+                            onDone = {
+                                focusManager.clearFocus()
+                                if (state.canLogin) component.onLoginAttempt()
+                            }
+                        ),
                     modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
                 )
 
                 ChatButton(
                     modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),
-                    onClick = component::onLoginAttempt,
+                    onClick = {
+                        focusManager.clearFocus()
+                        if (state.canLogin) component.onLoginAttempt()
+                    },
                     enabled = state.canLogin && !state.isLoggingIn,
                 ) {
                     Text("Login")

@@ -156,9 +156,9 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
                                     !state.gatewayEndpointError &&
                                     !state.objectStoreEndpointError
                             ) {
+                                focusManager.clearFocus()
                                 component.onSaveClicked()
                                 scope.launch { snackbarState.showSnackbar("Settings saved") }
-                                focusManager.clearFocus()
                             }
                         }
                     ),
@@ -167,6 +167,7 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
             ChatButton(
                 modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),
                 onClick = {
+                    focusManager.clearFocus()
                     component.onSaveClicked()
                     scope.launch { snackbarState.showSnackbar("Settings saved") }
                 },

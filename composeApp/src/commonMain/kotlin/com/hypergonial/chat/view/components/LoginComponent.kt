@@ -8,6 +8,7 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.Secret
+import com.hypergonial.chat.model.exceptions.RatelimitedException
 import com.hypergonial.chat.model.exceptions.UnauthorizedException
 import com.hypergonial.chat.view.content.LoginContent
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -123,6 +124,13 @@ class DefaultLoginComponent(
                         isLoggingIn = false,
                         loginFailed = true,
                         snackbarMessage = SnackbarContainer("Invalid username or password"),
+                    )
+            } catch(_: RatelimitedException) {
+                data.value =
+                    data.value.copy(
+                        isLoggingIn = false,
+                        loginFailed = true,
+                        snackbarMessage = SnackbarContainer("Too many login attempts, please try again later"),
                     )
             } catch (e: Exception) {
                 logger.error { "Login failed: ${e.message}" }

@@ -11,6 +11,7 @@ fun getApiException(status: HttpStatusCode, message: String? = null, cause: Thro
         HttpStatusCode.BadRequest -> BadRequestException(message, cause)
         HttpStatusCode.Forbidden -> ForbiddenException(message, cause)
         HttpStatusCode.Unauthorized -> UnauthorizedException(message, cause)
+        HttpStatusCode.TooManyRequests -> RatelimitedException(message, cause)
         else -> {
             when (status.value) {
                 in 400..499 -> {

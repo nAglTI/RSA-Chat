@@ -49,7 +49,7 @@ class DefaultCreateGuildComponent(
             data.value = data.value.copy(isLoading = true)
             val guild =
                 try {
-                    client.createGuild(data.value.guildName)
+                    client.createGuild(data.value.guildName.trim())
                 } catch (e: ApiException) {
                     logger.error { "Failed to create guild: ${e.message}" }
                     data.value =
@@ -68,7 +68,10 @@ class DefaultCreateGuildComponent(
 
     override fun onGuildNameChanged(guildName: String) {
         data.value =
-            data.value.copy(guildName = guildName.trim().take(32), isCreateButtonEnabled = guildName.isNotBlank())
+            data.value.copy(
+                guildName = guildName.replace(Regex("\\s+"), " ").take(32),
+                isCreateButtonEnabled = guildName.isNotBlank(),
+            )
     }
 
     override fun onBackClicked() {

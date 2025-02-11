@@ -8,6 +8,7 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.exceptions.ApiException
+import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.view.components.Displayable
@@ -49,7 +50,7 @@ class DefaultJoinGuildComponent(
             data.value = data.value.copy(isLoading = true)
             val member = try {
                 client.joinGuild(guildId)
-            } catch (e: ApiException) {
+            } catch (e: ClientException) {
                 data.value =
                     data.value.copy(
                         isLoading = false,

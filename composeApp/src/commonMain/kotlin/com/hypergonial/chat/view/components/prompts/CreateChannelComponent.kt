@@ -8,6 +8,7 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.exceptions.ApiException
+import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.view.components.Displayable
@@ -52,7 +53,7 @@ class DefaultCreateChannelComponent(
             val channel = try {
                 client.createChannel(guildId, data.value.channelName)
             }
-            catch (e: ApiException) {
+            catch (e: ClientException) {
                 logger.error { "Failed to create channel: ${e.message}" }
                 data.value =
                     data.value.copy(

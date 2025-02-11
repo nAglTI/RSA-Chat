@@ -1,8 +1,12 @@
 package com.hypergonial.chat.model
 
 import com.hypergonial.chat.genSessionId
+import com.hypergonial.chat.model.exceptions.InvalidPayloadException
 import com.hypergonial.chat.model.exceptions.NotFoundException
+import com.hypergonial.chat.model.exceptions.RequestTimeoutException
 import com.hypergonial.chat.model.exceptions.ResumeFailureException
+import com.hypergonial.chat.model.exceptions.TransportException
+import com.hypergonial.chat.model.exceptions.UnknownFailureException
 import com.hypergonial.chat.model.exceptions.getApiException
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
@@ -32,9 +36,14 @@ import io.github.vinceglb.filekit.core.PlatformFile
 import io.ktor.client.HttpClient
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
+import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.network.sockets.SocketTimeoutException
+import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.HttpRequestRetry
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.plugins.UserAgent
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
@@ -55,6 +64,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
+import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.client.statement.bodyAsText
@@ -80,6 +90,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withTimeout
+import kotlinx.io.IOException
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -215,6 +226,28 @@ class ChatClient(scope: CoroutineScope) : Client {
                             "Body (failed deserialize): $body"
                     }
                     throw exc
+                }
+            }
+
+            handleResponseException { exc, _ ->
+                // Wrap unhandled errors in ClientException
+                when(exc) {
+                    is ClientRequestException ->
+                        throw getApiException(exc.response.status, exc.message, exc)
+                    is ServerResponseException ->
+                        throw getApiException(exc.response.status, exc.message, exc)
+                    is HttpRequestTimeoutException ->
+                        throw RequestTimeoutException(exc.message, exc)
+                    is SocketTimeoutException ->
+                        throw RequestTimeoutException(exc.message, exc)
+                    is ConnectTimeoutException ->
+                        throw RequestTimeoutException(exc.message, exc)
+                    is IOException ->
+                        throw TransportException(exc.message, exc)
+                    is SerializationException ->
+                        throw InvalidPayloadException(exc.message, exc)
+                    else ->
+                        throw UnknownFailureException(exc.message, exc)
                 }
             }
         }

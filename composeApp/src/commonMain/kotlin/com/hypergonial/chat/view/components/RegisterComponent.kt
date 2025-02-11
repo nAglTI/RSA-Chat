@@ -9,6 +9,7 @@ import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.Secret
 import com.hypergonial.chat.model.exceptions.ApiException
+import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.view.content.RegisterContent
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.launch
@@ -234,7 +235,7 @@ class DefaultRegisterComponent(
                         snackbarMessage = SnackbarContainer("Failed to register, please try again later."),
                     )
                 logger.error { "Registration failed: ${e.message}" }
-            } catch (e: Exception) {
+            } catch (e: ClientException) {
                 logger.error { "Registration failed: ${e.message}" }
                 data.value =
                     data.value.copy(

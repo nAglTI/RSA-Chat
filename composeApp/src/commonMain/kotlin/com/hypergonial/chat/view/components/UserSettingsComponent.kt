@@ -9,6 +9,7 @@ import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.UserUpdateEvent
 import com.hypergonial.chat.model.exceptions.ApiException
+import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.view.content.UserSettingsContent
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.vinceglb.filekit.core.FileKit
@@ -148,13 +149,12 @@ class DefaultUserSettingsComponent(
             try {
                 client.updateSelf(data.value.username, data.value.displayName.ifEmpty { null })
             }
-            catch (e: ApiException) {
+            catch (e: ClientException) {
                 data.value =
                     data.value.copy(
                         snackbarMessage = SnackbarContainer("Failed to update user settings, please try again later.")
                     )
                 logger.error { "Failed to update user settings: ${e.message}" }
-                e.printStackTrace()
                 return@launch
             }
 
@@ -183,13 +183,12 @@ class DefaultUserSettingsComponent(
             // TODO: Somehow crop the image to a square? No image manipulation libs though :(
             try {
                 client.updateSelf(ownUser.username, ownUser.displayName, file)
-            } catch (e: ApiException) {
+            } catch (e: ClientException) {
                 data.value =
                     data.value.copy(
                         snackbarMessage = SnackbarContainer("Failed to update avatar, please try again later.")
                     )
                 logger.error { "Failed to update avatar: ${e.message}" }
-                e.printStackTrace()
                 return@launch
             }
 

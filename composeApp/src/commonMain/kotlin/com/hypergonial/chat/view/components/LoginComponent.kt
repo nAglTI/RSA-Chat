@@ -8,6 +8,7 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.Secret
+import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.exceptions.RatelimitedException
 import com.hypergonial.chat.model.exceptions.UnauthorizedException
 import com.hypergonial.chat.view.content.LoginContent
@@ -132,7 +133,7 @@ class DefaultLoginComponent(
                         loginFailed = true,
                         snackbarMessage = SnackbarContainer("Too many login attempts, please try again later"),
                     )
-            } catch (e: Exception) {
+            } catch (e: ClientException) {
                 logger.error { "Login failed: ${e.message}" }
                 data.value =
                     data.value.copy(

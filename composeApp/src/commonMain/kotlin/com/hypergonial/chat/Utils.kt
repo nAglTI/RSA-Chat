@@ -40,9 +40,25 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.PopupPositionProvider
 import com.hypergonial.chat.model.Mime
+import com.hypergonial.chat.model.exceptions.ClientApiException
+import com.hypergonial.chat.model.exceptions.InvalidPayloadException
+import com.hypergonial.chat.model.exceptions.RequestTimeoutException
+import com.hypergonial.chat.model.exceptions.ServerApiException
+import com.hypergonial.chat.model.exceptions.TransportException
+import com.hypergonial.chat.model.exceptions.getApiException
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.vinceglb.filekit.core.PlatformFile
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.network.sockets.SocketTimeoutException
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.client.plugins.ServerResponseException
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.request
+import io.ktor.client.statement.HttpResponse
 import io.ktor.util.encodeBase64
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -53,7 +69,9 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.io.IOException
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
@@ -438,7 +456,6 @@ fun PlatformFile.getMime(): Mime {
 suspend fun PlatformFile.toDataUrl(): String {
     return "data:${this.getMime()};base64,${this.readBytes().encodeBase64()}"
 }
-
 
 /** A modifier that adds an alt-click listener to the component.
  *

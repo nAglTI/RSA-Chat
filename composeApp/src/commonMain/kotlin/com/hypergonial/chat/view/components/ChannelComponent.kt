@@ -19,7 +19,7 @@ import com.hypergonial.chat.model.MessageCreateEvent
 import com.hypergonial.chat.model.MessageRemoveEvent
 import com.hypergonial.chat.model.MessageUpdateEvent
 import com.hypergonial.chat.model.Mime
-import com.hypergonial.chat.model.exceptions.ApiException
+import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.getMimeType
 import com.hypergonial.chat.model.payloads.Attachment
 import com.hypergonial.chat.model.payloads.Message
@@ -42,10 +42,10 @@ import io.github.vinceglb.filekit.core.FileKit
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
-import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlin.math.max
 import kotlin.time.Duration.Companion.minutes
+import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 // Note: Do not raise this above 100 as the API will never return more than 100 messages at a time
 // but the client will incorrectly assume that it got less messages than it requested
@@ -232,7 +232,15 @@ class DefaultChannelComponent(
         scope.launch {
             logger.info { "Requesting more messages before $lastMessage..." }
 
-            val messages = client.fetchMessages(channelId = channelId, before = lastMessage, limit = MESSAGE_BATCH_SIZE)
+            val messages =
+                try {
+                    client.fetchMessages(channelId = channelId, before = lastMessage, limit = MESSAGE_BATCH_SIZE)
+                } catch (e: ClientException) {
+                    data.value =
+                        data.value.copy(snackbarMessage = SnackbarContainer("Failed to fetch messages: ${e.message}"))
+                    return@launch
+                }
+
             val currentEntries = data.value.messageEntries
             val features = createMessageFeatures(messages)
             val isEnd = messages.size.toUInt() < MESSAGE_BATCH_SIZE
@@ -254,9 +262,7 @@ class DefaultChannelComponent(
                 return@launch
             }
 
-            currentEntries
-                .last()
-                .setTopEndIndicator(if (isEnd) EndOfMessages else LoadMoreMessagesIndicator())
+            currentEntries.last().setTopEndIndicator(if (isEnd) EndOfMessages else LoadMoreMessagesIndicator())
 
             // Drop elements from the bottom beyond 300 messages
             if (currentEntries.totalMessageCount().toUInt() > maximumMessageCount() * 3u) {
@@ -279,7 +285,14 @@ class DefaultChannelComponent(
         scope.launch {
             logger.info { "Requesting more messages after $firstMessage..." }
 
-            val messages = client.fetchMessages(channelId = channelId, after = firstMessage, limit = MESSAGE_BATCH_SIZE)
+            val messages =
+                try {
+                    client.fetchMessages(channelId = channelId, after = firstMessage, limit = MESSAGE_BATCH_SIZE)
+                } catch (e: ClientException) {
+                    data.value =
+                        data.value.copy(snackbarMessage = SnackbarContainer("Failed to fetch messages: ${e.message}"))
+                    return@launch
+                }
 
             val currentEntries = data.value.messageEntries
             val isEnd = messages.size.toUInt() < MESSAGE_BATCH_SIZE
@@ -313,9 +326,9 @@ class DefaultChannelComponent(
     }
 
     /**
-     * Refresh the message list completely by fetching the latest messages from the server
-     * around the message centered on screen. Discards all messages currently in the list
-     * and replaces them with the new ones. If all goes well, the user should not notice any changes.
+     * Refresh the message list completely by fetching the latest messages from the server around the message centered
+     * on screen. Discards all messages currently in the list and replaces them with the new ones. If all goes well, the
+     * user should not notice any changes.
      */
     private fun refreshMessageList() {
         scope.launch {
@@ -329,11 +342,13 @@ class DefaultChannelComponent(
 
             // Fetch messages around it
             val messages =
-                client.fetchMessages(
-                    channelId = channelId,
-                    around = middle?.id,
-                    limit = MESSAGE_BATCH_SIZE,
-                )
+                try {
+                    client.fetchMessages(channelId = channelId, around = middle?.id, limit = MESSAGE_BATCH_SIZE)
+                } catch (e: ClientException) {
+                    data.value =
+                        data.value.copy(snackbarMessage = SnackbarContainer("Failed to refresh messages: ${e.message}"))
+                    return@launch
+                }
 
             // Note: middle message may not exist anymore (if it was deleted), do not use !=
             val topMessages = messages.takeWhile { middle?.id?.let { it1 -> it.id < it1 } == true }
@@ -347,8 +362,7 @@ class DefaultChannelComponent(
 
             if (!isTopEnd) {
                 entries.last().setTopEndIndicator(LoadMoreMessagesIndicator())
-            }
-            else {
+            } else {
                 entries.last().setTopEndIndicator(EndOfMessages)
             }
 
@@ -513,12 +527,13 @@ class DefaultChannelComponent(
         refreshMessageList()
     }
 
-    /** Add a dummy message to display in the UI while the message is pending.
+    /**
+     * Add a dummy message to display in the UI while the message is pending.
      *
      * @param content The content of the message.
      * @param nonce The nonce of the message.
      * @param attachments The attachments of the message. These may be used for placeholders to display upload progress.
-     * */
+     */
     private fun addPendingMessage(content: String, nonce: String, attachments: List<PlatformFile>) {
         val msg =
             Message(
@@ -545,7 +560,7 @@ class DefaultChannelComponent(
             addPendingMessage(content, nonce, attachments = attachments)
             try {
                 client.sendMessage(channelId, content = content, nonce = nonce, attachments = attachments)
-            } catch (e: Exception) {
+            } catch (e: ClientException) {
                 data.value.messageEntries
                     .flatMap { it.data.value.messages }
                     .firstOrNull { it.data.value.message.nonce == nonce }
@@ -568,7 +583,15 @@ class DefaultChannelComponent(
     }
 
     override fun onMessageDeleteRequested(messageId: Snowflake) {
-        scope.launch { client.deleteMessage(channelId, messageId) }
+        scope.launch {
+            try {
+                client.deleteMessage(channelId, messageId)
+            } catch (e: ClientException) {
+                data.value =
+                    data.value.copy(snackbarMessage = SnackbarContainer("Failed to delete message: ${e.message}"))
+                logger.error { "Failed to delete message: ${e.message}" }
+            }
+        }
     }
 
     override fun onChatBarContentChanged(value: TextFieldValue) {

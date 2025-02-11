@@ -8,6 +8,7 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.exceptions.ApiException
+import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.view.components.Displayable
 import com.hypergonial.chat.view.content.prompts.CreateGuildContent
@@ -50,7 +51,7 @@ class DefaultCreateGuildComponent(
             val guild =
                 try {
                     client.createGuild(data.value.guildName.trim())
-                } catch (e: ApiException) {
+                } catch (e: ClientException) {
                     logger.error { "Failed to create guild: ${e.message}" }
                     data.value =
                         data.value.copy(

@@ -10,8 +10,10 @@ import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.FocusAssetEvent
 import com.hypergonial.chat.model.MessageUpdateEvent
 import com.hypergonial.chat.model.UploadProgressEvent
+import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.sanitized
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -124,6 +126,7 @@ class DefaultMessageComponent(
             )
         )
     private val wasCreatedAsPending = isPending
+    private val logger = KotlinLogging.logger {}
 
     init {
         if (hasUploadingAttachments) {
@@ -157,7 +160,7 @@ class DefaultMessageComponent(
     }
 
     override fun onEditStart() {
-        if (data.value.message.author.id != client.cache.ownUser?.id) {
+        if (data.value.message.author.id != client.cache.ownUser?.id || data.value.isPending || data.value.isFailed) {
             return
         }
 
@@ -189,18 +192,26 @@ class DefaultMessageComponent(
 
         data.value = data.value.copy(isPending = true, isBeingEdited = false)
         ctx.coroutineScope().launch {
-            client.editMessage(data.value.message.channelId, data.value.message.id, data.value.editorState.text)
+            try {
+                client.editMessage(data.value.message.channelId, data.value.message.id, data.value.editorState.text)
+            } catch(e: ClientException) {
+                logger.error { "Failed to edit message: ${e.message}" }
+            }
+
         }
     }
 
     override fun onDeleteRequested() {
-        if (data.value.message.author.id != client.cache.ownUser?.id) {
-            // This would always 403, so we don't even try
+        if (data.value.message.author.id != client.cache.ownUser?.id || data.value.isPending || data.value.isFailed) {
             return
         }
 
         ctx.coroutineScope().launch {
-            client.deleteMessage(data.value.message.channelId, data.value.message.id)
+            try {
+                client.deleteMessage(data.value.message.channelId, data.value.message.id)
+            } catch(e: ClientException) {
+                logger.error { "Failed to delete message: ${e.message}" }
+            }
         }
     }
 

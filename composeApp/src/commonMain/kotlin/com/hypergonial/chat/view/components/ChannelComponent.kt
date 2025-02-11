@@ -545,7 +545,7 @@ class DefaultChannelComponent(
             addPendingMessage(content, nonce, attachments = attachments)
             try {
                 client.sendMessage(channelId, content = content, nonce = nonce, attachments = attachments)
-            } catch (e: ApiException) {
+            } catch (e: Exception) {
                 data.value.messageEntries
                     .flatMap { it.data.value.messages }
                     .firstOrNull { it.data.value.message.nonce == nonce }

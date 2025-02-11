@@ -668,6 +668,9 @@ class ChatClient(scope: CoroutineScope) : Client {
                     files.forEach { append(it) }
                 },
             ) {
+                // Allow a bigger timeout for uploads
+                timeout { requestTimeoutMillis = 60000; connectTimeoutMillis = 5000 }
+
                 onUpload { bytesSent, contentLength ->
                     val completionRate = bytesSent.toDouble() / (contentLength?.toDouble() ?: return@onUpload)
                     val nonce = nonce ?: return@onUpload

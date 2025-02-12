@@ -29,6 +29,7 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -39,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
@@ -69,13 +71,21 @@ fun AssetViewerOverlay(
         return
     }
 
-    // Handle backs to close the overlay
-    BackHandler(isEnabled = isActive, onBack = onClose)
-
     val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
     val isSmall = remember(windowSizeClass) { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT }
     val imagePadding by animateDpAsState(if (isSmall) 10.dp else 40.dp)
     val uriHandler = LocalUriHandler.current
+    val focusManager = LocalFocusManager.current
+
+    // Handle backs to close the overlay
+    BackHandler(isEnabled = isActive, onBack = onClose)
+
+    // Clear focus when the overlay activates (to prevent the IME staying open)
+    LaunchedEffect(isActive) {
+        if (isActive) {
+            focusManager.clearFocus()
+        }
+    }
 
     Box(Modifier.fillMaxSize()) {
         content()

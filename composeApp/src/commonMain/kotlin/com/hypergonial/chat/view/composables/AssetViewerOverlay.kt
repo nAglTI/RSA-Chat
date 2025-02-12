@@ -91,7 +91,7 @@ fun AssetViewerOverlay(
         ) {
             Box(Modifier.fillMaxSize().clickable(null, indication = null) { onClose() }, Alignment.Center) {
                 Box(modifier = Modifier.padding(horizontal = imagePadding, vertical = imagePadding * 2)) {
-                    AsyncImage(
+                    ZoomableAsyncImage(
                         model = ImageRequest.Builder(LocalPlatformContext.current).data(url).crossfade(true).build(),
                         contentDescription = "Asset being observed",
                         modifier =

@@ -61,7 +61,11 @@ kotlin {
     sourceSets {
         val desktopMain by getting
 
-        iosMain.dependencies { implementation(libs.ktor.client.darwin) }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+            // Pinch to zoom
+            implementation("net.engawapg.lib:zoomable:2.0.0")
+        }
 
         androidMain.dependencies {
             implementation(compose.preview)
@@ -78,6 +82,8 @@ kotlin {
             // SLF4J
             implementation(libs.slf4j.api)
             implementation(libs.slf4j.android)
+            // Pinch to zoom
+            implementation("net.engawapg.lib:zoomable:2.0.0")
         }
         commonMain.dependencies {
             implementation(kotlin("reflect"))

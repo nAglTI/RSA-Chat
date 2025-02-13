@@ -36,6 +36,7 @@ actual fun ZoomableAsyncImage(
             if (it is AsyncImagePainter.State.Success) {
                 zoomState.setContentSize(it.painter.intrinsicSize)
             }
+            onState?.invoke(it)
         },
         alignment = alignment,
         contentScale = contentScale,

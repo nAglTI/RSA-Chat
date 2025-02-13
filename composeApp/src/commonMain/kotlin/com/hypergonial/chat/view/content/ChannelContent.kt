@@ -118,7 +118,7 @@ fun FileUploadIcon(component: ChannelComponent) {
         DropdownMenu(
             expanded = state.isFileUploadDropdownOpen,
             onDismissRequest = component::onFileUploadDropdownClose,
-            modifier = Modifier.clip(RoundedCornerShape(12.dp)),
+            shape = RoundedCornerShape(12.dp)
         ) {
             DropdownMenuItem(
                 text = { Text("Upload File") },

@@ -3,8 +3,16 @@ package com.hypergonial.chat
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.PointerMatcher
 import androidx.compose.foundation.onClick
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.input.pointer.pointerInput
 import com.arkivanov.essenty.statekeeper.SerializableContainer
 import java.io.File
 import javax.swing.SwingUtilities
@@ -13,12 +21,17 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.json.encodeToStream
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
 actual fun Modifier.altClickable(onClick: () -> Unit): Modifier {
-    return this.onClick(
-        matcher = PointerMatcher.mouse(PointerButton.Secondary),
-        onClick = onClick,
-    )
+    return this.onPointerEvent(PointerEventType.Press) {
+        it.awtEventOrNull?.let { event ->
+            // Right-click
+            if (event.button == 3) {
+                onClick()
+            }
+        }
+    }
 }
 
 /**

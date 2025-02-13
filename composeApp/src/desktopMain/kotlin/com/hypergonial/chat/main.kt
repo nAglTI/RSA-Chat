@@ -18,6 +18,7 @@ import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
 import com.hypergonial.chat.view.components.DefaultRootComponent
+import com.hypergonial.chat.view.composables.Material3ContextMenuRepresentation
 import java.awt.Dimension
 import java.io.File
 
@@ -48,14 +49,8 @@ fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
             else -> lightColorScheme
         }
 
-    val contextMenuRepresentation = if (useDarkTheme) {
-        DarkDefaultContextMenuRepresentation
-    } else {
-        LightDefaultContextMenuRepresentation
-    }
-
     CompositionLocalProvider(LocalUsingDarkTheme provides useDarkTheme) {
-        CompositionLocalProvider(LocalContextMenuRepresentation provides contextMenuRepresentation) {
+        CompositionLocalProvider(LocalContextMenuRepresentation provides Material3ContextMenuRepresentation()) {
             MaterialTheme(colorScheme = colorScheme, content = content)
         }
     }

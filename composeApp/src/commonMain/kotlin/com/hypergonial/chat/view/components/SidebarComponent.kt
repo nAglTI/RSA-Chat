@@ -10,6 +10,8 @@ import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.hypergonial.chat.SnackbarContainer
 import com.hypergonial.chat.model.ChannelCreateEvent
 import com.hypergonial.chat.model.ChannelRemoveEvent
 import com.hypergonial.chat.model.Client
@@ -21,12 +23,15 @@ import com.hypergonial.chat.model.GuildRemoveEvent
 import com.hypergonial.chat.model.GuildUpdateEvent
 import com.hypergonial.chat.model.ReadyEvent
 import com.hypergonial.chat.model.UserUpdateEvent
+import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
 import com.hypergonial.chat.view.content.MainContent
 import com.hypergonial.chat.withFallbackValue
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 /**
@@ -65,11 +70,46 @@ interface SidebarComponent : Displayable {
      */
     fun onChannelSelected(channel: Channel)
 
+    /**
+     * Called when the user clicks the leave guild button
+     *
+     * @param guildId The ID of the guild to leave
+     */
+    fun onGuildLeaveClicked(guildId: Snowflake)
+
+    /**
+     * Called when the user clicks the delete guild button
+     *
+     * @param guildId The ID of the guild to delete
+     */
+    fun onGuildDeleteClicked(guildId: Snowflake)
+
+    /**
+     * Called when the user clicks the edit guild button
+     *
+     * @param guildId The ID of the guild to edit
+     */
+    fun onGuildEditClicked(guildId: Snowflake)
+
     /** Called when the user clicks the create guild button */
     fun onGuildCreateClicked()
 
     /** Called when the user clicks the create channel button */
     fun onChannelCreateClicked()
+
+    /**
+     * Called when the user clicks the edit channel button
+     *
+     * @param channelId The ID of the channel to edit
+     */
+    fun onChannelEditClicked(channelId: Snowflake)
+
+    /**
+     * Called when the user clicks the delete channel button
+     *
+     * @param channelId The ID of the channel to delete
+     */
+    fun onChannelDeleteClicked(channelId: Snowflake)
 
     /** Called when the user clicks the logout button */
     fun onLogoutClicked()
@@ -87,8 +127,7 @@ interface SidebarComponent : Displayable {
     val data: Value<SidebarState>
 
     data class SidebarState(
-        /** The currently logged in user
-         * May be null if the client is still connecting */
+        /** The currently logged in user May be null if the client is still connecting */
         val currentUser: User? = null,
         /** The guild that is currently selected */
         val selectedGuild: Guild? = null,
@@ -108,6 +147,8 @@ interface SidebarComponent : Displayable {
         val assetViewerActive: Boolean = false,
         /** The state of the navigation drawer */
         val navDrawerState: DrawerState = DrawerState(DrawerValue.Closed),
+        /** The state of the snackbar */
+        val snackbarMessage: SnackbarContainer<String> = SnackbarContainer(""),
     )
 }
 
@@ -130,11 +171,16 @@ class DefaultSideBarComponent(
     val onLogout: () -> Unit,
 ) : SidebarComponent, ComponentContext by ctx {
     override val data =
-        MutableValue(SidebarComponent.SidebarState(
-            currentUser = client.cache.ownUser,
-            guilds = client.cache.guilds.values.toList().sortedBy { it.id }))
+        MutableValue(
+            SidebarComponent.SidebarState(
+                currentUser = client.cache.ownUser,
+                guilds = client.cache.guilds.values.toList().sortedBy { it.id },
+            )
+        )
 
     private val slotNavigation = SlotNavigation<SlotConfig>()
+    private val scope = ctx.coroutineScope()
+    private val logger = KotlinLogging.logger {}
 
     override val mainContent: Value<ChildSlot<*, MainContentComponent>> =
         childSlot(
@@ -218,6 +264,38 @@ class DefaultSideBarComponent(
     override fun onChannelSelected(channel: Channel) {
         data.value = data.value.copy(selectedChannel = channel)
         slotNavigation.activate(SlotConfig.Channel(channel.id))
+    }
+
+    override fun onGuildLeaveClicked(guildId: Snowflake) {
+        scope.launch {
+            try {
+                client.leaveGuild(guildId)
+            } catch (e: ClientException) {
+                data.value =
+                    data.value.copy(
+                        snackbarMessage = SnackbarContainer("Unexpected error occurred: ${e.message}")
+                    )
+                logger.error { "Failed to leave guild: ${e.message}" }
+            }
+        }
+    }
+
+    override fun onGuildDeleteClicked(guildId: Snowflake) {
+        scope.launch {
+            try {
+                client.deleteGuild(guildId)
+            } catch (e: ClientException) {
+                data.value =
+                    data.value.copy(
+                        snackbarMessage = SnackbarContainer("Unexpected error occurred: ${e.message}")
+                    )
+                logger.error { "Failed to delete guild: ${e.message}" }
+            }
+        }
+    }
+
+    override fun onGuildEditClicked(guildId: Snowflake) {
+        data.value = data.value.copy(snackbarMessage = SnackbarContainer("Not yet implemented"))
     }
 
     override fun onAssetViewerClosed() {
@@ -309,6 +387,22 @@ class DefaultSideBarComponent(
 
     override fun onChannelCreateClicked() {
         onChannelCreateRequested(data.value.selectedGuild?.id ?: return)
+    }
+
+    override fun onChannelEditClicked(channelId: Snowflake) {
+        data.value = data.value.copy(snackbarMessage = SnackbarContainer("Not yet implemented"))
+    }
+
+    override fun onChannelDeleteClicked(channelId: Snowflake) {
+        scope.launch {
+            try {
+                client.deleteChannel(channelId)
+            } catch (e: ClientException) {
+                data.value =
+                    data.value.copy(snackbarMessage = SnackbarContainer("Unexpected error occurred: ${e.message}"))
+                logger.error { "Failed to delete channel: ${e.message}" }
+            }
+        }
     }
 
     override fun onUserSettingsClicked() {

@@ -5,7 +5,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -21,7 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,18 +37,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
@@ -60,7 +58,9 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.LocalUsingDarkTheme
+import com.hypergonial.chat.altClickable
 import com.hypergonial.chat.model.payloads.Attachment
+import com.hypergonial.chat.platform
 import com.hypergonial.chat.toHumanReadable
 import com.hypergonial.chat.view.ChatImageTransformer
 import com.hypergonial.chat.view.components.subcomponents.EndOfMessages
@@ -100,7 +100,7 @@ fun MessageList(
 
     CompositionLocalProvider(LocalHighlights provides highlightsBuilder) {
         LazyColumn(modifier, state = listState, reverseLayout = true) {
-            itemsIndexed(features, key = { _, item -> item.getKey() }) { _, item -> SelectionContainer { Entry(item) } }
+            itemsIndexed(features, key = { _, item -> item.getKey() }) { _, item -> Entry(item) }
         }
     }
 }
@@ -162,18 +162,61 @@ fun Entry(component: MessageEntryComponent) {
     }
 }
 
+@Composable
+fun MessageContextMenu(component: MessageComponent, content: @Composable () -> Unit) {
+    val state by component.data.subscribeAsState()
+    val clipboardManager = LocalClipboardManager.current
+
+    AltActionMenu(
+        isActive = state.isAltMenuOpen,
+        onDismissRequest = { component.onAltMenuStateChange(isOpen = false) },
+        altActions = {
+            item(
+                "Copy",
+                leadingIcon = { Icon(Icons.Outlined.ContentCopy, contentDescription = "Copy") },
+                showOnDesktop = false,
+            ) {
+                clipboardManager.setText(AnnotatedString(state.message.content ?: ""))
+            }
+
+            if (state.canEdit) {
+                item("Edit", leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = "Edit") }) {
+                    // Workaround for editor grabbing focus and not allowing the menu to dismiss properly
+                    component.onAltMenuStateChange(isOpen = false)
+                    component.onEditStart()
+                }
+            }
+
+            if (state.canDelete) {
+                item("Delete", leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete") }) {
+                    component.onDeleteRequested()
+                }
+            }
+        },
+    ) {
+        content()
+    }
+}
+
 /** A message with a username and timestamp attached to it. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageWithHeader(component: MessageComponent) {
     val state by component.data.subscribeAsState()
 
-    Column(Modifier.combinedClickable(onDoubleClick = { component.onEditStart() }) {}) {
-        Row(Modifier.fillMaxWidth()) {
-            Text(state.message.author.displayName ?: state.message.author.username, Modifier.padding(end = 8.dp))
-            Text(state.createdAt.toHumanReadable(), fontSize = 10.sp, color = Color.Gray)
+    MessageContextMenu(component) {
+        DesktopOnlySelectionContainer {
+            Column(Modifier.combinedClickable(onDoubleClick = { component.onEditStart() }) {}) {
+                Row(Modifier.fillMaxWidth()) {
+                    Text(
+                        state.message.author.displayName ?: state.message.author.username,
+                        Modifier.padding(end = 8.dp),
+                    )
+                    Text(state.createdAt.toHumanReadable(), fontSize = 10.sp, color = Color.Gray)
+                }
+                MessageContent(component, Modifier.padding(end = 40.dp))
+            }
         }
-        MessageContent(component, Modifier.padding(end = 40.dp))
     }
 }
 
@@ -181,8 +224,12 @@ fun MessageWithHeader(component: MessageComponent) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageWithoutHeader(component: MessageComponent) {
-    Row(Modifier.fillMaxWidth().combinedClickable(onDoubleClick = { component.onEditStart() }) {}) {
-        MessageContent(component, Modifier.padding(end = 40.dp))
+    MessageContextMenu(component) {
+        DesktopOnlySelectionContainer {
+            Row(Modifier.fillMaxWidth().combinedClickable(onDoubleClick = { component.onEditStart() }) {}) {
+                MessageContent(component, Modifier.padding(end = 40.dp))
+            }
+        }
     }
 }
 
@@ -194,85 +241,87 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
 
     BackHandler(isEnabled = state.isBeingEdited, onBack = { component.onEditCancel() })
 
-    if (state.isBeingEdited) {
-        ChatBar(
-            value = state.editorState,
-            onValueChange = { component.onEditorStateChanged(it) },
-            onSubmit = { component.onEditFinish() },
-            onFocusLoss = { component.onEditCancel() },
-            shouldGrabFocus = true,
-            modifier = modifier.fillMaxWidth(),
-            trailingIcon = {
-                Icon(
-                    Icons.Filled.Done,
-                    contentDescription = "Done",
-                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
-                )
-            },
-        )
-        return
-    }
-
-    Column {
-        Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Markdown(
-                state.message.content ?: "TODO: No content - HANDLEME",
-                colors =
+    Column(Modifier.altClickable { component.onAltMenuStateChange(isOpen = true) }) {
+        if (state.isBeingEdited) {
+            ChatBar(
+                value = state.editorState,
+                onValueChange = { component.onEditorStateChanged(it) },
+                onSubmit = { component.onEditFinish() },
+                onFocusLoss = { component.onEditCancel() },
+                shouldGrabFocus = true,
+                modifier = modifier.fillMaxWidth(),
+                trailingIcon = {
+                    Icon(
+                        Icons.Filled.Done,
+                        contentDescription = "Done",
+                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
+                    )
+                },
+            )
+        } else {
+            Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Markdown(
+                    state.message.content ?: "TODO: No content - HANDLEME",
+                    colors =
                     markdownColor(
                         text =
-                            if (state.isFailed) MaterialTheme.colorScheme.error
-                            else if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground,
+                        if (state.isFailed) MaterialTheme.colorScheme.error
+                        else if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground,
                         linkText = MaterialTheme.colorScheme.primary,
                     ),
-                imageTransformer = ChatImageTransformer,
-                modifier = Modifier.fillMaxHeight().fillMaxWidth(0.9f),
-                components =
+                    imageTransformer = ChatImageTransformer,
+                    modifier = Modifier.fillMaxHeight().fillMaxWidth(0.9f),
+                    components =
                     markdownComponents(
                         codeBlock = { MarkdownHighlightedCodeBlock(it.content, it.node, LocalHighlights.current) },
                         codeFence = { MarkdownHighlightedCodeFence(it.content, it.node, LocalHighlights.current) },
                         // Ignore horizontal lines
                         horizontalRule = { MarkdownText(it.content) },
                     ),
-                typography =
+                    typography =
                     markdownTypography(
                         text = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
                         paragraph = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
                         quote =
-                            MaterialTheme.typography.bodyMedium.copy(
-                                color = Color.LightGray,
-                                fontWeight = FontWeight.Thin,
-                            ),
+                        MaterialTheme.typography.bodyMedium.copy(
+                            color = Color.LightGray,
+                            fontWeight = FontWeight.Thin,
+                        ),
                         link =
-                            MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Normal,
-                                textDecoration = TextDecoration.Underline,
-                            ),
+                        MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Normal,
+                            textDecoration = TextDecoration.Underline,
+                        ),
                     ),
-            )
-            AnimatedVisibility(visible = state.message.isEdited) {
-                TooltipBox(
-                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                    tooltip = {
-                        PlainTooltip(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        ) {
-                            Text("Edited")
-                        }
-                    },
-                    state = rememberTooltipState(isPersistent = true),
-                ) {
-                    Icon(Icons.Outlined.Edit, contentDescription = "Edited", tint = Color.Gray)
+                )
+
+                AnimatedVisibility(visible = state.message.isEdited) {
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                        tooltip = {
+                            PlainTooltip(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            ) {
+                                Text("Edited")
+                            }
+                        },
+                        state = rememberTooltipState(isPersistent = true),
+                    ) {
+                        Icon(Icons.Outlined.Edit, contentDescription = "Edited", tint = Color.Gray)
+                    }
                 }
             }
         }
+
+
 
         if (state.hasUploadingAttachments) {
             UploadStateCard(state.uploadProgress.toFloat())
         } else if (state.message.attachments.isNotEmpty()) {
             if (state.isFailed) {
                 state.message.attachments.forEach { attachment -> FailedAttachmentCard(attachment.filename) }
-                return
+                return@Column
             }
 
             state.message.attachments.forEach { attachment ->
@@ -301,6 +350,15 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun DesktopOnlySelectionContainer(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    if (platform.isDesktop()) {
+        SelectionContainer(modifier) { content() }
+    } else {
+        content()
     }
 }
 

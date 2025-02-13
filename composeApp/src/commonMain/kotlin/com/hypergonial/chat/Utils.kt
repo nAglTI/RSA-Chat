@@ -463,4 +463,5 @@ suspend fun PlatformFile.toDataUrl(): String {
  *
  * @param onClick The callback to call when the alt-click is detected
  * */
+@Composable
 expect fun Modifier.altClickable(onClick: () -> Unit): Modifier

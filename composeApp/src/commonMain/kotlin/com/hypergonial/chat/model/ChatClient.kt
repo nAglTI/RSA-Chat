@@ -621,6 +621,14 @@ class ChatClient(scope: CoroutineScope) : Client {
             .body<Guild>()
     }
 
+    override suspend fun deleteGuild(id: Snowflake) {
+        http.delete("guilds/$id")
+    }
+
+    override suspend fun leaveGuild(id: Snowflake) {
+        http.delete("guilds/$id/members/@me")
+    }
+
     override suspend fun joinGuild(guildId: Snowflake): Member {
         return http.post("guilds/$guildId/members").body<Member>()
     }
@@ -632,6 +640,10 @@ class ChatClient(scope: CoroutineScope) : Client {
                 setBody(ChannelCreateRequest(name = name))
             }
             .body<Channel>()
+    }
+
+    override suspend fun deleteChannel(channelId: Snowflake) {
+        http.delete("channels/$channelId")
     }
 
     override suspend fun checkUsernameForAvailability(username: String): Boolean {

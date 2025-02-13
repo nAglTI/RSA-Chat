@@ -11,10 +11,17 @@ import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.CoroutineScope
 
 interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
-    /** The coroutine scope in use by the client */
+    /** The coroutine scope in use by the client
+     *
+     * @see replaceScope
+     * */
     val scope: CoroutineScope
 
-    /** If true, the client is paused and will not perform background tasks */
+    /** If true, the client is paused and will not perform background tasks
+     *
+     * @see pause
+     * @see resume
+     * */
     val isSuspended: Boolean
 
     /**
@@ -27,6 +34,8 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * Replace the coroutine scope of the client with a different one.
      *
      * Stops and restarts all background tasks on the new scope.
+     *
+     * @see resume
      */
     fun replaceScope(scope: CoroutineScope)
 
@@ -34,6 +43,9 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * Stops all background tasks and disconnects the client from the gateway.
      *
      * State is preserved and the client can be resumed with [resume].
+     *
+     * @see resume
+     * @see replaceScope
      */
     fun pause()
 
@@ -47,6 +59,9 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * function.
      *
      * @throws com.hypergonial.chat.model.exceptions.ResumeFailureException If the client cannot be resumed
+     *
+     * @see pause
+     * @see replaceScope
      */
     suspend fun resume()
 
@@ -54,6 +69,8 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * Check if the client is logged in
      *
      * @return True if the client is logged in, false otherwise
+     *
+     * @see login
      */
     fun isLoggedIn(): Boolean
 
@@ -65,16 +82,40 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the login fails
      *
      * If successful, the client will store the authorization token and subsequent requests will be authenticated.
+     *
+     * @see register
+     * @see logout
      */
     suspend fun login(username: String, password: Secret<String>)
+
+    /**
+     * Log out the currently authenticated user
+     *
+     * Wipes all client state.
+     *
+     * @see login
+     */
+    fun logout()
 
     /**
      * Register a new user with the provided credentials
      *
      * @param username The username to register with
      * @param password The password to register with
+     *
+     * @see checkUsernameForAvailability
+     * @see login
      */
     suspend fun register(username: String, password: Secret<String>)
+
+    /**
+     * Check if the given username is available The endpoint is not authenticated and can be used to check if a username
+     * is available before registering.
+     *
+     * @param username The username to check
+     * @return True if the username is available, false otherwise
+     */
+    suspend fun checkUsernameForAvailability(username: String): Boolean
 
     /**
      * Update the currently authenticated user
@@ -121,8 +162,18 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * Wait until the client is disconnected from the gateway
      *
      * This function will return immediately if the client is already disconnected.
+     *
+     * @see closeGateway
      */
     suspend fun waitUntilDisconnected()
+
+    /**
+     * Closes the gateway connection, if it is open. This function returns immediately, and the client will disconnect
+     * in the background.
+     *
+     * @see waitUntilDisconnected
+     */
+    fun closeGateway()
 
     /**
      * Fetch a batch of messages from the given channel.
@@ -159,20 +210,7 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
         attachments: List<PlatformFile> = emptyList(),
     ): Message
 
-    /**
-     * Log out the currently authenticated user
-     *
-     * Wipes all client state.
-     */
-    fun logout()
 
-    /**
-     * Closes the gateway connection, if it is open. This function returns immediately, and the client will disconnect
-     * in the background.
-     *
-     * @see waitUntilDisconnected
-     */
-    fun closeGateway()
 
     /**
      * Edit a message by its ID
@@ -259,6 +297,24 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      */
     suspend fun createGuild(name: String): Guild
 
+    /** Deletes the guild with the given ID
+     *
+     * @param id The ID of the guild to delete
+     * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
+     * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the guild does not exist
+     * @throws com.hypergonial.chat.model.exceptions.ForbiddenException If the client doesn't own this guild
+     * */
+    suspend fun deleteGuild(id: Snowflake)
+
+    /**
+     * Leaves the guild with the given ID
+     *
+     * @param id The ID of the guild to leave
+     * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
+     * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the guild does not exist
+     * */
+    suspend fun leaveGuild(id: Snowflake)
+
     /**
      * Creates a new channel in the given guild
      *
@@ -269,11 +325,12 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     suspend fun createChannel(guildId: Snowflake, name: String): Channel
 
     /**
-     * Check if the given username is available The endpoint is not authenticated and can be used to check if a username
-     * is available before registering.
+     * Deletes the channel with the given ID
      *
-     * @param username The username to check
-     * @return True if the username is available, false otherwise
+     * @param channelId The ID of the channel to delete
+     * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
+     * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the channel does not exist
+     * @throws com.hypergonial.chat.model.exceptions.ForbiddenException If the client has missing permissions
      */
-    suspend fun checkUsernameForAvailability(username: String): Boolean
+    suspend fun deleteChannel(channelId: Snowflake)
 }

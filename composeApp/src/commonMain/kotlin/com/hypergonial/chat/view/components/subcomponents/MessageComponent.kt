@@ -58,6 +58,13 @@ interface MessageComponent {
     fun onDeleteRequested()
 
     /**
+     * Invoked when the user changes the alt menu state
+     *
+     * @param isOpen Whether the alt menu is open or not
+     */
+    fun onAltMenuStateChange(isOpen: Boolean)
+
+    /**
      * Invoked when the user clicks on an attachment in the message
      *
      * @param id The ID of the attachment that was clicked
@@ -93,6 +100,12 @@ interface MessageComponent {
         val uploadProgress: Double = 0.0,
         /** Whether the message editor is open or not */
         val isBeingEdited: Boolean = false,
+        /** Whether the message is deletable or not */
+        val canDelete: Boolean = false,
+        /** Whether the message is editable or not */
+        val canEdit: Boolean = false,
+        /** Whether the alt menu is open or not */
+        val isAltMenuOpen: Boolean = false,
         /** The state of the editor */
         val editorState: TextFieldValue = TextFieldValue(),
     )
@@ -123,6 +136,9 @@ class DefaultMessageComponent(
                 isPending = isPending,
                 hasUploadingAttachments = hasUploadingAttachments,
                 isFailed = isFailed,
+                // TODO: Update when permissions are implemented
+                canDelete = message.author.id == client.cache.ownUser?.id,
+                canEdit = message.author.id == client.cache.ownUser?.id,
             )
         )
     private val wasCreatedAsPending = isPending
@@ -159,6 +175,15 @@ class DefaultMessageComponent(
         data.value = data.value.copy(isFailed = true, hasUploadingAttachments = false)
     }
 
+    override fun onAltMenuStateChange(isOpen: Boolean) {
+        // Opening the alt menu while the editor is open does funny stuff
+        if (data.value.isBeingEdited && isOpen) {
+            return
+        }
+
+        data.value = data.value.copy(isAltMenuOpen = isOpen)
+    }
+
     override fun onEditStart() {
         if (data.value.message.author.id != client.cache.ownUser?.id || data.value.isPending || data.value.isFailed) {
             return
@@ -185,8 +210,13 @@ class DefaultMessageComponent(
             return
         }
 
-        if (data.value.editorState.text.isBlank() && data.value.message.attachments.isEmpty()) {
-            onDeleteRequested()
+        if (data.value.editorState.text.isBlank()) {
+            if (data.value.message.attachments.isEmpty()) {
+                onDeleteRequested()
+            }
+            else {
+                onEditCancel()
+            }
             return
         }
 
@@ -194,10 +224,9 @@ class DefaultMessageComponent(
         ctx.coroutineScope().launch {
             try {
                 client.editMessage(data.value.message.channelId, data.value.message.id, data.value.editorState.text)
-            } catch(e: ClientException) {
+            } catch (e: ClientException) {
                 logger.error { "Failed to edit message: ${e.message}" }
             }
-
         }
     }
 
@@ -209,7 +238,7 @@ class DefaultMessageComponent(
         ctx.coroutineScope().launch {
             try {
                 client.deleteMessage(data.value.message.channelId, data.value.message.id)
-            } catch(e: ClientException) {
+            } catch (e: ClientException) {
                 logger.error { "Failed to delete message: ${e.message}" }
             }
         }

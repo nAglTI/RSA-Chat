@@ -7,10 +7,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.requiredWidthIn
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
@@ -29,10 +34,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -97,7 +106,7 @@ fun MainTopBar(component: SidebarComponent) {
 fun SidebarContent(component: SidebarComponent) {
     val state by component.data.subscribeAsState()
 
-    Row {
+    Row(Modifier.fillMaxSize()) {
         LazyColumn(
             Modifier.fillMaxHeight()
                 .background(
@@ -107,7 +116,8 @@ fun SidebarContent(component: SidebarComponent) {
                         MaterialTheme.colorScheme.surfaceContainerLow
                     }
                 )
-                .safeDrawingPadding()
+                .statusBarsPadding()
+
         ) {
             item {
                 SidebarGuildItem(
@@ -119,12 +129,24 @@ fun SidebarContent(component: SidebarComponent) {
             }
 
             itemsIndexed(state.guilds, key = { _, item -> item.id.toString() }) { _, guild ->
-                SidebarGuildItem(
-                    tooltipText = guild.name,
-                    icon = { modifier -> GuildIcon(guild, modifier) },
-                    isSelected = guild.id == state.selectedGuild?.id,
-                    onSelect = { component.onGuildSelected(guild.id) },
-                )
+                if (state.currentUser?.id == guild.ownerId) {
+                    SidebarGuildItem(
+                        tooltipText = guild.name,
+                        icon = { modifier -> GuildIcon(guild, modifier) },
+                        isSelected = guild.id == state.selectedGuild?.id,
+                        onSelect = { component.onGuildSelected(guild.id) },
+                        onEdit = { component.onGuildEditClicked(guild.id) },
+                        onDelete = { component.onGuildDeleteClicked(guild.id) },
+                    )
+                } else {
+                    SidebarGuildItem(
+                        tooltipText = guild.name,
+                        icon = { modifier -> GuildIcon(guild, modifier) },
+                        isSelected = guild.id == state.selectedGuild?.id,
+                        onSelect = { component.onGuildSelected(guild.id) },
+                        onLeave = { component.onGuildLeaveClicked(guild.id) },
+                    )
+                }
             }
 
             item {
@@ -145,11 +167,21 @@ fun SidebarContent(component: SidebarComponent) {
 
             LazyColumn(Modifier.weight(1f)) {
                 itemsIndexed(state.channels, key = { _, item -> item.id.toString() }) { _, channel ->
-                    SidebarChannelItem(
-                        label = channel.name,
-                        isSelected = channel.id == state.selectedChannel?.id,
-                        onSelect = { component.onChannelSelected(channel.id) },
-                    )
+                    if (state.currentUser?.id == state.selectedGuild?.ownerId) {
+                        SidebarChannelItem(
+                            label = channel.name,
+                            isSelected = channel.id == state.selectedChannel?.id,
+                            onSelect = { component.onChannelSelected(channel.id) },
+                            onEdit = { component.onChannelEditClicked(channel.id) },
+                            onDelete = { component.onChannelDeleteClicked(channel.id) },
+                        )
+                    } else {
+                        SidebarChannelItem(
+                            label = channel.name,
+                            isSelected = channel.id == state.selectedChannel?.id,
+                            onSelect = { component.onChannelSelected(channel.id) },
+                        )
+                    }
                 }
 
                 if (state.selectedGuild != null) {
@@ -202,11 +234,13 @@ fun SidebarContent(component: SidebarComponent) {
 fun MainContent(component: SidebarComponent) {
     val state by component.data.subscribeAsState()
     val mainContent by component.mainContent.subscribeAsState()
+    val snackbarState = remember { SnackbarHostState() }
 
     FullScreenProgressIndicator(state.isConnecting, "Connecting...") {
         AssetViewerOverlay(state.assetViewerActive, state.assetViewerUrl, component::onAssetViewerClosed) {
             AdaptiveDrawer(drawerState = state.navDrawerState, drawerContent = { SidebarContent(component) }) {
-                Scaffold(topBar = { MainTopBar(component) }) { padding ->
+                Scaffold(topBar = { MainTopBar(component) }, snackbarHost = { SnackbarHost(snackbarState) }) { padding
+                    ->
                     Box(Modifier.padding(padding).imePadding()) {
                         when (val c = mainContent.child?.instance) {
                             is HomeComponent -> HomeContent(c)
@@ -217,6 +251,12 @@ fun MainContent(component: SidebarComponent) {
                     }
                 }
             }
+        }
+    }
+
+    LaunchedEffect(state.snackbarMessage) {
+        if (state.snackbarMessage.value.isNotEmpty()) {
+            snackbarState.showSnackbar(state.snackbarMessage.value, withDismissAction = true)
         }
     }
 }

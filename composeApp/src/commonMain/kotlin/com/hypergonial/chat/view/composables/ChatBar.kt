@@ -141,28 +141,30 @@ fun ChatBar(
                 disabledIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
             ),
-        leadingIcon = {
-            if (leadingIcon != null && onLeadingIconClick != null) {
-                IconButton(
-                    onClick = onLeadingIconClick,
-                    modifier = Modifier.focusProperties { canFocus = false },
-                    enabled = leadingButtonEnabled,
-                ) {
-                    leadingIcon()
+        leadingIcon =
+            if (leadingIcon != null) {
+                {
+                    IconButton(
+                        onClick = { onLeadingIconClick?.invoke() },
+                        modifier = Modifier.focusProperties { canFocus = false },
+                        enabled = leadingButtonEnabled,
+                    ) {
+                        leadingIcon()
+                    }
                 }
-            }
-        },
-        trailingIcon = {
+            } else null,
+        trailingIcon =
             if (trailingIcon != null) {
-                IconButton(
-                    onClick = onSubmit,
-                    modifier = Modifier.focusProperties { canFocus = false },
-                    enabled = trailingButtonEnabled,
-                ) {
-                    trailingIcon()
+                {
+                    IconButton(
+                        onClick = onSubmit,
+                        modifier = Modifier.focusProperties { canFocus = false },
+                        enabled = trailingButtonEnabled,
+                    ) {
+                        trailingIcon()
+                    }
                 }
-            }
-        },
+            } else null,
     )
 }
 

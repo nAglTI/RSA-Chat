@@ -192,22 +192,16 @@ fun MessageWithoutHeader(component: MessageComponent) {
 fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
     val state by component.data.subscribeAsState()
 
+    BackHandler(isEnabled = state.isBeingEdited, onBack = { component.onEditCancel() })
+
     if (state.isBeingEdited) {
         ChatBar(
             value = state.editorState,
             onValueChange = { component.onEditorStateChanged(it) },
             onSubmit = { component.onEditFinish() },
             onFocusLoss = { component.onEditCancel() },
-            onLeadingIconClick = { component.onEditCancel() },
             shouldGrabFocus = true,
             modifier = modifier.fillMaxWidth(),
-            leadingIcon = {
-                Icon(
-                    Icons.Outlined.Close,
-                    contentDescription = "Cancel",
-                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
-                )
-            },
             trailingIcon = {
                 Icon(
                     Icons.Filled.Done,

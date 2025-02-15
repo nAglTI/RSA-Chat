@@ -85,6 +85,9 @@ interface MessageComponent {
      */
     fun onMessageUpdate(event: MessageUpdateEvent)
 
+    /** The time at which the message was created */
+    fun createdAt(): Instant
+
     data class MessageUIState(
         /** The message that this component represents */
         val message: Message,
@@ -143,6 +146,7 @@ class DefaultMessageComponent(
         )
     private val wasCreatedAsPending = isPending
     private val logger = KotlinLogging.logger {}
+    private val instantiationTime = Clock.System.now()
 
     init {
         if (hasUploadingAttachments) {
@@ -155,6 +159,10 @@ class DefaultMessageComponent(
         else {
             data.value.message.nonce.toString()
         }
+    }
+
+    override fun createdAt(): Instant {
+        return if (data.value.isPending) instantiationTime else data.value.createdAt
     }
 
     override fun onPendingEnd(message: Message) {
@@ -213,8 +221,7 @@ class DefaultMessageComponent(
         if (data.value.editorState.text.isBlank()) {
             if (data.value.message.attachments.isEmpty()) {
                 onDeleteRequested()
-            }
-            else {
+            } else {
                 onEditCancel()
             }
             return

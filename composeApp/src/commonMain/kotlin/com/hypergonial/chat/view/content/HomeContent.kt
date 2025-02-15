@@ -67,8 +67,6 @@ fun HomeContent(component: HomeComponent) {
         if (isSmall && !platform.isDesktop()) {
             AnimatedArrow()
         }
-
-        // TODO: Add button here to join guilds as well?
     }
 }
 

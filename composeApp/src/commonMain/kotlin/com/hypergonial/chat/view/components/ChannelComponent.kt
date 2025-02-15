@@ -47,6 +47,7 @@ import kotlin.math.max
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 // Note: Do not raise this above 100 as the API will never return more than 100 messages at a time
 // but the client will incorrectly assume that it got less messages than it requested
@@ -452,6 +453,7 @@ class DefaultChannelComponent(
 
         val currentEntries = data.value.messageEntries
         val lastMessage = currentEntries.firstOrNull()?.lastMessage()?.data?.value?.message
+        val lastCreatedAt = currentEntries.firstOrNull()?.lastMessage()?.createdAt() ?: Instant.DISTANT_PAST
 
         // If we just received the message we recently sent, mark it as not pending
         if (
@@ -471,8 +473,8 @@ class DefaultChannelComponent(
         // Group recent messages by author
         if (
             lastMessage?.author?.id == newMessage.author.id &&
-                Clock.System.now() - lastMessage.createdAt < 5.minutes &&
-                currentEntries.totalMessageCount() >= 100
+                Clock.System.now() - lastCreatedAt < 5.minutes &&
+                currentEntries.lastOrNull()?.data?.value?.messages?.size?.let { it < 100 } == true
         ) {
             currentEntries.first().pushMessage(messageComponent(newMessage, isPending, hasUploadingAttachments))
         } else {

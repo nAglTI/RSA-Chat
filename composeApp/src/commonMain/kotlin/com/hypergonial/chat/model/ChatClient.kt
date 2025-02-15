@@ -64,7 +64,6 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
-import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.client.statement.bodyAsText
@@ -126,7 +125,7 @@ class ChatClient(scope: CoroutineScope) : Client {
     /** The JSON deserializer used for error messages */
     private val errorDeserializer = Json { prettyPrint = true }
     /** The API endpoint configuration */
-    private var config = settings.getApiSettings()
+    private var config = settings.getDevSettings()
     /** A queue of messages to be sent to the gateway */
     private val responses: QueueChannel<GatewayMessage> = QueueChannel()
     /** A channel for sending heartbeat ACKs between jobs */
@@ -739,7 +738,7 @@ class ChatClient(scope: CoroutineScope) : Client {
     }
 
     override fun reloadConfig() {
-        config = settings.getApiSettings()
+        config = settings.getDevSettings()
         token = settings.getToken()?.let { Secret(it) }
     }
 

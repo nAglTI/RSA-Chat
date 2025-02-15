@@ -5,7 +5,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.hypergonial.chat.ensureSlashAtEnd
-import com.hypergonial.chat.model.ApiConfig
+import com.hypergonial.chat.model.DevSettings
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.view.content.DebugSettingsContent
@@ -34,6 +34,13 @@ interface DebugSettingsComponent : Displayable {
      */
     fun onObjectStoreEndpointChange(url: String)
 
+    /**
+     * Called when the developer mode switch changes
+     *
+     * @param isInDeveloperMode True if the app is in developer mode
+     */
+    fun onDeveloperModeChange(isInDeveloperMode: Boolean)
+
     /** Called when the save button is clicked */
     fun onSaveClicked()
 
@@ -49,6 +56,8 @@ interface DebugSettingsComponent : Displayable {
         val gatewayEndpoint: String,
         /** The object store endpoint URL */
         val objectStoreEndpoint: String,
+        /** True if the app is in developer mode */
+        val isInDeveloperMode: Boolean = false,
         /** True if any of the URLs has changed */
         val hasChanged: Boolean = false,
         /** If true, the API endpoint URL is invalid */
@@ -61,18 +70,19 @@ interface DebugSettingsComponent : Displayable {
         companion object {
             /** Load the API configuration from persistent storage */
             fun load(): Data {
-                val config = settings.getApiSettings()
-                return Data(config.apiUrl, config.gatewayUrl, config.objectStoreUrl)
+                val config = settings.getDevSettings()
+                return Data(config.apiUrl, config.gatewayUrl, config.objectStoreUrl, config.isInDeveloperMode)
             }
         }
 
         /** Save the API configuration to persistent storage */
         fun save() {
-            settings.setApiSettings(
-                ApiConfig(
+            settings.setDevSettings(
+                DevSettings(
                     apiEndpoint.ensureSlashAtEnd(),
                     gatewayEndpoint.ensureSlashAtEnd(),
                     objectStoreEndpoint.ensureSlashAtEnd(),
+                    isInDeveloperMode,
                 )
             )
         }
@@ -103,6 +113,10 @@ class DefaultDebugSettingsComponent(val ctx: ComponentContext, val client: Clien
     override fun onObjectStoreEndpointChange(url: String) {
         data.value = data.value.copy(objectStoreEndpoint = url, hasChanged = true)
         validate()
+    }
+
+    override fun onDeveloperModeChange(isInDeveloperMode: Boolean) {
+        data.value = data.value.copy(isInDeveloperMode = isInDeveloperMode, hasChanged = true)
     }
 
     override fun onBackClicked() = onBack()

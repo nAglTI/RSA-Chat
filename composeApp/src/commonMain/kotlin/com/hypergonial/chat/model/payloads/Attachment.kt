@@ -23,7 +23,7 @@ data class Attachment(val id: Int, val filename: String, @SerialName("content_ty
      * */
     @Suppress("MaxLineLength")
     fun makeUrl(message: Message): String {
-        return "${settings.getApiSettings().objectStoreUrl.ensureNoSlashAtEnd()}/attachments/${message.channelId}/${message.id}/$id/$filename"
+        return "${settings.getDevSettings().objectStoreUrl.ensureNoSlashAtEnd()}/attachments/${message.channelId}/${message.id}/$id/$filename"
     }
 
     companion object {

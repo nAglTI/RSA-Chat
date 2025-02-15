@@ -50,6 +50,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -105,6 +107,7 @@ fun MainTopBar(component: SidebarComponent) {
 @Composable
 fun SidebarContent(component: SidebarComponent) {
     val state by component.data.subscribeAsState()
+    val clipboardManager = LocalClipboardManager.current
 
     Row(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -132,15 +135,18 @@ fun SidebarContent(component: SidebarComponent) {
                 if (state.currentUser?.id == guild.ownerId) {
                     SidebarGuildItem(
                         tooltipText = guild.name,
+                        guildId = guild.id,
                         icon = { modifier -> GuildIcon(guild, modifier) },
                         isSelected = guild.id == state.selectedGuild?.id,
                         onSelect = { component.onGuildSelected(guild.id) },
                         onEdit = { component.onGuildEditClicked(guild.id) },
                         onDelete = { component.onGuildDeleteClicked(guild.id) },
+                        onInviteCodeCopy = { clipboardManager.setText(AnnotatedString(guild.id.toString())) },
                     )
                 } else {
                     SidebarGuildItem(
                         tooltipText = guild.name,
+                        guildId = guild.id,
                         icon = { modifier -> GuildIcon(guild, modifier) },
                         isSelected = guild.id == state.selectedGuild?.id,
                         onSelect = { component.onGuildSelected(guild.id) },
@@ -170,6 +176,7 @@ fun SidebarContent(component: SidebarComponent) {
                     if (state.currentUser?.id == state.selectedGuild?.ownerId) {
                         SidebarChannelItem(
                             label = channel.name,
+                            channelId = channel.id,
                             isSelected = channel.id == state.selectedChannel?.id,
                             onSelect = { component.onChannelSelected(channel.id) },
                             onEdit = { component.onChannelEditClicked(channel.id) },

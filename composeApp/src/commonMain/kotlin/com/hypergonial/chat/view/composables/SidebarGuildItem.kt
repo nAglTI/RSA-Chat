@@ -12,10 +12,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Group
-import androidx.compose.material.icons.outlined.Logout
+import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +36,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -42,6 +45,8 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.hypergonial.chat.altClickable
 import com.hypergonial.chat.model.payloads.Guild
+import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.rememberHorizontalTooltipPositionProvider
 
 /**
@@ -62,14 +67,18 @@ import com.hypergonial.chat.rememberHorizontalTooltipPositionProvider
 @Composable
 fun SidebarGuildItem(
     tooltipText: String,
+    guildId: Snowflake,
     icon: @Composable (Modifier) -> Unit,
     isSelected: Boolean,
+    onInviteCodeCopy: (() -> Unit)? = null,
     isSystemItem: Boolean = false,
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     onLeave: (() -> Unit)? = null,
     onSelect: () -> Unit,
 ) {
+    val clipboardManager = LocalClipboardManager.current
+
     TooltipBox(
         positionProvider = rememberHorizontalTooltipPositionProvider(3.dp),
         tooltip = {
@@ -93,6 +102,15 @@ fun SidebarGuildItem(
             isAltMenuOpen,
             onDismissRequest = { isAltMenuOpen = false },
             altActions = {
+                if (onInviteCodeCopy != null) {
+                    item(
+                        "Copy invite code",
+                        leadingIcon = { Icon(Icons.Outlined.PersonAdd, contentDescription = "Copy join code") },
+                    ) {
+                        onInviteCodeCopy()
+                    }
+                }
+
                 if (onEdit != null) {
                     item(
                         "TODO - Edit Guild",
@@ -117,6 +135,15 @@ fun SidebarGuildItem(
                         leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete Guild") },
                     ) {
                         onDelete()
+                    }
+                }
+
+                if (settings.getDevSettings().isInDeveloperMode) {
+                    item(
+                        "Copy Guild ID",
+                        leadingIcon = { Icon(Icons.Outlined.Code, contentDescription = "Developer Mode") },
+                    ) {
+                        clipboardManager.setText(AnnotatedString(guildId.toString()))
                     }
                 }
             },
@@ -147,7 +174,6 @@ fun SidebarGuildItem(
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SidebarGuildItem(
@@ -170,10 +196,10 @@ fun SidebarGuildItem(
         state = rememberTooltipState(isPersistent = true),
     ) {
         val cornerRadius by
-        animateDpAsState(
-            if (isSelected) 14.dp else 28.dp,
-            spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy),
-        )
+            animateDpAsState(
+                if (isSelected) 14.dp else 28.dp,
+                spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+            )
 
         IconButton(
             onClick = onSelect,

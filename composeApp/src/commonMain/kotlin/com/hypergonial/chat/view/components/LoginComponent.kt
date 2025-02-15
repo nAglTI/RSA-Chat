@@ -101,8 +101,17 @@ class DefaultLoginComponent(
 
     override fun onLogoClick() {
         data.value = data.value.copy(logoClickCount = data.value.logoClickCount + 1)
+
+        if (data.value.logoClickCount in 3..7) {
+            data.value =
+                data.value.copy(
+                    snackbarMessage =
+                        SnackbarContainer("Click ${8 - data.value.logoClickCount} more times to open debug settings")
+                )
+        }
+
         if (data.value.logoClickCount >= 8) {
-            data.value = data.value.copy(logoClickCount = 0)
+            data.value = data.value.copy(logoClickCount = 0, snackbarMessage = SnackbarContainer(""))
             onDebugSettingsOpen()
         }
     }
@@ -126,7 +135,7 @@ class DefaultLoginComponent(
                         loginFailed = true,
                         snackbarMessage = SnackbarContainer("Invalid username or password"),
                     )
-            } catch(_: RatelimitedException) {
+            } catch (_: RatelimitedException) {
                 data.value =
                     data.value.copy(
                         isLoggingIn = false,

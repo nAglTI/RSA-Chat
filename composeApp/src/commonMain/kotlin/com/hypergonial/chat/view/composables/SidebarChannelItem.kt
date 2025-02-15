@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Icon
@@ -24,8 +25,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.hypergonial.chat.altClickable
+import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.model.settings
 
 /**
  * A composable that represents a channel item in the sidebar.
@@ -38,6 +43,7 @@ import com.hypergonial.chat.altClickable
 @Composable
 fun SidebarChannelItem(
     label: String,
+    channelId: Snowflake,
     isSelected: Boolean,
     icon: @Composable () -> Unit = { Icon(Icons.Filled.Tag, contentDescription = "Channel Icon") },
     onEdit: (() -> Unit)? = null,
@@ -45,20 +51,34 @@ fun SidebarChannelItem(
     onSelect: () -> Unit,
 ) {
     var isAltMenuActive by remember { mutableStateOf(false) }
+    val clipboardManager = LocalClipboardManager.current
 
-    AltActionMenu(isAltMenuActive, onDismissRequest = { isAltMenuActive = false }, altActions = {
-        if (onEdit != null) {
-            item("TODO - Edit", leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = "Edit Icon") }) {
-                onEdit()
+    AltActionMenu(
+        isAltMenuActive,
+        onDismissRequest = { isAltMenuActive = false },
+        altActions = {
+            if (onEdit != null) {
+                item("TODO - Edit", leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = "Edit Icon") }) {
+                    onEdit()
+                }
             }
-        }
 
-        if (onDelete != null) {
-            item("Delete", leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete Icon") }) {
-                onDelete()
+            if (onDelete != null) {
+                item("Delete", leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete Icon") }) {
+                    onDelete()
+                }
             }
-        }
-    }) {
+
+            if (settings.getDevSettings().isInDeveloperMode) {
+                item(
+                    "Copy Channel ID",
+                    leadingIcon = { Icon(Icons.Outlined.Code, contentDescription = "Developer Mode") },
+                ) {
+                    clipboardManager.setText(AnnotatedString(channelId.toString()))
+                }
+            }
+        },
+    ) {
         Row(
             Modifier.fillMaxWidth()
                 .padding(1.dp)
@@ -74,7 +94,6 @@ fun SidebarChannelItem(
         }
     }
 }
-
 
 /**
  * A composable that represents a channel item in the sidebar.

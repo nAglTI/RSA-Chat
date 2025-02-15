@@ -24,6 +24,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -145,24 +146,25 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
                         autoCorrectEnabled = false,
                         capitalization = KeyboardCapitalization.None,
                         keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Done,
+                        imeAction = ImeAction.Next,
                     ),
                 keyboardActions =
                     KeyboardActions(
-                        onDone = {
-                            if (
-                                state.hasChanged &&
-                                    !state.apiEndpointError &&
-                                    !state.gatewayEndpointError &&
-                                    !state.objectStoreEndpointError
-                            ) {
-                                focusManager.clearFocus()
-                                component.onSaveClicked()
-                                scope.launch { snackbarState.showSnackbar("Settings saved") }
-                            }
+                        onNext = {
+                            focusManager.clearFocus()
                         }
                     ),
             )
+
+            Row(Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp), verticalAlignment = Alignment.CenterVertically) {
+                Switch(
+                    checked = state.isInDeveloperMode,
+                    onCheckedChange = { component.onDeveloperModeChange(it) },
+                    modifier = Modifier.padding(end = 10.dp)
+                )
+
+                Text("Developer Mode")
+            }
 
             ChatButton(
                 modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),

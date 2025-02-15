@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -60,6 +61,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.LocalUsingDarkTheme
 import com.hypergonial.chat.altClickable
 import com.hypergonial.chat.model.payloads.Attachment
+import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.toHumanReadable
 import com.hypergonial.chat.view.ChatImageTransformer
@@ -190,6 +192,15 @@ fun MessageContextMenu(component: MessageComponent, content: @Composable () -> U
             if (state.canDelete) {
                 item("Delete", leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete") }) {
                     component.onDeleteRequested()
+                }
+            }
+
+            if (settings.getDevSettings().isInDeveloperMode && !state.isPending && !state.isFailed) {
+                item(
+                    "Copy Message ID",
+                    leadingIcon = { Icon(Icons.Outlined.Code, contentDescription = "Developer Mode") },
+                ) {
+                    clipboardManager.setText(AnnotatedString(state.message.id.toString()))
                 }
             }
         },

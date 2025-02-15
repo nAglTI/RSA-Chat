@@ -4,6 +4,7 @@ import com.russhwolf.settings.Settings
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
+/** The base class for implementing a persistent settings store for the application */
 abstract class AppSettings {
     /**
      * The user preferences store
@@ -20,8 +21,14 @@ abstract class AppSettings {
      */
     protected abstract val secrets: Settings?
 
-    /** The cached API settings for faster access */
-    private var cachedApiConfig: ApiConfig? = null
+    /** The cached developer settings for faster access */
+    private var cachedDevSettings: DevSettings? = null
+
+    /** The JSON serializer/deserializer */
+    private var json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
 
     /**
      * Get a serializable object from the settings
@@ -32,7 +39,7 @@ abstract class AppSettings {
     private inline fun <reified T> getSerializable(key: String): @Serializable T? {
         val value = userPreferences.getStringOrNull(key)
 
-        return if (value.isNullOrEmpty()) null else Json.decodeFromString(value)
+        return if (value.isNullOrEmpty()) null else json.decodeFromString(value)
     }
 
     /**
@@ -42,7 +49,7 @@ abstract class AppSettings {
      * @param value The object to set
      */
     private inline fun <reified T> setSerializable(key: String, value: @Serializable T) {
-        val serialized = Json.encodeToString(value)
+        val serialized = json.encodeToString(value)
 
         userPreferences.putString(key, serialized)
     }
@@ -96,28 +103,28 @@ abstract class AppSettings {
     fun removeToken() = setSecret("TOKEN", "")
 
     /**
-     * Get the API settings
+     * Get the developer settings
      *
-     * @return The API settings or the default settings if none are set
+     * @return The developer settings or the default settings if none are set
      */
-    fun getApiSettings(): ApiConfig {
-        if (cachedApiConfig != null) {
-            return cachedApiConfig!!
+    fun getDevSettings(): DevSettings {
+        if (cachedDevSettings != null) {
+            return cachedDevSettings!!
         } else {
-            val config = getSerializable("API_CONFIG") ?: ApiConfig.default()
-            cachedApiConfig = config
+            val config = getSerializable("API_CONFIG") ?: DevSettings.default()
+            cachedDevSettings = config
             return config
         }
     }
 
     /**
-     * Set the API settings
+     * Set the Developer settings
      *
-     * @param config The API settings to set
+     * @param config The developer settings to set
      */
-    fun setApiSettings(config: ApiConfig) {
+    fun setDevSettings(config: DevSettings) {
         setSerializable("API_CONFIG", config)
-        cachedApiConfig = config
+        cachedDevSettings = config
     }
 }
 

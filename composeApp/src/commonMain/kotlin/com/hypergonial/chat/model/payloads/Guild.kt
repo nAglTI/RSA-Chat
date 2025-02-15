@@ -23,7 +23,7 @@ data class Guild(
     val avatarUrl: String?
         get() =
             avatarHash?.let {
-                "${settings.getApiSettings().objectStoreUrl.ensureNoSlashAtEnd()}/guilds/$id/$it.${
+                "${settings.getDevSettings().objectStoreUrl.ensureNoSlashAtEnd()}/guilds/$id/$it.${
                 it.split("_").last()
             }"
             }

@@ -79,7 +79,7 @@ fun SidebarGuildItem(
 ) {
     val clipboardManager = LocalClipboardManager.current
 
-    TooltipBox(
+    DesktopOnlyTooltipBox(
         positionProvider = rememberHorizontalTooltipPositionProvider(3.dp),
         tooltip = {
             PlainTooltip(
@@ -183,7 +183,7 @@ fun SidebarGuildItem(
     isSystemItem: Boolean = false,
     onSelect: () -> Unit,
 ) {
-    TooltipBox(
+    DesktopOnlyTooltipBox(
         positionProvider = rememberHorizontalTooltipPositionProvider(3.dp),
         tooltip = {
             PlainTooltip(

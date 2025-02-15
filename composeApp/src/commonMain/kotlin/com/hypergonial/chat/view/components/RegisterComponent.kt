@@ -5,7 +5,8 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
-import com.hypergonial.chat.SnackbarContainer
+import com.hypergonial.chat.EffectContainer
+import com.hypergonial.chat.containAsEffect
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.Secret
 import com.hypergonial.chat.model.exceptions.ApiException
@@ -69,7 +70,7 @@ interface RegisterComponent : Displayable {
         /** If true, the registration failed */
         val registrationFailed: Boolean = false,
         /** The snackbar message to display */
-        val snackbarMessage: SnackbarContainer<String> = SnackbarContainer(""),
+        val snackbarMessage: EffectContainer<String> = "".containAsEffect(),
     )
 }
 
@@ -232,7 +233,7 @@ class DefaultRegisterComponent(
                     data.value.copy(
                         isRegistering = false,
                         registrationFailed = true,
-                        snackbarMessage = SnackbarContainer("Failed to register, please try again later."),
+                        snackbarMessage = "Failed to register, please try again later.".containAsEffect(),
                     )
                 logger.error { "Registration failed: ${e.message}" }
             } catch (e: ClientException) {
@@ -241,7 +242,7 @@ class DefaultRegisterComponent(
                     data.value.copy(
                         isRegistering = false,
                         registrationFailed = true,
-                        snackbarMessage = SnackbarContainer("Unknown error: ${e.message}"),
+                        snackbarMessage = "Unknown error: ${e.message}".containAsEffect(),
                     )
             }
         }

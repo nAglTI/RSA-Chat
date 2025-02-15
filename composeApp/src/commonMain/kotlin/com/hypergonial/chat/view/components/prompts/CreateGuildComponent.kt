@@ -5,9 +5,9 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
-import com.hypergonial.chat.SnackbarContainer
+import com.hypergonial.chat.EffectContainer
+import com.hypergonial.chat.containAsEffect
 import com.hypergonial.chat.model.Client
-import com.hypergonial.chat.model.exceptions.ApiException
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.view.components.Displayable
@@ -30,7 +30,7 @@ interface CreateGuildComponent : Displayable {
         val guildName: String = "",
         val isCreateButtonEnabled: Boolean = false,
         val isLoading: Boolean = false,
-        val snackbarMessage: SnackbarContainer<String> = SnackbarContainer(""),
+        val snackbarMessage: EffectContainer<String> = "".containAsEffect(),
     )
 }
 
@@ -57,7 +57,7 @@ class DefaultCreateGuildComponent(
                         data.value.copy(
                             isLoading = false,
                             snackbarMessage =
-                                SnackbarContainer(e.message ?: "An error occurred, please try again later."),
+                                (e.message ?: "An error occurred, please try again later.").containAsEffect(),
                         )
                     return@launch
                 }

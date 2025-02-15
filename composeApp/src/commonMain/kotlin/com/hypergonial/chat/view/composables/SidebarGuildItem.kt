@@ -164,7 +164,7 @@ fun SidebarGuildItem(
                         .padding(vertical = 6.dp, horizontal = 6.dp)
                         .border(
                             1.5f.dp,
-                            if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            if (isSelected) MaterialTheme.colorScheme.outline else Color.Transparent,
                             RoundedCornerShape(cornerRadius),
                         )
 
@@ -216,7 +216,7 @@ fun SidebarGuildItem(
                     .padding(vertical = 6.dp, horizontal = 6.dp)
                     .border(
                         1.5f.dp,
-                        if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        if (isSelected) MaterialTheme.colorScheme.outline else Color.Transparent,
                         RoundedCornerShape(cornerRadius),
                     )
 

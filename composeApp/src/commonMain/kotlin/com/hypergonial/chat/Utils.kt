@@ -1,9 +1,5 @@
 package com.hypergonial.chat
 
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.forEachGesture
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -26,10 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.isSecondaryPressed
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -40,44 +32,32 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.PopupPositionProvider
 import com.hypergonial.chat.model.Mime
-import com.hypergonial.chat.model.exceptions.ClientApiException
-import com.hypergonial.chat.model.exceptions.InvalidPayloadException
-import com.hypergonial.chat.model.exceptions.RequestTimeoutException
-import com.hypergonial.chat.model.exceptions.ServerApiException
-import com.hypergonial.chat.model.exceptions.TransportException
-import com.hypergonial.chat.model.exceptions.getApiException
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.vinceglb.filekit.core.PlatformFile
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.network.sockets.ConnectTimeoutException
-import io.ktor.client.network.sockets.SocketTimeoutException
-import io.ktor.client.plugins.ClientRequestException
-import io.ktor.client.plugins.HttpRequestTimeoutException
-import io.ktor.client.plugins.ServerResponseException
-import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.request
-import io.ktor.client.statement.HttpResponse
 import io.ktor.util.encodeBase64
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.io.IOException
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
-/** A container that when used as state, always causes a recomposition. */
-data class SnackbarContainer<T>(val value: T, private val randomness: Int = Random.nextInt())
+/** A container that when used as state, always causes a recomposition when changed, even if the value is the same.
+ * This is particularly useful in LaunchedEffect.
+ *
+ * To determine if two effects were dispatched from the same place, you can use (==) on the containers.
+ *
+ * @param value The value to store in the container
+ * */
+data class EffectContainer<T>(val value: T, private val dispatchId: Int = Random.nextInt())
+
+/** Create a new effect container from the given value. */
+fun <T> T.containAsEffect() = EffectContainer(this)
 
 /**
  * A serializer that wraps another serializer and falls back to a default value if the deserialization fails.

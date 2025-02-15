@@ -1,7 +1,5 @@
 package com.hypergonial.chat.view.components
 
-import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DrawerValue
 import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
@@ -11,7 +9,8 @@ import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
-import com.hypergonial.chat.SnackbarContainer
+import com.hypergonial.chat.EffectContainer
+import com.hypergonial.chat.containAsEffect
 import com.hypergonial.chat.model.ChannelCreateEvent
 import com.hypergonial.chat.model.ChannelRemoveEvent
 import com.hypergonial.chat.model.Client
@@ -146,10 +145,20 @@ interface SidebarComponent : Displayable {
         /** If true, the asset viewer is active */
         val assetViewerActive: Boolean = false,
         /** The state of the navigation drawer */
-        val navDrawerState: DrawerState = DrawerState(DrawerValue.Closed),
+        val navDrawerCommand: EffectContainer<NavDrawerCommand> =
+            NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect(),
         /** The state of the snackbar */
-        val snackbarMessage: SnackbarContainer<String> = SnackbarContainer(""),
+        val snackbarMessage: EffectContainer<String> = "".containAsEffect(),
     )
+
+    /** The commands that can be sent to the navigation drawer */
+    enum class NavDrawerCommand {
+        CLOSE,
+        OPEN,
+        CLOSE_WITHOUT_ANIMATION,
+        OPEN_WITHOUT_ANIMATION,
+        TOGGLE,
+    }
 }
 
 /**
@@ -185,13 +194,15 @@ class DefaultSideBarComponent(
     override val mainContent: Value<ChildSlot<*, MainContentComponent>> =
         childSlot(
             source = slotNavigation,
-            serializer = SlotConfig.serializer().withFallbackValue(SlotConfig.Home),
+            serializer =
+                SlotConfig.serializer()
+                    .withFallbackValue(SlotConfig.Home(hasGuilds = client.cache.guilds.isNotEmpty())),
             key = "MainContent",
             handleBackButton = false,
-            initialConfiguration = { SlotConfig.Home },
+            initialConfiguration = { SlotConfig.Home(hasGuilds = client.cache.guilds.isNotEmpty()) },
         ) { config, childCtx ->
             when (config) {
-                is SlotConfig.Home -> DefaultHomeComponent(childCtx)
+                is SlotConfig.Home -> DefaultHomeComponent(childCtx, client, hasGuilds = config.hasGuilds)
                 is SlotConfig.Fallback -> DefaultFallbackMainComponent(childCtx, ::onChannelCreateClicked)
 
                 is SlotConfig.Channel -> DefaultChannelComponent(childCtx, client, config.channelId) { onLogout() }
@@ -226,7 +237,7 @@ class DefaultSideBarComponent(
 
     override fun onHomeSelected() {
         data.value = data.value.copy(selectedGuild = null, selectedChannel = null, channels = emptyList())
-        slotNavigation.activate(SlotConfig.Home)
+        slotNavigation.activate(SlotConfig.Home(hasGuilds = data.value.guilds.isNotEmpty()))
     }
 
     override fun onLogoutClicked() {
@@ -239,6 +250,10 @@ class DefaultSideBarComponent(
     }
 
     override fun onGuildSelected(guild: Guild) {
+        if (guild.id == data.value.selectedGuild?.id) {
+            return
+        }
+
         // TODO: Update when channels have positions
         val channel = getDefaultGuildChannel(guild.id)
 
@@ -262,8 +277,12 @@ class DefaultSideBarComponent(
     }
 
     override fun onChannelSelected(channel: Channel) {
-        data.value = data.value.copy(selectedChannel = channel)
-        slotNavigation.activate(SlotConfig.Channel(channel.id))
+        if (channel.id != data.value.selectedChannel?.id) {
+            data.value = data.value.copy(selectedChannel = channel)
+            slotNavigation.activate(SlotConfig.Channel(channel.id))
+        }
+
+        data.value = data.value.copy(navDrawerCommand = SidebarComponent.NavDrawerCommand.CLOSE.containAsEffect())
     }
 
     override fun onGuildLeaveClicked(guildId: Snowflake) {
@@ -272,9 +291,7 @@ class DefaultSideBarComponent(
                 client.leaveGuild(guildId)
             } catch (e: ClientException) {
                 data.value =
-                    data.value.copy(
-                        snackbarMessage = SnackbarContainer("Unexpected error occurred: ${e.message}")
-                    )
+                    data.value.copy(snackbarMessage = "Unexpected error occurred: ${e.message}".containAsEffect())
                 logger.error { "Failed to leave guild: ${e.message}" }
             }
         }
@@ -286,16 +303,14 @@ class DefaultSideBarComponent(
                 client.deleteGuild(guildId)
             } catch (e: ClientException) {
                 data.value =
-                    data.value.copy(
-                        snackbarMessage = SnackbarContainer("Unexpected error occurred: ${e.message}")
-                    )
+                    data.value.copy(snackbarMessage = "Unexpected error occurred: ${e.message}".containAsEffect())
                 logger.error { "Failed to delete guild: ${e.message}" }
             }
         }
     }
 
     override fun onGuildEditClicked(guildId: Snowflake) {
-        data.value = data.value.copy(snackbarMessage = SnackbarContainer("Not yet implemented"))
+        data.value = data.value.copy(snackbarMessage = "Not yet implemented".containAsEffect())
     }
 
     override fun onAssetViewerClosed() {
@@ -311,6 +326,11 @@ class DefaultSideBarComponent(
         if (event.guild !in data.value.guilds) {
             data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         }
+
+        // Refresh home component if it is active
+        if (mainContent.value.child?.configuration is SlotConfig.Home) {
+            onHomeSelected()
+        }
     }
 
     private fun onGuildUpdate(event: GuildUpdateEvent) {
@@ -324,6 +344,14 @@ class DefaultSideBarComponent(
 
     private fun onGuildRemove(event: GuildRemoveEvent) {
         data.value = data.value.copy(guilds = data.value.guilds.filter { it.id != event.guild.id })
+
+        if (event.guild.id == data.value.selectedGuild?.id) {
+            onHomeSelected()
+        }
+        // Refresh home component if it is active
+        else if (mainContent.value.child?.configuration is SlotConfig.Home) {
+            onHomeSelected()
+        }
     }
 
     private fun onChannelCreate(event: ChannelCreateEvent) {
@@ -346,8 +374,8 @@ class DefaultSideBarComponent(
             return
         }
 
-        if (event.channel == data.value.selectedChannel) {
-            data.value = data.value.copy(selectedChannel = getDefaultGuildChannel(event.channel.guildId))
+        if (event.channel.id == data.value.selectedChannel?.id) {
+            data.value.selectedGuild?.id?.let { getDefaultGuildChannel(it) }?.let { onChannelSelected(it) }
         }
 
         data.value = data.value.copy(channels = data.value.channels.filter { it.id != event.channel.id })
@@ -360,7 +388,10 @@ class DefaultSideBarComponent(
             data.value = data.value.copy(channels = (data.value.channels + event.channel).sortedBy { it.id })
             onChannelSelected(event.channel)
         }
-        data.value = data.value.copy(navDrawerState = DrawerState(DrawerValue.Closed))
+        data.value =
+            data.value.copy(
+                navDrawerCommand = SidebarComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect()
+            )
     }
 
     private fun onGuildFocus(event: FocusGuildEvent) {
@@ -368,7 +399,10 @@ class DefaultSideBarComponent(
             data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         }
         onGuildSelected(event.guild)
-        data.value = data.value.copy(navDrawerState = DrawerState(DrawerValue.Closed))
+        data.value =
+            data.value.copy(
+                navDrawerCommand = SidebarComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect()
+            )
     }
 
     private fun onAssetFocus(event: FocusAssetEvent) {
@@ -390,7 +424,7 @@ class DefaultSideBarComponent(
     }
 
     override fun onChannelEditClicked(channelId: Snowflake) {
-        data.value = data.value.copy(snackbarMessage = SnackbarContainer("Not yet implemented"))
+        data.value = data.value.copy(snackbarMessage = "Not yet implemented".containAsEffect())
     }
 
     override fun onChannelDeleteClicked(channelId: Snowflake) {
@@ -399,7 +433,7 @@ class DefaultSideBarComponent(
                 client.deleteChannel(channelId)
             } catch (e: ClientException) {
                 data.value =
-                    data.value.copy(snackbarMessage = SnackbarContainer("Unexpected error occurred: ${e.message}"))
+                    data.value.copy(snackbarMessage = "Unexpected error occurred: ${e.message}".containAsEffect())
                 logger.error { "Failed to delete channel: ${e.message}" }
             }
         }
@@ -412,7 +446,7 @@ class DefaultSideBarComponent(
     @Serializable
     private sealed class SlotConfig {
         /** Shown when the user has not selected a guild. */
-        @Serializable data object Home : SlotConfig()
+        @Serializable data class Home(val hasGuilds: Boolean) : SlotConfig()
 
         /** Shown when the user has selected a guild but that guild has no channel. */
         @Serializable data object Fallback : SlotConfig()

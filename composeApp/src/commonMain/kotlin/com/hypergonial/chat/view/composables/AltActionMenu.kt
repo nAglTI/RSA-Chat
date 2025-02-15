@@ -22,6 +22,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,13 +78,22 @@ fun DefaultAltActionMenu(
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
             ) {
-                altMenuItems.forEachIndexed { i, item ->
-                    item.Display()
-
-                    if (i < altMenuItems.size - 1) {
-                        HorizontalDivider()
+                altMenuItems
+                    .map { item ->
+                        item.copy(
+                            onClick = {
+                                item.onClick()
+                                onDismissRequest()
+                            }
+                        )
                     }
-                }
+                    .forEachIndexed { i, item ->
+                        item.Display()
+
+                        if (i < altMenuItems.size - 1) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceDim)
+                        }
+                    }
             }
         }
         content()
@@ -152,7 +163,8 @@ private fun AltAction(
     }
 }
 
-class AltMenuItem(
+@Immutable
+data class AltMenuItem(
     val text: String,
     val leadingIcon: @Composable (() -> Unit)? = null,
     val trailingIcon: @Composable (() -> Unit)? = null,
@@ -163,6 +175,7 @@ class AltMenuItem(
     val showOnDesktop: Boolean = true,
     val onClick: () -> Unit,
 ) {
+    @Stable
     @Composable
     fun Display() {
         AltAction(

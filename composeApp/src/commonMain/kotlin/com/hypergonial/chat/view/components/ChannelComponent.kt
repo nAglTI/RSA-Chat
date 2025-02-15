@@ -10,8 +10,9 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
-import com.hypergonial.chat.SnackbarContainer
+import com.hypergonial.chat.EffectContainer
 import com.hypergonial.chat.appendMessages
+import com.hypergonial.chat.containAsEffect
 import com.hypergonial.chat.genNonce
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.LifecycleResumedEvent
@@ -124,7 +125,7 @@ interface ChannelComponent : MainContentComponent, Displayable {
         /** If true, the file upload dropdown is open */
         val isFileUploadDropdownOpen: Boolean = false,
         /** The message to be displayed in the snackbar */
-        val snackbarMessage: SnackbarContainer<String> = SnackbarContainer(""),
+        val snackbarMessage: EffectContainer<String> = "".containAsEffect(),
     )
 }
 
@@ -237,7 +238,7 @@ class DefaultChannelComponent(
                     client.fetchMessages(channelId = channelId, before = lastMessage, limit = MESSAGE_BATCH_SIZE)
                 } catch (e: ClientException) {
                     data.value =
-                        data.value.copy(snackbarMessage = SnackbarContainer("Failed to fetch messages: ${e.message}"))
+                        data.value.copy(snackbarMessage = "Failed to fetch messages: ${e.message}".containAsEffect())
                     return@launch
                 }
 
@@ -290,7 +291,7 @@ class DefaultChannelComponent(
                     client.fetchMessages(channelId = channelId, after = firstMessage, limit = MESSAGE_BATCH_SIZE)
                 } catch (e: ClientException) {
                     data.value =
-                        data.value.copy(snackbarMessage = SnackbarContainer("Failed to fetch messages: ${e.message}"))
+                        data.value.copy(snackbarMessage = "Failed to fetch messages: ${e.message}".containAsEffect())
                     return@launch
                 }
 
@@ -346,7 +347,7 @@ class DefaultChannelComponent(
                     client.fetchMessages(channelId = channelId, around = middle?.id, limit = MESSAGE_BATCH_SIZE)
                 } catch (e: ClientException) {
                     data.value =
-                        data.value.copy(snackbarMessage = SnackbarContainer("Failed to refresh messages: ${e.message}"))
+                        data.value.copy(snackbarMessage = "Failed to refresh messages: ${e.message}".containAsEffect())
                     return@launch
                 }
 
@@ -408,7 +409,7 @@ class DefaultChannelComponent(
             if (data.value.cumulativeFileSize + size > 8 * 1024 * 1024) {
                 data.value =
                     data.value.copy(
-                        snackbarMessage = SnackbarContainer("Upload size exceeds 8MB, cannot upload more files")
+                        snackbarMessage = "Upload size exceeds 8MB, cannot upload more files".containAsEffect()
                     )
                 return@launch
             }
@@ -424,7 +425,7 @@ class DefaultChannelComponent(
             if (data.value.cumulativeFileSize + size > 8 * 1024 * 1024) {
                 data.value =
                     data.value.copy(
-                        snackbarMessage = SnackbarContainer("Upload size exceeds 8MB, cannot upload more files")
+                        snackbarMessage = "Upload size exceeds 8MB, cannot upload more files".containAsEffect()
                     )
                 return
             }
@@ -566,7 +567,7 @@ class DefaultChannelComponent(
                     .firstOrNull { it.data.value.message.nonce == nonce }
                     ?.onFailed()
                 data.value =
-                    data.value.copy(snackbarMessage = SnackbarContainer("Failed to send message: ${e.message}"))
+                    data.value.copy(snackbarMessage = "Failed to send message: ${e.message}".containAsEffect())
                 logger.error { "Failed to send message: ${e.message}" }
                 e.printStackTrace()
             }
@@ -588,7 +589,7 @@ class DefaultChannelComponent(
                 client.deleteMessage(channelId, messageId)
             } catch (e: ClientException) {
                 data.value =
-                    data.value.copy(snackbarMessage = SnackbarContainer("Failed to delete message: ${e.message}"))
+                    data.value.copy(snackbarMessage = "Failed to delete message: ${e.message}".containAsEffect())
                 logger.error { "Failed to delete message: ${e.message}" }
             }
         }

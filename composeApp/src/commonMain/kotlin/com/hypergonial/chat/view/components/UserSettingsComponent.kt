@@ -5,10 +5,10 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
-import com.hypergonial.chat.SnackbarContainer
+import com.hypergonial.chat.EffectContainer
+import com.hypergonial.chat.containAsEffect
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.UserUpdateEvent
-import com.hypergonial.chat.model.exceptions.ApiException
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.view.content.UserSettingsContent
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -44,7 +44,7 @@ interface UserSettingsComponent : Displayable {
         val canSave: Boolean = false,
         val usernameErrors: List<String> = emptyList(),
         val displayNameErrors: List<String> = emptyList(),
-        val snackbarMessage: SnackbarContainer<String> = SnackbarContainer(""),
+        val snackbarMessage: EffectContainer<String> = "".containAsEffect(),
     )
 }
 
@@ -152,13 +152,13 @@ class DefaultUserSettingsComponent(
             catch (e: ClientException) {
                 data.value =
                     data.value.copy(
-                        snackbarMessage = SnackbarContainer("Failed to update user settings, please try again later.")
+                        snackbarMessage = "Failed to update user settings, please try again later.".containAsEffect()
                     )
                 logger.error { "Failed to update user settings: ${e.message}" }
                 return@launch
             }
 
-            data.value = data.value.copy(snackbarMessage = SnackbarContainer("User settings updated"))
+            data.value = data.value.copy(snackbarMessage = "User settings updated".containAsEffect())
         }
     }
 
@@ -175,7 +175,7 @@ class DefaultUserSettingsComponent(
             file.getSize()?.let {
                 if (it > 2 * 1024 * 1024) {
                     data.value =
-                        data.value.copy(snackbarMessage = SnackbarContainer("Avatar size must be less than 2MB"))
+                        data.value.copy(snackbarMessage = "Avatar size must be less than 2MB".containAsEffect())
                     return@launch
                 }
             }
@@ -186,13 +186,13 @@ class DefaultUserSettingsComponent(
             } catch (e: ClientException) {
                 data.value =
                     data.value.copy(
-                        snackbarMessage = SnackbarContainer("Failed to update avatar, please try again later.")
+                        snackbarMessage = "Failed to update avatar, please try again later.".containAsEffect()
                     )
                 logger.error { "Failed to update avatar: ${e.message}" }
                 return@launch
             }
 
-            data.value = data.value.copy(snackbarMessage = SnackbarContainer("Avatar updated"))
+            data.value = data.value.copy(snackbarMessage = "Avatar updated".containAsEffect())
         }
     }
 }

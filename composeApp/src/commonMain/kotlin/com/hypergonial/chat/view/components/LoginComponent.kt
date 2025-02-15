@@ -5,7 +5,8 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
-import com.hypergonial.chat.SnackbarContainer
+import com.hypergonial.chat.EffectContainer
+import com.hypergonial.chat.containAsEffect
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.Secret
 import com.hypergonial.chat.model.exceptions.ClientException
@@ -62,7 +63,7 @@ interface LoginComponent : Displayable {
         /** The number of times the logo has been clicked This is used to open the debug menu */
         val logoClickCount: Int = 0,
         /** The snackbar message to display */
-        val snackbarMessage: SnackbarContainer<String> = SnackbarContainer(""),
+        val snackbarMessage: EffectContainer<String> = "".containAsEffect(),
     )
 }
 
@@ -106,12 +107,12 @@ class DefaultLoginComponent(
             data.value =
                 data.value.copy(
                     snackbarMessage =
-                        SnackbarContainer("Click ${8 - data.value.logoClickCount} more times to open debug settings")
+                        ("Click ${8 - data.value.logoClickCount} more times to open debug settings").containAsEffect()
                 )
         }
 
         if (data.value.logoClickCount >= 8) {
-            data.value = data.value.copy(logoClickCount = 0, snackbarMessage = SnackbarContainer(""))
+            data.value = data.value.copy(logoClickCount = 0, snackbarMessage = "".containAsEffect())
             onDebugSettingsOpen()
         }
     }
@@ -133,14 +134,14 @@ class DefaultLoginComponent(
                     data.value.copy(
                         isLoggingIn = false,
                         loginFailed = true,
-                        snackbarMessage = SnackbarContainer("Invalid username or password"),
+                        snackbarMessage = "Invalid username or password".containAsEffect(),
                     )
             } catch (_: RatelimitedException) {
                 data.value =
                     data.value.copy(
                         isLoggingIn = false,
                         loginFailed = true,
-                        snackbarMessage = SnackbarContainer("Too many login attempts, please try again later"),
+                        snackbarMessage = "Too many login attempts, please try again later".containAsEffect(),
                     )
             } catch (e: ClientException) {
                 logger.error { "Login failed: ${e.message}" }
@@ -148,7 +149,7 @@ class DefaultLoginComponent(
                     data.value.copy(
                         isLoggingIn = false,
                         loginFailed = true,
-                        snackbarMessage = SnackbarContainer("Login failed: ${e.message}"),
+                        snackbarMessage = "Login failed: ${e.message}".containAsEffect(),
                     )
             }
         }

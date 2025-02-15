@@ -32,6 +32,9 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
@@ -50,8 +53,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -62,6 +67,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.hypergonial.chat.altClickable
+import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.toggle
 import com.hypergonial.chat.view.ChatTheme
@@ -70,6 +77,7 @@ import com.hypergonial.chat.view.components.FallbackMainComponent
 import com.hypergonial.chat.view.components.HomeComponent
 import com.hypergonial.chat.view.components.SidebarComponent
 import com.hypergonial.chat.view.composables.AdaptiveDrawer
+import com.hypergonial.chat.view.composables.AltActionMenu
 import com.hypergonial.chat.view.composables.AssetViewerOverlay
 import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 import com.hypergonial.chat.view.composables.GuildIcon
@@ -85,6 +93,9 @@ fun MainTopBar(component: SidebarComponent, drawerState: DrawerState) {
     val isSmall = remember(windowSizeClass) { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT }
     val scope = rememberCoroutineScope()
     val state by component.data.subscribeAsState()
+    var altMenuState by remember { mutableStateOf(false) }
+    val ownsCurrentGuild = remember(state.selectedGuild) { state.selectedGuild?.ownerId == state.currentUser?.id }
+    val clipboardManager = LocalClipboardManager.current
 
     val topBarText by
         remember(state.selectedChannel) {
@@ -98,9 +109,49 @@ fun MainTopBar(component: SidebarComponent, drawerState: DrawerState) {
 
     TopAppBar(
         title = {
-            Row {
-                Icon(icon, contentDescription = "Channel Icon", Modifier.padding(end = 5.dp))
-                Text(topBarText)
+            if (state.selectedChannel != null) {
+                AltActionMenu(
+                    altMenuState,
+                    onDismissRequest = { altMenuState = false },
+                    altActions = {
+                        if (ownsCurrentGuild) {
+                            item(
+                                "TODO - Edit",
+                                leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = "Edit Icon") },
+                            ) {
+                                component.onChannelEditClicked(state.selectedChannel!!.id)
+                            }
+                        }
+
+                        if (ownsCurrentGuild) {
+                            item(
+                                "Delete",
+                                leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete Icon") },
+                            ) {
+                                component.onChannelDeleteClicked(state.selectedChannel!!.id)
+                            }
+                        }
+
+                        if (settings.getDevSettings().isInDeveloperMode && state.selectedChannel != null) {
+                            item(
+                                "Copy Channel ID",
+                                leadingIcon = { Icon(Icons.Outlined.Code, contentDescription = "Developer Mode") },
+                            ) {
+                                clipboardManager.setText(AnnotatedString(state.selectedChannel?.id.toString()))
+                            }
+                        }
+                    },
+                ) {
+                    Row(Modifier.altClickable { altMenuState = true }) {
+                        Icon(icon, contentDescription = "Channel Icon", Modifier.padding(end = 5.dp))
+                        Text(topBarText)
+                    }
+                }
+            } else {
+                Row {
+                    Icon(icon, contentDescription = "Channel Icon", Modifier.padding(end = 5.dp))
+                    Text(topBarText)
+                }
             }
         },
         navigationIcon = {
@@ -172,7 +223,7 @@ fun SidebarContent(component: SidebarComponent, drawerState: DrawerState) {
                     SidebarGuildItem(
                         tooltipText = guild.name,
                         guildId = guild.id,
-                        icon = { modifier -> GuildIcon(guild, modifier) },
+                        icon = { modifier -> GuildIcon(guild, guild.id == state.selectedGuild?.id, modifier) },
                         isSelected = guild.id == state.selectedGuild?.id,
                         onSelect = { component.onGuildSelected(guild.id) },
                         onEdit = { component.onGuildEditClicked(guild.id) },
@@ -183,7 +234,7 @@ fun SidebarContent(component: SidebarComponent, drawerState: DrawerState) {
                     SidebarGuildItem(
                         tooltipText = guild.name,
                         guildId = guild.id,
-                        icon = { modifier -> GuildIcon(guild, modifier) },
+                        icon = { modifier -> GuildIcon(guild, guild.id == state.selectedGuild?.id, modifier) },
                         isSelected = guild.id == state.selectedGuild?.id,
                         onSelect = { component.onGuildSelected(guild.id) },
                         onLeave = { component.onGuildLeaveClicked(guild.id) },

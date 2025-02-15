@@ -1,5 +1,6 @@
 package com.hypergonial.chat.view.composables
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
@@ -12,10 +13,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,7 +25,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -233,15 +234,28 @@ fun SidebarGuildItem(
  * @param modifier The modifier to be applied to the icon.
  */
 @Composable
-fun GuildIcon(guild: Guild, modifier: Modifier = Modifier) {
+fun GuildIcon(guild: Guild, isSelected: Boolean, modifier: Modifier = Modifier) {
+    val cornerRadius by
+        animateDpAsState(
+            if (isSelected) 14.dp else 28.dp,
+            spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+        )
+
     if (guild.avatarUrl == null) {
-        Icon(Icons.Outlined.Group, contentDescription = guild.name, modifier = modifier)
+        Crossfade(isSelected) {
+            Icon(
+                if (it) Icons.Filled.Groups else Icons.Outlined.Groups,
+                contentDescription = guild.name,
+                modifier = modifier.clip(RoundedCornerShape(cornerRadius)),
+            )
+            }
+
     } else {
         AsyncImage(
             model = ImageRequest.Builder(LocalPlatformContext.current).data(guild.avatarUrl).crossfade(true).build(),
             contentDescription = guild.name,
             contentScale = ContentScale.Crop,
-            modifier = modifier,
+            modifier = modifier.clip(RoundedCornerShape(cornerRadius)),
         )
     }
 }

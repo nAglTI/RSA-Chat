@@ -123,7 +123,7 @@ class DefaultMessageEntryComponent(
             MessageEntryComponent.MessageEntryState(messages.toMutableStateList(), topEndIndicator, bottomEndIndicator)
         )
     // Ensure the entry key remains the same even if the messages change
-    private val key = (messages.firstOrNull()?.data?.value?.message?.id ?: hashCode()).toString()
+    private val key = (messages.firstOrNull()?.getKey() ?: hashCode()).toString()
 
     override fun getKey(): String = key
 

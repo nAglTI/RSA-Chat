@@ -151,8 +151,6 @@ sealed interface EndIndicator
 /**
  * A loading indicator that indicates the top of the messages list. If this is rendered, it typically indicates that we
  * ran out of messages and need to fetch more.
- *
- * @param wasSeen Whether the user has seen this loading indicator.
  */
 class LoadMoreMessagesIndicator : EndIndicator {
     var wasSeen: Boolean = false

@@ -48,17 +48,18 @@ class DefaultJoinGuildComponent(
 
         scope.launch {
             data.value = data.value.copy(isLoading = true)
-            val member = try {
-                client.joinGuild(guildId)
-            } catch (e: ClientException) {
-                data.value =
-                    data.value.copy(
-                        isLoading = false,
-                        snackbarMessage =
-                        (e.message ?: "An error occurred, please try again later.").containAsEffect(),
-                    )
-                return@launch
-            }
+            val member =
+                try {
+                    client.joinGuild(guildId)
+                } catch (e: ClientException) {
+                    data.value =
+                        data.value.copy(
+                            isLoading = false,
+                            snackbarMessage =
+                                (e.message ?: "An error occurred, please try again later.").containAsEffect(),
+                        )
+                    return@launch
+                }
             data.value = data.value.copy(isLoading = false)
             onJoined(member)
         }

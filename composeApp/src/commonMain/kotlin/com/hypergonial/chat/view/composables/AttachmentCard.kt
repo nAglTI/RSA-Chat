@@ -26,7 +26,8 @@ import com.hypergonial.chat.model.Mime
 import com.hypergonial.chat.model.downloader
 import com.hypergonial.chat.trimFilename
 
-/** A card that displays an attachment with a download button
+/**
+ * A card that displays an attachment with a download button
  *
  * @param filename the name of the file
  * @param mime the mime type of the file
@@ -55,7 +56,8 @@ fun AttachmentCard(filename: String, mime: Mime, url: String, modifier: Modifier
     }
 }
 
-/** A card that displays a failed attachment with a disabled download button
+/**
+ * A card that displays a failed attachment with a disabled download button
  *
  * @param filename the name of the file
  * @param modifier the modifier for the card
@@ -68,18 +70,13 @@ fun FailedAttachmentCard(filename: String, modifier: Modifier = Modifier) {
                 Icons.Filled.Error,
                 contentDescription = "Upload Failure",
                 modifier = Modifier.padding(15.dp).height(48.dp).width(48.dp),
-                tint = MaterialTheme.colorScheme.error
+                tint = MaterialTheme.colorScheme.error,
             )
             Text(filename.trimFilename(), color = MaterialTheme.colorScheme.error)
 
-            IconButton(
-                onClick = {},
-                enabled = false,
-            ) {
+            IconButton(onClick = {}, enabled = false) {
                 Icon(Icons.Filled.FileDownloadOff, contentDescription = "Download $filename")
             }
-
         }
     }
 }
-

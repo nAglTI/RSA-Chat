@@ -36,11 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.ContentScale
@@ -101,11 +96,7 @@ fun AssetViewerOverlay(
             enter = scaleIn(spring(stiffness = Spring.StiffnessMedium)),
             exit = scaleOut(spring(stiffness = Spring.StiffnessMedium)),
         ) {
-            Box(
-                Modifier.fillMaxSize()
-                    .clickable(null, indication = null) { onClose() },
-                Alignment.Center,
-            ) {
+            Box(Modifier.fillMaxSize().clickable(null, indication = null) { onClose() }, Alignment.Center) {
                 Box(modifier = Modifier.padding(horizontal = imagePadding, vertical = imagePadding * 2)) {
                     ZoomableAsyncImage(
                         model = ImageRequest.Builder(LocalPlatformContext.current).data(url).crossfade(true).build(),

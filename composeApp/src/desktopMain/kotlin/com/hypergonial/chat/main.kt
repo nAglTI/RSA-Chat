@@ -1,7 +1,5 @@
 package com.hypergonial.chat
 
-import androidx.compose.foundation.DarkDefaultContextMenuRepresentation
-import androidx.compose.foundation.LightDefaultContextMenuRepresentation
 import androidx.compose.foundation.LocalContextMenuRepresentation
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

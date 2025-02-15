@@ -23,7 +23,7 @@ actual fun ZoomableAsyncImage(
     alpha: Float,
     colorFilter: ColorFilter?,
     filterQuality: FilterQuality,
-    clipToBounds: Boolean
+    clipToBounds: Boolean,
 ) {
     val zoomState = rememberZoomState()
 
@@ -43,6 +43,6 @@ actual fun ZoomableAsyncImage(
         alpha = alpha,
         colorFilter = colorFilter,
         filterQuality = filterQuality,
-        clipToBounds = clipToBounds
+        clipToBounds = clipToBounds,
     )
 }

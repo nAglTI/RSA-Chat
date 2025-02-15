@@ -97,10 +97,7 @@ actual fun FileDropTarget(onFilesDropped: (List<PlatformFile>) -> Unit, content:
                 modifier =
                     Modifier.fillMaxSize()
                         .pointerInput(Unit) { /* Disable touch events */ }
-                        .background(
-                            Color.Black.copy(alpha = 0.6f),
-                            shape = RoundedCornerShape(12.dp, 0.dp, 0.dp, 0.dp),
-                        )
+                        .background(Color.Black.copy(alpha = 0.6f), shape = RoundedCornerShape(12.dp, 0.dp, 0.dp, 0.dp))
                         .hazeEffect(hazeState, style = HazeMaterials.thin())
             )
         }

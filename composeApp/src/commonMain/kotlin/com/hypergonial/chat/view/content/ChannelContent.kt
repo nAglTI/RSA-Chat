@@ -45,8 +45,8 @@ import com.hypergonial.chat.getIcon
 import com.hypergonial.chat.model.Mime
 import com.hypergonial.chat.trimFilename
 import com.hypergonial.chat.view.components.ChannelComponent
-import com.hypergonial.chat.view.composables.FileDropTarget
 import com.hypergonial.chat.view.composables.ChatBar
+import com.hypergonial.chat.view.composables.FileDropTarget
 import com.hypergonial.chat.view.composables.MessageList
 import io.github.vinceglb.filekit.core.PlatformFile
 
@@ -61,7 +61,6 @@ fun ChannelContent(component: ChannelComponent) {
             remember(state.chatBarValue, state.pendingAttachments) {
                 derivedStateOf { state.chatBarValue.text.isNotEmpty() || state.pendingAttachments.isNotEmpty() }
             }
-
 
         Scaffold(Modifier.fillMaxSize(), snackbarHost = { SnackbarHost(snackbarState) }) {
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
@@ -118,7 +117,7 @@ fun FileUploadIcon(component: ChannelComponent) {
         DropdownMenu(
             expanded = state.isFileUploadDropdownOpen,
             onDismissRequest = component::onFileUploadDropdownClose,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
         ) {
             DropdownMenuItem(
                 text = { Text("Upload File") },

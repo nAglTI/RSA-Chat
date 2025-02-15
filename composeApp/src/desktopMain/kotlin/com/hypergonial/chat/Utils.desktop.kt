@@ -1,18 +1,12 @@
 package com.hypergonial.chat
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.PointerMatcher
 import androidx.compose.foundation.onClick
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.awtEventOrNull
-import androidx.compose.ui.input.pointer.PointerButton
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
-import androidx.compose.ui.input.pointer.pointerInput
 import com.arkivanov.essenty.statekeeper.SerializableContainer
 import java.io.File
 import javax.swing.SwingUtilities

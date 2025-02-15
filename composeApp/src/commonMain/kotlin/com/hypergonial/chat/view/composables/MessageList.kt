@@ -90,6 +90,7 @@ val LocalHighlights = compositionLocalOf { Highlights.Builder() }
  *   load more messages.
  */
 @Composable
+@Suppress("UnusedParameter")
 fun MessageList(
     features: List<MessageEntryComponent>,
     modifier: Modifier = Modifier,
@@ -274,36 +275,36 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
                 Markdown(
                     state.message.content ?: "TODO: No content - HANDLEME",
                     colors =
-                    markdownColor(
-                        text =
-                        if (state.isFailed) MaterialTheme.colorScheme.error
-                        else if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground,
-                        linkText = MaterialTheme.colorScheme.primary,
-                    ),
+                        markdownColor(
+                            text =
+                                if (state.isFailed) MaterialTheme.colorScheme.error
+                                else if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground,
+                            linkText = MaterialTheme.colorScheme.primary,
+                        ),
                     imageTransformer = ChatImageTransformer,
                     modifier = Modifier.fillMaxHeight().fillMaxWidth(0.9f),
                     components =
-                    markdownComponents(
-                        codeBlock = { MarkdownHighlightedCodeBlock(it.content, it.node, LocalHighlights.current) },
-                        codeFence = { MarkdownHighlightedCodeFence(it.content, it.node, LocalHighlights.current) },
-                        // Ignore horizontal lines
-                        horizontalRule = { MarkdownText(it.content) },
-                    ),
+                        markdownComponents(
+                            codeBlock = { MarkdownHighlightedCodeBlock(it.content, it.node, LocalHighlights.current) },
+                            codeFence = { MarkdownHighlightedCodeFence(it.content, it.node, LocalHighlights.current) },
+                            // Ignore horizontal lines
+                            horizontalRule = { MarkdownText(it.content) },
+                        ),
                     typography =
-                    markdownTypography(
-                        text = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
-                        paragraph = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
-                        quote =
-                        MaterialTheme.typography.bodyMedium.copy(
-                            color = Color.LightGray,
-                            fontWeight = FontWeight.Thin,
+                        markdownTypography(
+                            text = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                            paragraph = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                            quote =
+                                MaterialTheme.typography.bodyMedium.copy(
+                                    color = Color.LightGray,
+                                    fontWeight = FontWeight.Thin,
+                                ),
+                            link =
+                                MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Normal,
+                                    textDecoration = TextDecoration.Underline,
+                                ),
                         ),
-                        link =
-                        MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Normal,
-                            textDecoration = TextDecoration.Underline,
-                        ),
-                    ),
                 )
 
                 AnimatedVisibility(visible = state.message.isEdited) {
@@ -324,8 +325,6 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
                 }
             }
         }
-
-
 
         if (state.hasUploadingAttachments) {
             UploadStateCard(state.uploadProgress.toFloat())

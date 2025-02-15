@@ -497,7 +497,8 @@ class DefaultChannelComponent(
     }
 
     private fun onMessageCreate(event: MessageCreateEvent) {
-        // If the user is so high up that the messages at the bottom aren't even loaded, just don't bother
+        // If the user is so high up that the messages at the bottom aren't even loaded, just don't
+        // bother
         if (event.message.channelId != channelId || data.value.isCruising) {
             // TODO: Implement a way to notify the user that new messages are available
             return
@@ -526,6 +527,7 @@ class DefaultChannelComponent(
         }
     }
 
+    @Suppress("UnusedParameter")
     private fun onResume(event: LifecycleResumedEvent) {
         refreshMessageList()
     }
@@ -568,8 +570,7 @@ class DefaultChannelComponent(
                     .flatMap { it.data.value.messages }
                     .firstOrNull { it.data.value.message.nonce == nonce }
                     ?.onFailed()
-                data.value =
-                    data.value.copy(snackbarMessage = "Failed to send message: ${e.message}".containAsEffect())
+                data.value = data.value.copy(snackbarMessage = "Failed to send message: ${e.message}".containAsEffect())
                 logger.error { "Failed to send message: ${e.message}" }
                 e.printStackTrace()
             }

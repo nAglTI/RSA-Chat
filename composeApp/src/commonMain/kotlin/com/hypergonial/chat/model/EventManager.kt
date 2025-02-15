@@ -2,6 +2,7 @@ package com.hypergonial.chat.model
 
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.doOnDestroy
+import com.hypergonial.chat.model.exceptions.EventManagerException
 import kotlin.reflect.KClass
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -87,19 +88,21 @@ private class EventManagerActor {
         }
     }
 
-    /** Send an instruction to the event manager.
+    /**
+     * Send an instruction to the event manager.
      *
      * @param instruction The instruction to send.
-     * */
+     */
     suspend fun sendInstruction(instruction: Instruction) {
         channel.send(instruction)
     }
 
-    /** Try to send an instruction to the event manager.
+    /**
+     * Try to send an instruction to the event manager.
      *
      * @param instruction The instruction to send.
      * @return True if the instruction was queued successfully, false otherwise.
-     * */
+     */
     fun trySendInstruction(instruction: Instruction): Boolean {
         return channel.trySend(instruction).isSuccess
     }
@@ -172,7 +175,7 @@ class EventManager {
     fun <T : Event> subscribe(eventType: KClass<T>, callback: suspend (T) -> Unit) {
         val res = inner.trySendInstruction(Instruction.Subscribe(eventType, EventSubscriber(callback)))
         if (!res) {
-            throw RuntimeException("Failed to subscribe $callback to $eventType")
+            throw EventManagerException("Failed to subscribe $callback to $eventType")
         }
     }
 
@@ -215,7 +218,7 @@ class EventManager {
     fun <T : Event> unsubscribe(eventType: KClass<T>, callback: suspend (T) -> Unit) {
         val res = inner.trySendInstruction(Instruction.Unsubscribe(eventType, EventSubscriber(callback)))
         if (!res) {
-            throw RuntimeException("Failed to subscribe $callback to $eventType")
+            throw EventManagerException("Failed to unsubscribe $callback from $eventType")
         }
     }
 
@@ -254,7 +257,7 @@ class EventManager {
     fun dispatch(event: Event) {
         val res = inner.trySendInstruction(Instruction.Dispatch(event))
         if (!res) {
-            throw RuntimeException("Failed to dispatch $event")
+            throw EventManagerException("Failed to dispatch $event")
         }
     }
 }

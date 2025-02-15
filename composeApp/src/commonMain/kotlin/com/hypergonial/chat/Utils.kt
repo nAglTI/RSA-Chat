@@ -47,13 +47,14 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
-/** A container that when used as state, always causes a recomposition when changed, even if the value is the same.
- * This is particularly useful in LaunchedEffect.
+/**
+ * A container that when used as state, always causes a recomposition when changed, even if the value is the same. This
+ * is particularly useful in LaunchedEffect.
  *
  * To determine if two effects were dispatched from the same place, you can use (==) on the containers.
  *
  * @param value The value to store in the container
- * */
+ */
 data class EffectContainer<T>(val value: T, private val dispatchId: Int = Random.nextInt())
 
 /** Create a new effect container from the given value. */
@@ -437,11 +438,11 @@ suspend fun PlatformFile.toDataUrl(): String {
     return "data:${this.getMime()};base64,${this.readBytes().encodeBase64()}"
 }
 
-/** A modifier that adds an alt-click listener to the component.
+/**
+ * A modifier that adds an alt-click listener to the component.
  *
  * On desktop platforms this registers a right-click, on mobile platforms this registers a long press.
  *
  * @param onClick The callback to call when the alt-click is detected
- * */
-@Composable
-expect fun Modifier.altClickable(onClick: () -> Unit): Modifier
+ */
+@Composable expect fun Modifier.altClickable(onClick: () -> Unit): Modifier

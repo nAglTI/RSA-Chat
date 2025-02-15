@@ -3,7 +3,6 @@ package com.hypergonial.chat.view.content
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -58,10 +57,7 @@ fun DebugSettingsTopBar(component: DebugSettingsComponent) {
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(
-            onClick = { component.onBackClicked() },
-            modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp),
-        ) {
+        IconButton(onClick = { component.onBackClicked() }, modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp)) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
     }
@@ -74,10 +70,7 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
     val snackbarState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
 
-    Scaffold(
-        topBar = { DebugSettingsTopBar(component) },
-        snackbarHost = { SnackbarHost(snackbarState) },
-    ) {
+    Scaffold(topBar = { DebugSettingsTopBar(component) }, snackbarHost = { SnackbarHost(snackbarState) }) {
         Column(
             Modifier.fillMaxSize().safeDrawingPadding(),
             verticalArrangement = Arrangement.Center,
@@ -106,8 +99,7 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Next,
                     ),
-                keyboardActions =
-                    KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
             )
 
             OutlinedTextField(
@@ -126,8 +118,7 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Next,
                     ),
-                keyboardActions =
-                    KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
             )
 
             OutlinedTextField(
@@ -138,9 +129,7 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
                 onValueChange = { component.onObjectStoreEndpointChange(it) },
                 label = { Text("Object Store endpoint") },
                 placeholder = { Text("https://cdn.example.org") },
-                leadingIcon = {
-                    Icon(Icons.Filled.Description, contentDescription = "Object Store endpoint")
-                },
+                leadingIcon = { Icon(Icons.Filled.Description, contentDescription = "Object Store endpoint") },
                 keyboardOptions =
                     KeyboardOptions(
                         autoCorrectEnabled = false,
@@ -148,19 +137,14 @@ fun DebugSettingsContent(component: DebugSettingsComponent) {
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Next,
                     ),
-                keyboardActions =
-                    KeyboardActions(
-                        onNext = {
-                            focusManager.clearFocus()
-                        }
-                    ),
+                keyboardActions = KeyboardActions(onNext = { focusManager.clearFocus() }),
             )
 
             Row(Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp), verticalAlignment = Alignment.CenterVertically) {
                 Switch(
                     checked = state.isInDeveloperMode,
                     onCheckedChange = { component.onDeveloperModeChange(it) },
-                    modifier = Modifier.padding(end = 10.dp)
+                    modifier = Modifier.padding(end = 10.dp),
                 )
 
                 Text("Developer Mode")

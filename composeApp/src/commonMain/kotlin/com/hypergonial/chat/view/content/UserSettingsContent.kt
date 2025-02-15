@@ -74,7 +74,6 @@ fun UserSettingsContent(component: UserSettingsComponent) {
     val snackbarState = remember { SnackbarHostState() }
     val isHovered by interactionSource.collectIsHoveredAsState()
 
-
     Scaffold(topBar = { UserSettingsTopBar(component) }, snackbarHost = { SnackbarHost(snackbarState) }) {
         Row(
             Modifier.fillMaxSize(),

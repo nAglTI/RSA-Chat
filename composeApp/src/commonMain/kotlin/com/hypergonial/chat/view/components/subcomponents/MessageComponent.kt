@@ -20,7 +20,8 @@ import kotlinx.datetime.Instant
 
 // Note to self: Subcomponents must not have navigation, StateKeeper, or InstanceKeeper,
 // because they get the parent's ctx directly which is *technically* not a supported configuration.
-// See https://arkivanov.github.io/Decompose/component/child-components/#adding-a-child-component-manually
+// See
+// https://arkivanov.github.io/Decompose/component/child-components/#adding-a-child-component-manually
 // for more information.
 
 /** Represents the state of a single message in the message list. */

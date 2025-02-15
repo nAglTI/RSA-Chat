@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.hypergonial.chat.LocalUsingDarkTheme
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.components.prompts.CreateChannelComponent
 import com.hypergonial.chat.view.composables.FullScreenProgressIndicator

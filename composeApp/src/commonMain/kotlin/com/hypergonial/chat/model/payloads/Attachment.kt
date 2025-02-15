@@ -16,11 +16,12 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Attachment(val id: Int, val filename: String, @SerialName("content_type") val contentType: Mime) {
 
-    /** Constructs a URL to the attachment.
+    /**
+     * Constructs a URL to the attachment.
      *
      * @param message The message the attachment is attached to.
      * @return The URL to the attachment.
-     * */
+     */
     @Suppress("MaxLineLength")
     fun makeUrl(message: Message): String {
         return "${settings.getDevSettings().objectStoreUrl.ensureNoSlashAtEnd()}/attachments/${message.channelId}/${message.id}/$id/$filename"

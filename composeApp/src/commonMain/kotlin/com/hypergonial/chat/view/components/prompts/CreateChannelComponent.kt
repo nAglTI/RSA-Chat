@@ -50,19 +50,19 @@ class DefaultCreateChannelComponent(
     override fun onCreateChannelClicked() {
         scope.launch {
             data.value = data.value.copy(isLoading = true)
-            val channel = try {
-                client.createChannel(guildId, data.value.channelName)
-            }
-            catch (e: ClientException) {
-                logger.error { "Failed to create channel: ${e.message}" }
-                data.value =
-                    data.value.copy(
-                        isLoading = false,
-                        snackbarMessage =
-                        (e.message ?: "An error occurred, please try again later.").containAsEffect(),
-                    )
-                return@launch
-            }
+            val channel =
+                try {
+                    client.createChannel(guildId, data.value.channelName)
+                } catch (e: ClientException) {
+                    logger.error { "Failed to create channel: ${e.message}" }
+                    data.value =
+                        data.value.copy(
+                            isLoading = false,
+                            snackbarMessage =
+                                (e.message ?: "An error occurred, please try again later.").containAsEffect(),
+                        )
+                    return@launch
+                }
 
             data.value = data.value.copy(isLoading = false)
             onCreated(channel)

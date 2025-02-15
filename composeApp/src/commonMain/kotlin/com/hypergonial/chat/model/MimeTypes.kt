@@ -8,16 +8,12 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
-
 @ConsistentCopyVisibility
 @Serializable(with = MimeSerializer::class)
 data class Mime internal constructor(val type: String, val subtype: String) {
     override fun toString(): String = "$type/$subtype"
 
-    internal constructor(mimeType: String) : this(
-        mimeType.substringBefore('/'),
-        mimeType.substringAfter('/')
-    )
+    internal constructor(mimeType: String) : this(mimeType.substringBefore('/'), mimeType.substringAfter('/'))
 
     companion object {
         fun fromUrl(url: String): Mime? = MimeTypeMap.getMimeTypeFromUrl(url)
@@ -40,12 +36,10 @@ private class MimeSerializer : KSerializer<Mime> {
     }
 }
 
-
-/**
- * A map of file extensions to mimetypes.
- */
+/** A map of file extensions to mimetypes. */
 object MimeTypeMap {
-    /** Returns the mime type for the given [url].
+    /**
+     * Returns the mime type for the given [url].
      *
      * @param url The URL to get the mime type for.
      * @return The mime type for the given [url] or null if the mime type is unknown.
@@ -55,16 +49,17 @@ object MimeTypeMap {
             return null
         }
 
-        val extension = url
-            .substringBeforeLast('#') // Strip the fragment.
-            .substringBeforeLast('?') // Strip the query.
-            .substringAfterLast('/') // Get the last path segment.
-            .substringAfterLast('.', missingDelimiterValue = "") // Get the file extension.
+        val extension =
+            url.substringBeforeLast('#') // Strip the fragment.
+                .substringBeforeLast('?') // Strip the query.
+                .substringAfterLast('/') // Get the last path segment.
+                .substringAfterLast('.', missingDelimiterValue = "") // Get the file extension.
 
         return getMimeTypeFromExtension(extension)
     }
 
-    /** Resolves the mime-type from the given [extension].
+    /**
+     * Resolves the mime-type from the given [extension].
      *
      * @param extension The extension to get the mime type for.
      * @return The mime type for the given [extension] or null if the mime type is unknown.
@@ -78,7 +73,8 @@ object MimeTypeMap {
         return mimeTypeData[lowerExtension]
     }
 
-    /** Resolves the extension from the given [mimeType].
+    /**
+     * Resolves the extension from the given [mimeType].
      *
      * @param mimeType The mime type to get the extension for.
      * @return The extension for the given [mimeType] or null if the extension is unknown.
@@ -88,12 +84,12 @@ object MimeTypeMap {
     }
 }
 
-/** Resolves the mime-type for this URL.
+/**
+ * Resolves the mime-type for this URL.
  *
  * @return The mime type for the given url or null if the mime type is unknown.
  */
 fun String.getMimeType(): Mime? = MimeTypeMap.getMimeTypeFromUrl(this)
-
 
 // Sourced from: https://github.com/patrickmccallum/mimetype-io/blob/master/package.json
 // Retrieved on: 2025-02-07

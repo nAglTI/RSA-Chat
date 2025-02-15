@@ -30,10 +30,11 @@ essenty = "2.3.0"
 multiplatformMarkdownRenderer = "0.30.0"
 slf4jAndroid = "2.0.7-0"
 startupRuntime = "1.2.0"
-ktor = "3.0.3"
+ktor = "3.1.0"
 detekt = "1.23.7"
 slf4j = "2.0.16"
 multiplatform-settings = "1.2.0"
+zoomableVersion = "2.0.0"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
@@ -78,6 +79,7 @@ ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.re
 ktor-utils = { module = "io.ktor:ktor-utils", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 kotlin-logging = { module = "io.github.oshai:kotlin-logging", version.ref = "kotlinLogging" }
+lib-zoomable = { module = "net.engawapg.lib:zoomable", version.ref = "zoomableVersion" }
 lifecycle = { module = "com.arkivanov.essenty:lifecycle", version.ref = "essenty" }
 lifecycle-coroutines = { module = "com.arkivanov.essenty:lifecycle-coroutines", version.ref = "essenty" }
 multiplatform-markdown-renderer = { module = "com.mikepenz:multiplatform-markdown-renderer", version.ref = "multiplatformMarkdownRenderer" }

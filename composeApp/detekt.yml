@@ -10,9 +10,6 @@ naming:
         ignoreAnnotated:
             - 'Composable'
 
-    TopLevelPropertyNaming:
-        constantPattern: '[A-Z][A-Za-z0-9]*'
-
 complexity:
     active: false
 
@@ -30,6 +27,12 @@ style:
         active: false
 
     ForbiddenComment:
+        active: false
+
+    ReturnCount:
+        active: false
+
+    LoopWithTooManyJumpStatements:
         active: false
 
     UnusedPrivateMember:

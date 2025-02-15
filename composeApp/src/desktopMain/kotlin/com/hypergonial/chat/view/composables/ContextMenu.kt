@@ -60,7 +60,8 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.window.rememberPopupPositionProviderAtPosition
 
-// Parts of this code were taken from the Compose source code and modified to fit the needs of this project.
+// Parts of this code were taken from the Compose source code and modified to fit the needs of this
+// project.
 
 /*
  * Copyright 2021 The Android Open Source Project
@@ -78,12 +79,13 @@ import androidx.compose.ui.window.rememberPopupPositionProviderAtPosition
  * limitations under the License.
  */
 
-/** A context menu item with an icon. Intended for use with [Material3ContextMenuRepresentation].
+/**
+ * A context menu item with an icon. Intended for use with [Material3ContextMenuRepresentation].
  *
  * @param label The label of the item.
  * @param icon The icon of the item.
  * @param onClick The action to perform when the item is clicked.
- * */
+ */
 class ContextMenuItemWithIcon(label: String, val icon: @Composable (() -> Unit)? = null, onClick: () -> Unit) :
     ContextMenuItem(label, onClick)
 
@@ -129,8 +131,7 @@ class Material3ContextMenuRepresentation : ContextMenuRepresentation {
                 inputModeManager = LocalInputModeManager.current
                 Column(
                     modifier =
-                        Modifier
-                            .shadow(16.dp, shape = RoundedCornerShape(6.dp))
+                        Modifier.shadow(16.dp, shape = RoundedCornerShape(6.dp))
                             .clip(RoundedCornerShape(6.dp))
                             .background(MaterialTheme.colorScheme.surfaceContainer)
                             .width(IntrinsicSize.Max)

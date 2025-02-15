@@ -5,7 +5,9 @@ import io.ktor.http.Url
 
 /** A downloader that can instruct the given platform to download a file from an HTTP url. */
 interface Downloader {
-    /** Download a file from the given url
+    /**
+     * Download a file from the given url
+     *
      * @param url The url to download the file from
      * @param uriHandler The handler to use to download the file (This may or may not be used depending on the platform)
      * @param fileName The name of the file to save the downloaded file as
@@ -22,7 +24,6 @@ object CommonDownloader : Downloader {
 
 /** Access the platform's [Downloader] */
 expect val downloader: Downloader
-
 
 private fun String.resolveFileName(): String {
     return Url(this).segments.last()

@@ -19,7 +19,6 @@ fun UploadStateCard(progress: Float) {
     val progressBarState by
         animateFloatAsState(progress, animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec)
 
-
     Card(Modifier.widthIn(max = 200.dp)) {
         Column {
             Text("Uploading files... (${(progress*100).roundToInt()}%)")

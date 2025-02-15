@@ -83,6 +83,7 @@ fun main() {
 
 fun SerializableContainer.encodeToString(): String = Json.encodeToString(SerializableContainer.serializer(), this)
 
+@Suppress("TooGenericExceptionCaught", "SwallowedException")
 fun String.decodeSerializableContainer(): SerializableContainer? =
     try {
         Json.decodeFromString(SerializableContainer.serializer(), this)

@@ -248,8 +248,7 @@ fun GuildIcon(guild: Guild, isSelected: Boolean, modifier: Modifier = Modifier) 
                 contentDescription = guild.name,
                 modifier = modifier.clip(RoundedCornerShape(cornerRadius)),
             )
-            }
-
+        }
     } else {
         AsyncImage(
             model = ImageRequest.Builder(LocalPlatformContext.current).data(guild.avatarUrl).crossfade(true).build(),

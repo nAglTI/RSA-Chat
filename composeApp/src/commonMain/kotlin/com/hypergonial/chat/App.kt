@@ -12,7 +12,6 @@ import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.hypergonial.chat.view.ChatTheme
 import com.hypergonial.chat.view.components.RootComponent
-import kotlinx.coroutines.Dispatchers
 
 val LocalUsingDarkTheme = compositionLocalOf { false }
 

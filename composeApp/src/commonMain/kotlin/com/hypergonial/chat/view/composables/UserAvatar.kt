@@ -1,10 +1,8 @@
 package com.hypergonial.chat.view.composables
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -26,11 +24,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun UserAvatar(avatarUrl: String? = null, displayName: String, size: Dp = 40.dp) {
     val isDarkTheme = LocalUsingDarkTheme.current
-    val imageModifier =
-        Modifier.padding(vertical = 6.dp, horizontal = 14.dp)
-            .requiredSize(size)
-            .clip(CircleShape)
-
+    val imageModifier = Modifier.padding(vertical = 6.dp, horizontal = 14.dp).requiredSize(size).clip(CircleShape)
 
     if (avatarUrl == null) {
         Image(
@@ -41,11 +35,7 @@ fun UserAvatar(avatarUrl: String? = null, displayName: String, size: Dp = 40.dp)
         )
     } else {
         AsyncImage(
-            model =
-            ImageRequest.Builder(LocalPlatformContext.current)
-                .data(avatarUrl)
-                .crossfade(true)
-                .build(),
+            model = ImageRequest.Builder(LocalPlatformContext.current).data(avatarUrl).crossfade(true).build(),
             contentDescription = "Avatar of $displayName",
             contentScale = ContentScale.Crop,
             modifier = imageModifier,

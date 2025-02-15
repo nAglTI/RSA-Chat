@@ -29,5 +29,4 @@ class DefaultNewGuildComponent(
     override fun onGuildJoinClicked() = onJoinRequested()
 
     override fun onBackClicked() = onCancel()
-
 }

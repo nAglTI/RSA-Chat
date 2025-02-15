@@ -21,7 +21,7 @@ actual fun ZoomableAsyncImage(
     alpha: Float,
     colorFilter: ColorFilter?,
     filterQuality: FilterQuality,
-    clipToBounds: Boolean
+    clipToBounds: Boolean,
 ) {
     AsyncImage(
         model = model,
@@ -34,6 +34,6 @@ actual fun ZoomableAsyncImage(
         alpha = alpha,
         colorFilter = colorFilter,
         filterQuality = filterQuality,
-        clipToBounds = clipToBounds
+        clipToBounds = clipToBounds,
     )
 }

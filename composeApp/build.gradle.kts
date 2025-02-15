@@ -64,7 +64,7 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
             // Pinch to zoom
-            implementation("net.engawapg.lib:zoomable:2.0.0")
+            implementation(libs.lib.zoomable)
         }
 
         androidMain.dependencies {
@@ -83,7 +83,7 @@ kotlin {
             implementation(libs.slf4j.api)
             implementation(libs.slf4j.android)
             // Pinch to zoom
-            implementation("net.engawapg.lib:zoomable:2.0.0")
+            implementation(libs.lib.zoomable)
         }
         commonMain.dependencies {
             implementation(kotlin("reflect"))
@@ -152,7 +152,6 @@ kotlin {
             implementation(libs.slf4j.simple)
             implementation(libs.ktor.client.okhttp)
         }
-        wasmJsMain.dependencies { implementation(libs.ktor.client.js) }
     }
 }
 
@@ -202,7 +201,7 @@ compose.desktop {
         mainClass = "com.hypergonial.chat.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Exe, TargetFormat.Deb)
             packageName = "com.hypergonial.chat"
             packageVersion = "1.0.0"
 
@@ -212,11 +211,24 @@ compose.desktop {
 
         buildTypes.release.proguard {
             configurationFiles.from("proguard-desktop-rules.pro")
-            joinOutputJars = true
+            joinOutputJars = false
             optimize = true
             obfuscate = true
         }
     }
+}
+
+ktfmt {
+    // Breaks lines longer than maxWidth. Default 100.
+    maxWidth.set(120)
+    // blockIndent is the indent size used when a new block is opened, in spaces.
+    blockIndent.set(4)
+    // continuationIndent is the indent size used when a line is broken because it's too
+    continuationIndent.set(4)
+    // Whether ktfmt should remove imports that are not used.
+    removeUnusedImports.set(true)
+    // Whether ktfmt should automatically add/remove trailing commas.
+    manageTrailingCommas.set(true)
 }
 
 detekt {
@@ -244,4 +256,6 @@ tasks.withType<Detekt>().configureEach {
 
 tasks.withType<Detekt>().configureEach { jvmTarget = "17" }
 
-tasks.withType<DetektCreateBaselineTask>().configureEach { jvmTarget = "17" }
+tasks.withType<DetektCreateBaselineTask>().configureEach {
+    jvmTarget = "17"
+}

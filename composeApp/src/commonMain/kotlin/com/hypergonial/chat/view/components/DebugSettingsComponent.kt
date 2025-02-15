@@ -5,8 +5,8 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.hypergonial.chat.ensureSlashAtEnd
-import com.hypergonial.chat.model.DevSettings
 import com.hypergonial.chat.model.Client
+import com.hypergonial.chat.model.DevSettings
 import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.view.content.DebugSettingsContent
 
@@ -152,4 +152,3 @@ fun String.isHttpUrl(): Boolean {
 fun String.isWebSocketUrl(): Boolean {
     return this.startsWith("ws://") || this.startsWith("wss://")
 }
-

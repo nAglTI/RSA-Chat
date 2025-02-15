@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("USER_UPDATE")
-data class UserUpdate(@SerialName("data") val user: User): GatewayMessage(), EventConvertible {
+data class UserUpdate(@SerialName("data") val user: User) : GatewayMessage(), EventConvertible {
     override fun toEvent(): Event {
         return UserUpdateEvent(user)
     }

@@ -28,7 +28,7 @@ fun DesktopOnlyTooltipBox(
             modifier = modifier,
             focusable = focusable,
             enableUserInput = enableUserInput,
-            content = content
+            content = content,
         )
     } else {
         content()

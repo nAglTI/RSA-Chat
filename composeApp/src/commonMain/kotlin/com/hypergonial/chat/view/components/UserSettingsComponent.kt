@@ -148,8 +148,7 @@ class DefaultUserSettingsComponent(
         scope.launch {
             try {
                 client.updateSelf(data.value.username, data.value.displayName.ifEmpty { null })
-            }
-            catch (e: ClientException) {
+            } catch (e: ClientException) {
                 data.value =
                     data.value.copy(
                         snackbarMessage = "Failed to update user settings, please try again later.".containAsEffect()

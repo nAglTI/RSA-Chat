@@ -11,17 +11,19 @@ import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.CoroutineScope
 
 interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
-    /** The coroutine scope in use by the client
+    /**
+     * The coroutine scope in use by the client
      *
      * @see replaceScope
-     * */
+     */
     val scope: CoroutineScope
 
-    /** If true, the client is paused and will not perform background tasks
+    /**
+     * If true, the client is paused and will not perform background tasks
      *
      * @see pause
      * @see resume
-     * */
+     */
     val isSuspended: Boolean
 
     /**
@@ -59,7 +61,6 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * function.
      *
      * @throws com.hypergonial.chat.model.exceptions.ResumeFailureException If the client cannot be resumed
-     *
      * @see pause
      * @see replaceScope
      */
@@ -69,7 +70,6 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * Check if the client is logged in
      *
      * @return True if the client is logged in, false otherwise
-     *
      * @see login
      */
     fun isLoggedIn(): Boolean
@@ -102,7 +102,6 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      *
      * @param username The username to register with
      * @param password The password to register with
-     *
      * @see checkUsernameForAvailability
      * @see login
      */
@@ -120,12 +119,9 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     /**
      * Update the currently authenticated user
      *
-     * @param username The new username of the user
-     * If not specified, it will not be changed
-     * @param displayName The new display name of the user
-     * If not specified, it will be cleared
-     * @param avatar The new avatar of the user
-     * If not specified, it will not be changed
+     * @param username The new username of the user If not specified, it will not be changed
+     * @param displayName The new display name of the user If not specified, it will be cleared
+     * @param avatar The new avatar of the user If not specified, it will not be changed
      * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
      */
     suspend fun updateSelf(username: String? = null, displayName: String? = null, avatar: PlatformFile? = null): User
@@ -198,8 +194,8 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      *
      * @param channelId The ID of the channel to send the message to
      * @param content The content of the message
-     * @param nonce An identifier for the message, can be used to track message delivery
-     * MessageCreateEvent and UploadProgressEvent both contain the nonce of the message they are related to.
+     * @param nonce An identifier for the message, can be used to track message delivery MessageCreateEvent and
+     *   UploadProgressEvent both contain the nonce of the message they are related to.
      * @param attachments A list of files to upload with the message
      * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
      */
@@ -209,8 +205,6 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
         nonce: String? = null,
         attachments: List<PlatformFile> = emptyList(),
     ): Message
-
-
 
     /**
      * Edit a message by its ID
@@ -297,13 +291,14 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      */
     suspend fun createGuild(name: String): Guild
 
-    /** Deletes the guild with the given ID
+    /**
+     * Deletes the guild with the given ID
      *
      * @param id The ID of the guild to delete
      * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
      * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the guild does not exist
      * @throws com.hypergonial.chat.model.exceptions.ForbiddenException If the client doesn't own this guild
-     * */
+     */
     suspend fun deleteGuild(id: Snowflake)
 
     /**
@@ -312,7 +307,7 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * @param id The ID of the guild to leave
      * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
      * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the guild does not exist
-     * */
+     */
     suspend fun leaveGuild(id: Snowflake)
 
     /**

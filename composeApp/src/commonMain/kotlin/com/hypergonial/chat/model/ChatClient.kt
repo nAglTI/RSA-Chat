@@ -230,23 +230,15 @@ class ChatClient(scope: CoroutineScope) : Client {
 
             handleResponseException { exc, _ ->
                 // Wrap unhandled errors in ClientException
-                when(exc) {
-                    is ClientRequestException ->
-                        throw getApiException(exc.response.status, exc.message, exc)
-                    is ServerResponseException ->
-                        throw getApiException(exc.response.status, exc.message, exc)
-                    is HttpRequestTimeoutException ->
-                        throw RequestTimeoutException(exc.message, exc)
-                    is SocketTimeoutException ->
-                        throw RequestTimeoutException(exc.message, exc)
-                    is ConnectTimeoutException ->
-                        throw RequestTimeoutException(exc.message, exc)
-                    is IOException ->
-                        throw TransportException(exc.message, exc)
-                    is SerializationException ->
-                        throw InvalidPayloadException(exc.message, exc)
-                    else ->
-                        throw UnknownFailureException(exc.message, exc)
+                when (exc) {
+                    is ClientRequestException -> throw getApiException(exc.response.status, exc.message, exc)
+                    is ServerResponseException -> throw getApiException(exc.response.status, exc.message, exc)
+                    is HttpRequestTimeoutException -> throw RequestTimeoutException(exc.message, exc)
+                    is SocketTimeoutException -> throw RequestTimeoutException(exc.message, exc)
+                    is ConnectTimeoutException -> throw RequestTimeoutException(exc.message, exc)
+                    is IOException -> throw TransportException(exc.message, exc)
+                    is SerializationException -> throw InvalidPayloadException(exc.message, exc)
+                    else -> throw UnknownFailureException(exc.message, exc)
                 }
             }
         }
@@ -335,21 +327,23 @@ class ChatClient(scope: CoroutineScope) : Client {
     /** Receive events from the gateway and dispatch them to the event manager. */
     private suspend fun receiveEvents(session: DefaultClientWebSocketSession) {
         while (true) {
-            val msg =
-                try {
-                    session.receiveDeserialized<GatewayMessage>()
-                } catch (e: WebsocketDeserializeException) {
-                    logger.error { "Failed to deserialize message: $e\nFrame: ${e.frame}" }
-                    if (e.frame !is Frame.Close) {
-                        continue
-                    } else {
-                        logger.info { "Received close frame." }
-                        return
-                    }
-                } catch (e: SerializationException) {
-                    logger.error { "Failed to deserialize message: $e" }
+            // Not "val msg = try { ... } catch { ... }" because of a miscompilation in the WASM target
+            // Don't ask me why, I have no idea
+            val msg: GatewayMessage
+            try {
+                msg = session.receiveDeserialized<GatewayMessage>()
+            } catch (e: WebsocketDeserializeException) {
+                logger.error { "Failed to deserialize message: $e\nFrame: ${e.frame}" }
+                if (e.frame !is Frame.Close) {
                     continue
+                } else {
+                    logger.info { "Received close frame." }
+                    return
                 }
+            } catch (e: SerializationException) {
+                logger.error { "Failed to deserialize message: $e" }
+                continue
+            }
 
             if (msg is InvalidSession) {
                 logger.error { "Server invalidated gateway session: ${msg.reason}" }
@@ -378,6 +372,7 @@ class ChatClient(scope: CoroutineScope) : Client {
     }
 
     /** Send a message to the gateway. */
+    @Suppress("UnusedPrivateMember")
     private suspend fun sendGatewayMessage(msg: GatewayMessage) {
         responses.send(msg)
     }
@@ -662,9 +657,7 @@ class ChatClient(scope: CoroutineScope) : Client {
         around: Snowflake?,
         limit: UInt,
     ): List<Message> {
-        require(
-            listOfNotNull(before, after, around).size <= 1
-        ) { "Only one of before, after, or around can be set" }
+        require(listOfNotNull(before, after, around).size <= 1) { "Only one of before, after, or around can be set" }
 
         return http
             .get("channels/$channelId/messages") {
@@ -684,11 +677,12 @@ class ChatClient(scope: CoroutineScope) : Client {
         attachments: List<PlatformFile>,
     ): Message {
         // See https://stackoverflow.com/questions/69830965/ktor-client-post-multipart-form-data
-        val json = FormPart(
-            "json",
-            Json.encodeToString<MessageCreateRequest>(MessageCreateRequest(content, nonce)),
-            Headers.build { append(HttpHeaders.ContentType, ContentType.Application.Json.toString()) },
-        )
+        val json =
+            FormPart(
+                "json",
+                Json.encodeToString<MessageCreateRequest>(MessageCreateRequest(content, nonce)),
+                Headers.build { append(HttpHeaders.ContentType, ContentType.Application.Json.toString()) },
+            )
 
         val files =
             attachments.mapIndexed { i, item ->
@@ -707,13 +701,17 @@ class ChatClient(scope: CoroutineScope) : Client {
         return http
             .submitFormWithBinaryData(
                 url = "channels/$channelId/messages",
-                formData = formData {
-                    append(json)
-                    files.forEach { append(it) }
-                },
+                formData =
+                    formData {
+                        append(json)
+                        files.forEach { append(it) }
+                    },
             ) {
                 // Allow a bigger timeout for uploads
-                timeout { requestTimeoutMillis = 60000; connectTimeoutMillis = 5000 }
+                timeout {
+                    requestTimeoutMillis = 60000
+                    connectTimeoutMillis = 5000
+                }
 
                 onUpload { bytesSent, contentLength ->
                     val completionRate = bytesSent.toDouble() / (contentLength?.toDouble() ?: return@onUpload)

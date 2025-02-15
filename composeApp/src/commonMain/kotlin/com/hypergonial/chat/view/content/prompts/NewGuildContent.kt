@@ -20,24 +20,25 @@ import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.components.prompts.NewGuildComponent
 
 @Composable
-fun NewGuildContent(component: NewGuildComponent) = Surface(Modifier.fillMaxSize()) {
-    Box {
-        if (platform.needsBackButton()) {
-            IconButton(
-                onClick = component::onBackClicked,
-                modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart),
+fun NewGuildContent(component: NewGuildComponent) =
+    Surface(Modifier.fillMaxSize()) {
+        Box {
+            if (platform.needsBackButton()) {
+                IconButton(
+                    onClick = component::onBackClicked,
+                    modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart),
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize(),
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                Button(onClick = component::onGuildCreateClicked) { Text("Create") }
+                Button(onClick = component::onGuildJoinClicked) { Text("Join") }
             }
         }
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            Button(onClick = component::onGuildCreateClicked) { Text("Create") }
-            Button(onClick = component::onGuildJoinClicked) { Text("Join") }
-        }
     }
-}

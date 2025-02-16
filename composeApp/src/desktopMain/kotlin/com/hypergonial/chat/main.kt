@@ -86,7 +86,7 @@ fun main() {
             title = "Chat",
             state = windowState,
         ) {
-            window.minimumSize = Dimension(300, 300)
+            window.minimumSize = Dimension(300, 600)
 
             AppTheme { App(root) }
         }

@@ -112,10 +112,6 @@ fun MessageList(
  * Composable that displays (potentially) a grouping of messages from the same user.
  *
  * @param component The message entry to display.
- * @param onEndReached The callback that is called when the user scrolled to the end of the list and we need to load
- *   more messages. This is only called if the entry contains a LoadMoreMessagesIndicator. The first parameter is the ID
- *   of the message to fetch more messages before or after, and the second parameter is whether the message is at the
- *   top of the list or not.
  */
 @Composable
 fun Entry(component: MessageEntryComponent) {

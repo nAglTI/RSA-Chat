@@ -256,21 +256,31 @@ class DefaultSideBarComponent(
     }
 
     override fun onHomeSelected() {
-        data.value = data.value.copy(selectedGuild = null, selectedChannel = null, channels = emptyList())
-        slotNavigation.activate(SlotConfig.Home(hasGuilds = data.value.guilds.isNotEmpty()))
+        navigateHome()
         settings.setLastOpenedPrefs(settings.getLastOpenedPrefs().copy(lastOpenGuild = null))
     }
 
-    override fun onLogoutClicked() {
-        onLogout()
+    override fun onGuildSelected(guild: Guild) = navigateToGuild(guild)
+
+    override fun onGuildSelected(guildId: Snowflake) = navigateToGuild(guildId)
+
+    override fun onChannelSelected(channel: Channel) = navigateToChannel(channel)
+
+    override fun onChannelSelected(channelId: Snowflake) = navigateToChannel(channelId)
+
+    override fun onLogoutClicked() = onLogout()
+
+    private fun navigateHome() {
+        data.value = data.value.copy(selectedGuild = null, selectedChannel = null, channels = emptyList())
+        slotNavigation.activate(SlotConfig.Home(hasGuilds = data.value.guilds.isNotEmpty()))
     }
 
-    override fun onGuildSelected(guildId: Snowflake) {
+    private fun navigateToGuild(guildId: Snowflake) {
         val guild = client.cache.getGuild(guildId) ?: return
-        onGuildSelected(guild)
+        navigateToGuild(guild)
     }
 
-    override fun onGuildSelected(guild: Guild) {
+    private fun navigateToGuild(guild: Guild) {
         if (guild.id == data.value.selectedGuild?.id) {
             return
         }
@@ -284,6 +294,7 @@ class DefaultSideBarComponent(
                 channels = client.cache.getChannelsForGuild(guild.id).values.toList().sortedBy { it.id },
             )
 
+        logger.e("Setting last opened guild to ${guild.id}")
         settings.setLastOpenedPrefs(settings.getLastOpenedPrefs().copy(lastOpenGuild = guild.id))
 
         if (channel?.id != null) {
@@ -293,12 +304,12 @@ class DefaultSideBarComponent(
         }
     }
 
-    override fun onChannelSelected(channelId: Snowflake) {
+    private fun navigateToChannel(channelId: Snowflake) {
         val channel = client.cache.getChannel(channelId) ?: return
-        onChannelSelected(channel)
+        navigateToChannel(channel)
     }
 
-    override fun onChannelSelected(channel: Channel) {
+    private fun navigateToChannel(channel: Channel) {
         if (channel.id != data.value.selectedChannel?.id) {
             data.value = data.value.copy(selectedChannel = channel)
             slotNavigation.activate(SlotConfig.Channel(channel.id))
@@ -359,7 +370,7 @@ class DefaultSideBarComponent(
 
         // Refresh home component if it is active
         if (mainContent.value.child?.configuration is SlotConfig.Home) {
-            onHomeSelected()
+            navigateHome()
         }
     }
 
@@ -376,11 +387,11 @@ class DefaultSideBarComponent(
         data.value = data.value.copy(guilds = data.value.guilds.filter { it.id != event.guild.id })
 
         if (event.guild.id == data.value.selectedGuild?.id) {
-            onHomeSelected()
+            navigateHome()
         }
         // Refresh home component if it is active
         else if (mainContent.value.child?.configuration is SlotConfig.Home) {
-            onHomeSelected()
+            navigateHome()
         }
     }
 
@@ -394,7 +405,7 @@ class DefaultSideBarComponent(
 
             // Leave fallback slot if it was active
             if (data.value.selectedChannel == null || data.value.selectedGuild != null) {
-                onChannelSelected(event.channel.id)
+                navigateToChannel(event.channel.id)
             }
         }
     }
@@ -405,7 +416,7 @@ class DefaultSideBarComponent(
         }
 
         if (event.channel.id == data.value.selectedChannel?.id) {
-            data.value.selectedGuild?.id?.let { getLastOpenChannel(it) }?.let { onChannelSelected(it) }
+            data.value.selectedGuild?.id?.let { getLastOpenChannel(it) }?.let { navigateToChannel(it) }
         }
 
         data.value = data.value.copy(channels = data.value.channels.filter { it.id != event.channel.id })
@@ -413,10 +424,10 @@ class DefaultSideBarComponent(
 
     private fun onChannelFocus(event: FocusChannelEvent) {
         if (event.channel in data.value.channels) {
-            onChannelSelected(event.channel.id)
+            navigateToChannel(event.channel.id)
         } else if (event.channel.guildId == data.value.selectedGuild?.id) {
             data.value = data.value.copy(channels = (data.value.channels + event.channel).sortedBy { it.id })
-            onChannelSelected(event.channel)
+            navigateToChannel(event.channel)
         }
         data.value =
             data.value.copy(
@@ -428,7 +439,7 @@ class DefaultSideBarComponent(
         if (event.guild !in data.value.guilds) {
             data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         }
-        onGuildSelected(event.guild)
+        navigateToGuild(event.guild)
         data.value =
             data.value.copy(
                 navDrawerCommand = SidebarComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect()

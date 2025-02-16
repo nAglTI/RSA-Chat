@@ -1,5 +1,6 @@
 package com.hypergonial.chat.view.components
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
@@ -21,6 +22,7 @@ import com.hypergonial.chat.model.FocusChannelEvent
 import com.hypergonial.chat.model.FocusGuildEvent
 import com.hypergonial.chat.model.InvalidationReason
 import com.hypergonial.chat.model.SessionInvalidatedEvent
+import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.components.prompts.CreateChannelComponent
@@ -31,6 +33,7 @@ import com.hypergonial.chat.view.components.prompts.DefaultJoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.DefaultNewGuildComponent
 import com.hypergonial.chat.view.components.prompts.JoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.NewGuildComponent
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
@@ -83,10 +86,9 @@ interface RootComponent : BackHandlerOwner {
 class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, ComponentContext by ctx {
 
     private val scope = ctx.coroutineScope()
-
     private val client: Client = retainedInstance { ChatClient(scope) }
-
     private val nav = StackNavigation<Config>()
+    private val logger = Logger.withTag("DefaultRootComponent")
 
     private val _stack =
         childStack(
@@ -269,9 +271,9 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
     }
 
     private fun onSessionInvalidated(event: SessionInvalidatedEvent) {
-        // If the gateway session dropped while we were not suspended,
+        // If the gateway session dropped and is not recoverable,
         // assume the worst has happened, and log out the user.
-        if (!client.isSuspended && event.reason != InvalidationReason.Normal) {
+        if (!client.isSuspended && !event.willReconnect && event.reason != InvalidationReason.Normal) {
             onLogout()
         }
     }

@@ -32,6 +32,12 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      */
     val sessionId: String
 
+    /** The amount of times the client has attempted to reconnect to the gateway so far */
+    val reconnectAttempts: Int
+
+    /** The maximum amount of times the client will attempt to reconnect to the gateway */
+    val maxReconnectAttempts: Int
+
     /**
      * Replace the coroutine scope of the client with a different one.
      *

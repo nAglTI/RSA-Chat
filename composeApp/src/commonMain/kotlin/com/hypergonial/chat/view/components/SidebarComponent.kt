@@ -21,7 +21,9 @@ import com.hypergonial.chat.model.FocusGuildEvent
 import com.hypergonial.chat.model.GuildCreateEvent
 import com.hypergonial.chat.model.GuildRemoveEvent
 import com.hypergonial.chat.model.GuildUpdateEvent
+import com.hypergonial.chat.model.InvalidationReason
 import com.hypergonial.chat.model.ReadyEvent
+import com.hypergonial.chat.model.SessionInvalidatedEvent
 import com.hypergonial.chat.model.UserUpdateEvent
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Channel
@@ -141,6 +143,8 @@ interface SidebarComponent : Displayable {
         val channels: List<Channel> = emptyList(),
         /** If true, the app is still connecting to the server */
         val isConnecting: Boolean = true,
+        /** The message to display when connecting */
+        val connectingMessage: String = "Connecting...",
         /** The URL of the asset to display in the asset viewer */
         val assetViewerUrl: String? = null,
         /** If true, the asset viewer is active */
@@ -212,6 +216,7 @@ class DefaultSideBarComponent(
     init {
         client.eventManager.apply {
             subscribeWithLifeCycle(ctx.lifecycle, ::onReady)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onSessionInvalidated)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildCreate)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildUpdate)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildRemove)
@@ -360,6 +365,19 @@ class DefaultSideBarComponent(
 
     private fun onReady(event: ReadyEvent) {
         data.value = data.value.copy(isConnecting = false, currentUser = event.user)
+    }
+
+    private fun onSessionInvalidated(event: SessionInvalidatedEvent) {
+        // If a reconnection is planned, freeze the UI
+        if (event.willReconnect) {
+            var connectingMessage = "Reconnecting..."
+
+            if (client.reconnectAttempts > 0) {
+                connectingMessage += " Attempt ${client.reconnectAttempts}/${client.maxReconnectAttempts}"
+            }
+
+            data.value = data.value.copy(isConnecting = true, connectingMessage = connectingMessage)
+        }
     }
 
     private fun onGuildCreate(event: GuildCreateEvent) {

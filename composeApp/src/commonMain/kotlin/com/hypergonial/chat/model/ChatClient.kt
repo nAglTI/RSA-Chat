@@ -33,7 +33,6 @@ import com.hypergonial.chat.model.payloads.rest.UserUpdateRequest
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.toDataUrl
 import io.github.vinceglb.filekit.core.PlatformFile
-import io.ktor.client.HttpClient
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
 import io.ktor.client.network.sockets.ConnectTimeoutException
@@ -79,6 +78,7 @@ import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
@@ -102,20 +102,24 @@ import kotlinx.serialization.serializer
  * dispatching events to the event manager.
  *
  * @param scope A coroutineScope to launch background tasks on
+ * @param maxReconnectAttempts The maximum number of reconnection attempts before the client gives up
  */
-class ChatClient(scope: CoroutineScope) : Client {
+class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int = 3) : Client {
     /** The bearer token used for authentication */
     private var token: Secret<String>? = settings.getToken()?.let { Secret(it) }
 
+    private var _scope = scope
     private var _isSuspended = false
+    private var _reconnectAttempts = 0
 
     override val isSuspended
         get() = _isSuspended
 
-    private var _scope = scope
-
     override val scope
         get() = _scope
+
+    override val reconnectAttempts
+        get() = _reconnectAttempts
 
     override val sessionId: String = genSessionId()
 
@@ -231,6 +235,8 @@ class ChatClient(scope: CoroutineScope) : Client {
             handleResponseException { exc, _ ->
                 // Wrap unhandled errors in ClientException
                 when (exc) {
+                    // Do not alter CancellationException or it breaks coroutines
+                    is CancellationException -> throw exc
                     is ClientRequestException -> throw getApiException(exc.response.status, exc.message, exc)
                     is ServerResponseException -> throw getApiException(exc.response.status, exc.message, exc)
                     is HttpRequestTimeoutException -> throw RequestTimeoutException(exc.message, exc)
@@ -254,17 +260,20 @@ class ChatClient(scope: CoroutineScope) : Client {
 
     init {
         scope.launch { eventManager.run() }
-        eventManager.subscribe(::onGuildCreate)
-        eventManager.subscribe(::onGuildUpdate)
-        eventManager.subscribe(::onGuildRemove)
-        eventManager.subscribe(::onChannelCreate)
-        eventManager.subscribe(::onChannelRemove)
-        eventManager.subscribe(::onMessageCreate)
-        eventManager.subscribe(::onMessageUpdate)
-        eventManager.subscribe(::onMessageRemove)
-        eventManager.subscribe(::onMemberCreate)
-        eventManager.subscribe(::onMemberRemove)
-        eventManager.subscribe(::onUserUpdate)
+        eventManager.apply {
+            subscribe(::onGuildCreate)
+            subscribe(::onGuildUpdate)
+            subscribe(::onGuildRemove)
+            subscribe(::onChannelCreate)
+            subscribe(::onChannelRemove)
+            subscribe(::onMessageCreate)
+            subscribe(::onMessageUpdate)
+            subscribe(::onMessageRemove)
+            subscribe(::onMemberCreate)
+            subscribe(::onMemberRemove)
+            subscribe(::onUserUpdate)
+            subscribe(::onSessionInvalidated)
+        }
     }
 
     override fun replaceScope(scope: CoroutineScope) {
@@ -385,15 +394,21 @@ class ChatClient(scope: CoroutineScope) : Client {
     override suspend fun connect() {
         gatewayCloseJob = Job()
         gatewayConnectedJob = Job()
+        gatewaySession = scope.launch { gatewaySession() }
         scope.launch {
-            delay(10000)
+            delay(5000)
             if (!gatewayConnectedJob.isCompleted) {
                 gatewaySession?.cancel()
                 gatewayConnectedJob = Job()
-                eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.Timeout))
+                _reconnectAttempts++
+                eventManager.dispatch(
+                    SessionInvalidatedEvent(
+                        InvalidationReason.Timeout,
+                        willReconnect = reconnectAttempts < maxReconnectAttempts,
+                    )
+                )
             }
         }
-        gatewaySession = scope.launch { gatewaySession() }
     }
 
     override fun isConnected(): Boolean = gatewayConnectedJob.isCompleted
@@ -407,12 +422,7 @@ class ChatClient(scope: CoroutineScope) : Client {
 
         logger.i { "Starting new gateway session to ${config.gatewayUrl}" }
 
-        http.webSocket(
-            request = {
-                url(config.gatewayUrl)
-                timeout { requestTimeoutMillis = 5000 }
-            }
-        ) {
+        http.webSocket(request = { url(config.gatewayUrl) }) {
             logger.i { "Connected to gateway at ${config.gatewayUrl}" }
             val hello = receiveDeserialized<GatewayMessage>()
 
@@ -423,6 +433,7 @@ class ChatClient(scope: CoroutineScope) : Client {
             }
 
             heartbeatInterval = hello.data.heartbeatInterval
+            _reconnectAttempts = 0
             gatewayConnectedJob.complete()
             logger.i { "Heartbeat interval is set to $heartbeatInterval ms" }
 
@@ -472,18 +483,25 @@ class ChatClient(scope: CoroutineScope) : Client {
 
             jobs.forEachIndexed { index, job ->
                 job.invokeOnCompletion {
-                    if (it != null && it !is kotlinx.coroutines.CancellationException) {
+                    if (it != null && it !is CancellationException) {
                         logger.e { "Job $index failed: $it" }
                     }
                 }
             }
 
+            var willReconnect = true
+
             // Wait until one of the jobs terminates
             select {
-                for (job in jobs) {
+                jobs.forEachIndexed { i, job ->
                     job.onJoin {
                         // Cancel all other jobs if one terminates
                         jobs.forEach { it.cancel() }
+
+                        // Gateway was closed manually
+                        if (i == 3) {
+                            willReconnect = false
+                        }
                     }
                 }
             }
@@ -492,7 +510,23 @@ class ChatClient(scope: CoroutineScope) : Client {
 
             outgoing.trySend(Frame.Close(CloseReason(CloseReason.Codes.NORMAL, "Gateway session terminated")))
 
-            eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.Normal))
+            eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.Normal, willReconnect))
+        }
+    }
+
+    private fun onSessionInvalidated(event: SessionInvalidatedEvent) {
+        if (!event.willReconnect) {
+            return
+        }
+
+        if (_reconnectAttempts > 0) {
+            logger.w { "Backing off for ${_reconnectAttempts * 5} seconds..." }
+        }
+
+        scope.launch {
+            delay(_reconnectAttempts * 5000L)
+            logger.w { "Attempting to reconnect to gateway..." }
+            connect()
         }
     }
 

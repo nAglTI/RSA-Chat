@@ -86,8 +86,6 @@ val LocalHighlights = compositionLocalOf { Highlights.Builder() }
  *
  * @param features The list of messages to display.
  * @param isCruising Whether the user currently has the bottom of the list loaded.
- * @param onMessagesLimitReach The callback that is called when the user scrolled to the top of the list and we need to
- *   load more messages.
  */
 @Composable
 @Suppress("UnusedParameter")
@@ -161,6 +159,11 @@ fun Entry(component: MessageEntryComponent) {
     }
 }
 
+/** A context menu for a message.
+ *
+ * @param component The message to display the context menu for.
+ * @param content The composable to apply the context menu to.
+ * */
 @Composable
 fun MessageContextMenu(component: MessageComponent, content: @Composable () -> Unit) {
     val state by component.data.subscribeAsState()
@@ -377,5 +380,5 @@ fun LoadingIndicator(item: LoadMoreMessagesIndicator, onSeen: () -> Unit) {
         }
     }
 
-    CircularProgressIndicator()
+    CircularProgressIndicator(Modifier.padding(5.dp))
 }

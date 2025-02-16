@@ -80,7 +80,7 @@ enum class InvalidationReason {
  *
  * Listeners should clear all state and return to the login screen in case of a non-normal invalidation.
  */
-class SessionInvalidatedEvent(val reason: InvalidationReason) : InternalEvent()
+class SessionInvalidatedEvent(val reason: InvalidationReason, val willReconnect: Boolean = false) : InternalEvent()
 
 /** Internal event dispatched when the application should bring a channel into focus */
 class FocusChannelEvent(val channel: Channel) : InternalEvent()

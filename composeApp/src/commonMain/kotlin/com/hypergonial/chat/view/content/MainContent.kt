@@ -340,7 +340,7 @@ fun MainContent(component: SidebarComponent) {
     val snackbarState = remember { SnackbarHostState() }
     val navDrawerState = remember { DrawerState(DrawerValue.Closed) }
 
-    FullScreenProgressIndicator(state.isConnecting, "Connecting...") {
+    FullScreenProgressIndicator(state.isConnecting, state.connectingMessage) {
         AssetViewerOverlay(state.assetViewerActive, state.assetViewerUrl, component::onAssetViewerClosed) {
             AdaptiveDrawer(
                 drawerState = navDrawerState,

@@ -8,12 +8,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.platform
+import com.hypergonial.chat.view.ChatTheme
 import com.hypergonial.chat.view.components.RegisterComponent
 import com.hypergonial.chat.view.composables.ChatButton
 import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
@@ -89,6 +94,21 @@ fun RegisterContent(component: RegisterComponent) {
                     onValueChange = { component.onUsernameChange(it) },
                     label = { Text("Username*") },
                     leadingIcon = { Icon(Icons.Filled.AccountCircle, contentDescription = "Username") },
+                    trailingIcon = {
+                        if (state.checkingUsernameAvailability) CircularProgressIndicator(Modifier.size(25.dp))
+                        else if (state.usernameErrors.isEmpty() && state.username.isNotBlank())
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = "Username available",
+                                tint = ChatTheme.colorScheme.success,
+                            )
+                        else if (state.username.isNotEmpty())
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Username error",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                    },
                     keyboardOptions =
                         KeyboardOptions(
                             autoCorrectEnabled = false,

@@ -2,6 +2,7 @@ package com.hypergonial.chat.model
 
 import co.touchlab.kermit.Logger
 import com.hypergonial.chat.genSessionId
+import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.exceptions.InvalidPayloadException
 import com.hypergonial.chat.model.exceptions.NotFoundException
 import com.hypergonial.chat.model.exceptions.RequestTimeoutException
@@ -237,6 +238,8 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                 when (exc) {
                     // Do not alter CancellationException or it breaks coroutines
                     is CancellationException -> throw exc
+                    // Is already wrapped, just rethrow it
+                    is ClientException -> throw exc
                     is ClientRequestException -> throw getApiException(exc.response.status, exc.message, exc)
                     is ServerResponseException -> throw getApiException(exc.response.status, exc.message, exc)
                     is HttpRequestTimeoutException -> throw RequestTimeoutException(exc.message, exc)

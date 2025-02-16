@@ -13,6 +13,8 @@ import com.hypergonial.chat.model.Secret
 import com.hypergonial.chat.model.exceptions.ApiException
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.view.content.RegisterContent
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -63,6 +65,8 @@ interface RegisterComponent : Displayable {
         val usernameErrors: List<String> = listOf(),
         /** The password errors If this list is empty, the password is valid */
         val passwordErrors: List<String> = listOf(),
+        /** If true, the username is being checked for availability */
+        val checkingUsernameAvailability: Boolean = false,
         /** If true, the register button can be enabled */
         val canRegister: Boolean = false,
         /** If true, the registration is in progress */
@@ -91,9 +95,10 @@ class DefaultRegisterComponent(
     override val data = MutableValue(RegisterComponent.Data())
     private val scope = ctx.coroutineScope()
     private val usernameRegex = Regex("^([a-z0-9]|[a-z0-9]+(?:[._][a-z0-9]+)*)\$")
+    private var checkUsernameAvailabilityJob: Job? = null
     private val logger = Logger.withTag("DefaultRegisterComponent")
 
-    /** Query if the login button can be enabled */
+    /** If true, the register button can be enabled */
     private fun updateCanRegister() {
         data.value =
             data.value.copy(
@@ -101,8 +106,9 @@ class DefaultRegisterComponent(
                     data.value.username.isNotEmpty() &&
                         data.value.password.expose().isNotEmpty() &&
                         data.value.passwordConfirm.expose().isNotEmpty() &&
-                        getPasswordErrors(data.value.password, data.value.passwordConfirm).isEmpty() &&
-                        getUsernameErrors(data.value.username).isEmpty()
+                        data.value.passwordErrors.isEmpty() &&
+                        data.value.usernameErrors.isEmpty() &&
+                        !data.value.checkingUsernameAvailability
             )
     }
 
@@ -112,7 +118,42 @@ class DefaultRegisterComponent(
     }
 
     private fun updateUsernameErrors() {
-        data.value = data.value.copy(usernameErrors = getUsernameErrors(data.value.username))
+        val errors = getUsernameErrors(data.value.username)
+        data.value = data.value.copy(usernameErrors = errors)
+
+        if (errors.isNotEmpty()) {
+            return
+        }
+
+        checkUsernameAvailabilityJob?.cancel()
+
+        checkUsernameAvailabilityJob =
+            scope.launch {
+                data.value = data.value.copy(checkingUsernameAvailability = true)
+                // Do not overwhelm the server with requests, only check 1 second after last input
+                delay(1000)
+                checkUsernameAvailability()
+                data.value = data.value.copy(checkingUsernameAvailability = false)
+                updateCanRegister()
+            }
+    }
+
+    private suspend fun checkUsernameAvailability() {
+        val username = data.value.username.trim()
+        if (username.isEmpty()) {
+            return
+        }
+
+        try {
+            val availability = client.checkUsernameForAvailability(username)
+            if (!availability) {
+                data.value = data.value.copy(usernameErrors = data.value.usernameErrors + "Username is already taken")
+            }
+        } catch (e: ApiException) {
+            logger.e { "Failed to check username availability: ${e.message}" }
+        } catch (e: ClientException) {
+            logger.e { "Failed to check username availability: ${e.message}" }
+        }
     }
 
     private fun getUsernameErrors(username: String): List<String> {
@@ -213,17 +254,6 @@ class DefaultRegisterComponent(
             )
 
         scope.launch {
-            val availability = client.checkUsernameForAvailability(username)
-            if (!availability) {
-                data.value =
-                    data.value.copy(
-                        isRegistering = false,
-                        registrationFailed = true,
-                        usernameErrors = listOf("Username is already taken"),
-                    )
-                return@launch
-            }
-
             try {
                 client.register(username, password)
                 data.value = data.value.copy(isRegistering = false, registrationFailed = false)

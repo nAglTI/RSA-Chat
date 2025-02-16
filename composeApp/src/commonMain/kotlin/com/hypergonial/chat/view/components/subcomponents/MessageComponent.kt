@@ -2,6 +2,7 @@ package com.hypergonial.chat.view.components.subcomponents
 
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -13,7 +14,6 @@ import com.hypergonial.chat.model.UploadProgressEvent
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.sanitized
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -146,7 +146,7 @@ class DefaultMessageComponent(
             )
         )
     private val wasCreatedAsPending = isPending
-    private val logger = KotlinLogging.logger {}
+    private val logger = Logger.withTag("DefaultMessageComponent")
     private val instantiationTime = Clock.System.now()
 
     init {
@@ -233,7 +233,7 @@ class DefaultMessageComponent(
             try {
                 client.editMessage(data.value.message.channelId, data.value.message.id, data.value.editorState.text)
             } catch (e: ClientException) {
-                logger.error { "Failed to edit message: ${e.message}" }
+                logger.e { "Failed to edit message: ${e.message}" }
             }
         }
     }
@@ -247,7 +247,7 @@ class DefaultMessageComponent(
             try {
                 client.deleteMessage(data.value.message.channelId, data.value.message.id)
             } catch (e: ClientException) {
-                logger.error { "Failed to delete message: ${e.message}" }
+                logger.e { "Failed to delete message: ${e.message}" }
             }
         }
     }

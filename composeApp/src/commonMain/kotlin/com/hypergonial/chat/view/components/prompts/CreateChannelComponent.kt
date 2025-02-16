@@ -1,6 +1,7 @@
 package com.hypergonial.chat.view.components.prompts
 
 import androidx.compose.runtime.Composable
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -13,7 +14,6 @@ import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.view.components.Displayable
 import com.hypergonial.chat.view.content.prompts.CreateChannelContent
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.launch
 
 interface CreateChannelComponent : Displayable {
@@ -45,7 +45,7 @@ class DefaultCreateChannelComponent(
     override val data = MutableValue(CreateChannelComponent.State())
 
     private val scope = ctx.coroutineScope()
-    private val logger = KotlinLogging.logger {}
+    private val logger = Logger.withTag("DefaultCreateChannelComponent")
 
     override fun onCreateChannelClicked() {
         scope.launch {
@@ -54,7 +54,7 @@ class DefaultCreateChannelComponent(
                 try {
                     client.createChannel(guildId, data.value.channelName)
                 } catch (e: ClientException) {
-                    logger.error { "Failed to create channel: ${e.message}" }
+                    logger.e { "Failed to create channel: ${e.message}" }
                     data.value =
                         data.value.copy(
                             isLoading = false,

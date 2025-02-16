@@ -1,6 +1,7 @@
 package com.hypergonial.chat.view.components
 
 import androidx.compose.runtime.Composable
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -12,7 +13,6 @@ import com.hypergonial.chat.model.Secret
 import com.hypergonial.chat.model.exceptions.ApiException
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.view.content.RegisterContent
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.launch
 
 /**
@@ -91,7 +91,7 @@ class DefaultRegisterComponent(
     override val data = MutableValue(RegisterComponent.Data())
     private val scope = ctx.coroutineScope()
     private val usernameRegex = Regex("^([a-z0-9]|[a-z0-9]+(?:[._][a-z0-9]+)*)\$")
-    private val logger = KotlinLogging.logger {}
+    private val logger = Logger.withTag("DefaultRegisterComponent")
 
     /** Query if the login button can be enabled */
     private fun updateCanRegister() {
@@ -235,9 +235,9 @@ class DefaultRegisterComponent(
                         registrationFailed = true,
                         snackbarMessage = "Failed to register, please try again later.".containAsEffect(),
                     )
-                logger.error { "Registration failed: ${e.message}" }
+                logger.e { "Registration failed: ${e.message}" }
             } catch (e: ClientException) {
-                logger.error { "Registration failed: ${e.message}" }
+                logger.e { "Registration failed: ${e.message}" }
                 data.value =
                     data.value.copy(
                         isRegistering = false,

@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.text.input.TextFieldValue
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -38,7 +39,6 @@ import com.hypergonial.chat.view.components.subcomponents.LoadMoreMessagesIndica
 import com.hypergonial.chat.view.components.subcomponents.MessageComponent
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import com.hypergonial.chat.view.content.ChannelContent
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.vinceglb.filekit.core.FileKit
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
@@ -145,7 +145,7 @@ class DefaultChannelComponent(
     private val onLogout: () -> Unit,
 ) : ChannelComponent, ComponentContext by ctx {
     private val scope = ctx.coroutineScope()
-    private val logger = KotlinLogging.logger {}
+    private val logger = Logger.withTag("DefaultChannelComponent")
 
     override val data =
         MutableValue(
@@ -232,7 +232,7 @@ class DefaultChannelComponent(
      */
     private fun requestMessagesScrollingUp(lastMessage: Snowflake? = null) {
         scope.launch {
-            logger.info { "Requesting more messages before $lastMessage..." }
+            logger.i { "Requesting more messages before $lastMessage..." }
 
             val messages =
                 try {
@@ -270,7 +270,7 @@ class DefaultChannelComponent(
             if (currentEntries.totalMessageCount().toUInt() > maximumMessageCount() * 3u) {
                 val dropCount = currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3
 
-                logger.info { "Dropping $dropCount messages from the bottom" }
+                logger.i { "Dropping $dropCount messages from the bottom" }
                 currentEntries.removeFirstMessages(dropCount)
                 currentEntries.first().setBottomEndIndicator(LoadMoreMessagesIndicator())
                 data.value = data.value.copy(isCruising = true)
@@ -285,7 +285,7 @@ class DefaultChannelComponent(
      */
     private fun requestMessagesScrollingDown(firstMessage: Snowflake? = null) {
         scope.launch {
-            logger.info { "Requesting more messages after $firstMessage..." }
+            logger.i { "Requesting more messages after $firstMessage..." }
 
             val messages =
                 try {
@@ -319,7 +319,7 @@ class DefaultChannelComponent(
             if (currentEntries.totalMessageCount().toUInt() > maximumMessageCount() * 3u) {
                 val dropCount = currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3
 
-                logger.info { "Dropping $dropCount messages from the top" }
+                logger.i { "Dropping $dropCount messages from the top" }
                 currentEntries.removeLastMessages(dropCount)
                 // Add a new loading indicator at the top to allow scrolling up
                 currentEntries.last().setTopEndIndicator(LoadMoreMessagesIndicator())
@@ -334,7 +334,7 @@ class DefaultChannelComponent(
      */
     private fun refreshMessageList() {
         scope.launch {
-            logger.info { "Refreshing message list..." }
+            logger.i { "Refreshing message list..." }
             // Determine message at the center of the screen
             val visibleItems = data.value.listState.layoutInfo.visibleItemsInfo
             val centerIndex = visibleItems.getOrNull(visibleItems.size / 2)?.index
@@ -571,7 +571,7 @@ class DefaultChannelComponent(
                     .firstOrNull { it.data.value.message.nonce == nonce }
                     ?.onFailed()
                 data.value = data.value.copy(snackbarMessage = "Failed to send message: ${e.message}".containAsEffect())
-                logger.error { "Failed to send message: ${e.message}" }
+                logger.e { "Failed to send message: ${e.message}" }
                 e.printStackTrace()
             }
         }
@@ -593,7 +593,7 @@ class DefaultChannelComponent(
             } catch (e: ClientException) {
                 data.value =
                     data.value.copy(snackbarMessage = "Failed to delete message: ${e.message}".containAsEffect())
-                logger.error { "Failed to delete message: ${e.message}" }
+                logger.e { "Failed to delete message: ${e.message}" }
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.hypergonial.chat.model
 
+import co.touchlab.kermit.Logger
 import com.hypergonial.chat.genSessionId
 import com.hypergonial.chat.model.exceptions.InvalidPayloadException
 import com.hypergonial.chat.model.exceptions.NotFoundException
@@ -31,7 +32,6 @@ import com.hypergonial.chat.model.payloads.rest.UserRegisterRequest
 import com.hypergonial.chat.model.payloads.rest.UserUpdateRequest
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.toDataUrl
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.ktor.client.HttpClient
 import io.ktor.client.call.NoTransformationFoundException
@@ -121,7 +121,7 @@ class ChatClient(scope: CoroutineScope) : Client {
 
     private val readyJob = Job()
     /** The logger used for this class */
-    private val logger = KotlinLogging.logger {}
+    private val logger = Logger.withTag("ChatClient")
     /** The JSON deserializer used for error messages */
     private val errorDeserializer = Json { prettyPrint = true }
     /** The API endpoint configuration */
@@ -156,7 +156,7 @@ class ChatClient(scope: CoroutineScope) : Client {
     override val cache = Cache()
 
     /** The main http client used for API requests */
-    private val http = HttpClient {
+    private val http = platformHttpClient {
         install(ContentNegotiation) {
             json(
                 Json {
@@ -211,7 +211,7 @@ class ChatClient(scope: CoroutineScope) : Client {
                             errorDeserializer.serializersModule.serializer<JsonElement>(),
                             errorDeserializer.parseToJsonElement(body),
                         )
-                    logger.error {
+                    logger.e {
                         "${exc::class.simpleName} - Request failed with status ${response.status.value}\n" +
                             "Path: ${response.request.url}\n" +
                             "Body: $prettyJson"
@@ -219,7 +219,7 @@ class ChatClient(scope: CoroutineScope) : Client {
 
                     throw exc
                 } catch (_: SerializationException) {
-                    logger.error {
+                    logger.e {
                         "${exc::class.simpleName} - Request failed with status ${response.status.value}\n" +
                             "Path: ${response.request.url}\n" +
                             "Body (failed deserialize): $body"
@@ -282,7 +282,7 @@ class ChatClient(scope: CoroutineScope) : Client {
 
     override suspend fun resume() {
         if (!scope.isActive) {
-            logger.error { "Cannot resume client, scope is inactive" }
+            logger.e { "Cannot resume client, scope is inactive" }
             throw ResumeFailureException(
                 "Cannot resume client, coroutine scope is inactive\n" +
                     "You should call replaceScope() with a new scope before calling resume()"
@@ -291,7 +291,7 @@ class ChatClient(scope: CoroutineScope) : Client {
 
         withTimeout(2500) { waitUntilDisconnected() }
         _isSuspended = false
-        logger.info { "Reconnecting to gateway..." }
+        logger.i { "Reconnecting to gateway..." }
         if (isLoggedIn()) {
             connect()
         }
@@ -315,7 +315,7 @@ class ChatClient(scope: CoroutineScope) : Client {
                 // Wait for ACK and assume session is dead if not received in time
                 withTimeout(5000) { heartbeatAckQueue.receive() }
             } catch (e: TimeoutCancellationException) {
-                logger.error { "Heartbeat ACK not received in time: $e" }
+                logger.e { "Heartbeat ACK not received in time: $e" }
                 session.outgoing.send(
                     Frame.Close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Heartbeat ACK not received in time"))
                 )
@@ -327,26 +327,27 @@ class ChatClient(scope: CoroutineScope) : Client {
     /** Receive events from the gateway and dispatch them to the event manager. */
     private suspend fun receiveEvents(session: DefaultClientWebSocketSession) {
         while (true) {
-            // Not "val msg = try { ... } catch { ... }" because of a miscompilation in the WASM target
+            // Not "val msg = try { ... } catch { ... }" because of a miscompilation in the WASM
+            // target
             // Don't ask me why, I have no idea
             val msg: GatewayMessage
             try {
                 msg = session.receiveDeserialized<GatewayMessage>()
             } catch (e: WebsocketDeserializeException) {
-                logger.error { "Failed to deserialize message: $e\nFrame: ${e.frame}" }
+                logger.e { "Failed to deserialize message: $e\nFrame: ${e.frame}" }
                 if (e.frame !is Frame.Close) {
                     continue
                 } else {
-                    logger.info { "Received close frame." }
+                    logger.i { "Received close frame." }
                     return
                 }
             } catch (e: SerializationException) {
-                logger.error { "Failed to deserialize message: $e" }
+                logger.e { "Failed to deserialize message: $e" }
                 continue
             }
 
             if (msg is InvalidSession) {
-                logger.error { "Server invalidated gateway session: ${msg.reason}" }
+                logger.e { "Server invalidated gateway session: ${msg.reason}" }
                 return
             }
 
@@ -357,7 +358,7 @@ class ChatClient(scope: CoroutineScope) : Client {
 
             if (msg is EventConvertible) {
                 val event = msg.toEvent()
-                logger.debug { "Dispatching event: '${event::class.simpleName}'" }
+                logger.d { "Dispatching event: '${event::class.simpleName}'" }
                 eventManager.dispatch(event)
             }
         }
@@ -368,7 +369,7 @@ class ChatClient(scope: CoroutineScope) : Client {
         for (msg in responses) {
             session.sendSerialized<GatewayMessage>(msg)
         }
-        logger.info { "Internal gateway message queue closed." }
+        logger.i { "Internal gateway message queue closed." }
     }
 
     /** Send a message to the gateway. */
@@ -404,7 +405,7 @@ class ChatClient(scope: CoroutineScope) : Client {
     private suspend fun gatewaySession() {
         check(token != null) { "Cannot connect without a token" }
 
-        logger.info { "Starting new gateway session to ${config.gatewayUrl}" }
+        logger.i { "Starting new gateway session to ${config.gatewayUrl}" }
 
         http.webSocket(
             request = {
@@ -412,18 +413,18 @@ class ChatClient(scope: CoroutineScope) : Client {
                 timeout { requestTimeoutMillis = 5000 }
             }
         ) {
-            logger.info { "Connected to gateway at ${config.gatewayUrl}" }
+            logger.i { "Connected to gateway at ${config.gatewayUrl}" }
             val hello = receiveDeserialized<GatewayMessage>()
 
             if (hello !is Hello) {
-                logger.error { "Expected HELLO, got $hello" }
+                logger.e { "Expected HELLO, got $hello" }
                 outgoing.send(Frame.Close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Expected HELLO")))
                 return@webSocket
             }
 
             heartbeatInterval = hello.data.heartbeatInterval
             gatewayConnectedJob.complete()
-            logger.info { "Heartbeat interval is set to $heartbeatInterval ms" }
+            logger.i { "Heartbeat interval is set to $heartbeatInterval ms" }
 
             sendSerialized<GatewayMessage>(Identify(token!!))
 
@@ -432,15 +433,15 @@ class ChatClient(scope: CoroutineScope) : Client {
                     receiveDeserialized<GatewayMessage>()
                 } catch (_: ClosedReceiveChannelException) {
                     val reason = closeReason.await()
-                    logger.error { "Channel was closed after IDENTIFY: $reason" }
+                    logger.e { "Channel was closed after IDENTIFY: $reason" }
                     eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.AuthenticationFailure))
                     return@webSocket
                 }
 
-            logger.info { "Gateway session authenticated" }
+            logger.i { "Gateway session authenticated" }
 
             if (ready !is Ready) {
-                logger.error { "Expected READY, got $ready" }
+                logger.e { "Expected READY, got $ready" }
 
                 outgoing.send(Frame.Close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Expected READY")))
                 return@webSocket
@@ -457,7 +458,7 @@ class ChatClient(scope: CoroutineScope) : Client {
                 readyJob.complete()
             }
 
-            logger.info { "Gateway session is ready" }
+            logger.i { "Gateway session is ready" }
 
             eventManager.dispatch(ready.toEvent())
 
@@ -472,7 +473,7 @@ class ChatClient(scope: CoroutineScope) : Client {
             jobs.forEachIndexed { index, job ->
                 job.invokeOnCompletion {
                     if (it != null && it !is kotlinx.coroutines.CancellationException) {
-                        logger.error { "Job $index failed: $it" }
+                        logger.e { "Job $index failed: $it" }
                     }
                 }
             }
@@ -487,7 +488,7 @@ class ChatClient(scope: CoroutineScope) : Client {
                 }
             }
 
-            logger.info { "Closing gateway session" }
+            logger.i { "Closing gateway session" }
 
             outgoing.trySend(Frame.Close(CloseReason(CloseReason.Codes.NORMAL, "Gateway session terminated")))
 

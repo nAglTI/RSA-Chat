@@ -1,6 +1,7 @@
 package com.hypergonial.chat.view.components
 
 import androidx.compose.runtime.Composable
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -13,7 +14,6 @@ import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.exceptions.RatelimitedException
 import com.hypergonial.chat.model.exceptions.UnauthorizedException
 import com.hypergonial.chat.view.content.LoginContent
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.launch
 
 /**
@@ -85,7 +85,7 @@ class DefaultLoginComponent(
 ) : LoginComponent, ComponentContext by ctx {
     override val data = MutableValue(LoginComponent.Data())
     private val scope = ctx.coroutineScope()
-    private val logger = KotlinLogging.logger {}
+    private val logger = Logger.withTag("DefaultLoginComponent")
 
     /** Query if the login button can be enabled */
     private fun queryCanLogin(): Boolean {
@@ -144,7 +144,7 @@ class DefaultLoginComponent(
                         snackbarMessage = "Too many login attempts, please try again later".containAsEffect(),
                     )
             } catch (e: ClientException) {
-                logger.error { "Login failed: ${e.message}" }
+                logger.e { "Login failed: ${e.message}" }
                 data.value =
                     data.value.copy(
                         isLoggingIn = false,

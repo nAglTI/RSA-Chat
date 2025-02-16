@@ -79,9 +79,6 @@ kotlin {
             implementation(libs.accompanist.permissions)
             // Please don't kill my resources folder
             implementation(libs.androidx.startup.runtime)
-            // SLF4J
-            implementation(libs.slf4j.api)
-            implementation(libs.slf4j.android)
             // Pinch to zoom
             implementation(libs.lib.zoomable)
         }
@@ -125,7 +122,7 @@ kotlin {
             // Base64
             implementation(libs.ktor.utils)
             // Logging
-            implementation(libs.kotlin.logging)
+            implementation("co.touchlab:kermit:2.0.5")
             // Datetime
             implementation(libs.kotlinx.datetime)
             // File picker
@@ -213,7 +210,7 @@ compose.desktop {
             configurationFiles.from("proguard-desktop-rules.pro")
             joinOutputJars = false
             optimize = true
-            obfuscate = true
+            obfuscate = false
         }
     }
 }

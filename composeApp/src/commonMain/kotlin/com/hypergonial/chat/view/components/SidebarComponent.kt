@@ -1,6 +1,7 @@
 package com.hypergonial.chat.view.components
 
 import androidx.compose.runtime.Composable
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.slot.SlotNavigation
@@ -29,7 +30,6 @@ import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
 import com.hypergonial.chat.view.content.MainContent
 import com.hypergonial.chat.withFallbackValue
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
@@ -189,7 +189,7 @@ class DefaultSideBarComponent(
 
     private val slotNavigation = SlotNavigation<SlotConfig>()
     private val scope = ctx.coroutineScope()
-    private val logger = KotlinLogging.logger {}
+    private val logger = Logger.withTag("DefaultSideBarComponent")
 
     override val mainContent: Value<ChildSlot<*, MainContentComponent>> =
         childSlot(
@@ -204,7 +204,6 @@ class DefaultSideBarComponent(
             when (config) {
                 is SlotConfig.Home -> DefaultHomeComponent(childCtx, client, hasGuilds = config.hasGuilds)
                 is SlotConfig.Fallback -> DefaultFallbackMainComponent(childCtx, ::onChannelCreateClicked)
-
                 is SlotConfig.Channel -> DefaultChannelComponent(childCtx, client, config.channelId) { onLogout() }
             }
         }
@@ -292,7 +291,7 @@ class DefaultSideBarComponent(
             } catch (e: ClientException) {
                 data.value =
                     data.value.copy(snackbarMessage = "Unexpected error occurred: ${e.message}".containAsEffect())
-                logger.error { "Failed to leave guild: ${e.message}" }
+                logger.e { "Failed to leave guild: ${e.message}" }
             }
         }
     }
@@ -304,7 +303,7 @@ class DefaultSideBarComponent(
             } catch (e: ClientException) {
                 data.value =
                     data.value.copy(snackbarMessage = "Unexpected error occurred: ${e.message}".containAsEffect())
-                logger.error { "Failed to delete guild: ${e.message}" }
+                logger.e { "Failed to delete guild: ${e.message}" }
             }
         }
     }
@@ -434,7 +433,7 @@ class DefaultSideBarComponent(
             } catch (e: ClientException) {
                 data.value =
                     data.value.copy(snackbarMessage = "Unexpected error occurred: ${e.message}".containAsEffect())
-                logger.error { "Failed to delete channel: ${e.message}" }
+                logger.e { "Failed to delete channel: ${e.message}" }
             }
         }
     }

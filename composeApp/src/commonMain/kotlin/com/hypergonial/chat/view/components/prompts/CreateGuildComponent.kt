@@ -1,6 +1,7 @@
 package com.hypergonial.chat.view.components.prompts
 
 import androidx.compose.runtime.Composable
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -12,7 +13,6 @@ import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.view.components.Displayable
 import com.hypergonial.chat.view.content.prompts.CreateGuildContent
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.launch
 
 interface CreateGuildComponent : Displayable {
@@ -41,7 +41,7 @@ class DefaultCreateGuildComponent(
     val onCancel: () -> Unit,
 ) : CreateGuildComponent {
     private val scope = ctx.coroutineScope()
-    private val logger = KotlinLogging.logger {}
+    private val logger = Logger.withTag("DefaultCreateGuildComponent")
 
     override val data = MutableValue(CreateGuildComponent.State())
 
@@ -52,7 +52,7 @@ class DefaultCreateGuildComponent(
                 try {
                     client.createGuild(data.value.guildName.trim())
                 } catch (e: ClientException) {
-                    logger.error { "Failed to create guild: ${e.message}" }
+                    logger.e { "Failed to create guild: ${e.message}" }
                     data.value =
                         data.value.copy(
                             isLoading = false,

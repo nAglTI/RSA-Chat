@@ -31,9 +31,9 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.PopupPositionProvider
+import co.touchlab.kermit.Logger
 import com.hypergonial.chat.model.Mime
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.ktor.util.encodeBase64
 import kotlin.random.Random
@@ -69,7 +69,7 @@ fun <T> T.containAsEffect() = EffectContainer(this)
 class FallbackSerializer<T>(private val delegate: KSerializer<T>, private val default: T) : KSerializer<T> {
     override val descriptor: SerialDescriptor = delegate.descriptor
 
-    private val logger = KotlinLogging.logger {}
+    private val logger = Logger.withTag("FallbackSerializer")
 
     override fun serialize(encoder: Encoder, value: T) {
         delegate.serialize(encoder, value)
@@ -79,7 +79,7 @@ class FallbackSerializer<T>(private val delegate: KSerializer<T>, private val de
         return try {
             delegate.deserialize(decoder)
         } catch (e: kotlinx.serialization.SerializationException) {
-            logger.warn(e) { "Failed to deserialize element, falling back to default value" }
+            logger.w(e) { "Failed to deserialize element, falling back to default value" }
             default
         }
     }
@@ -100,7 +100,7 @@ class FallbackSerializerWithPredicate<T>(
 ) : KSerializer<T> {
     override val descriptor: SerialDescriptor = delegate.descriptor
 
-    private val logger = KotlinLogging.logger {}
+    private val logger = Logger.withTag("FallbackSerializerWithPredicate")
 
     override fun serialize(encoder: Encoder, value: T) {
         delegate.serialize(encoder, value)
@@ -114,7 +114,7 @@ class FallbackSerializerWithPredicate<T>(
         return try {
             delegate.deserialize(decoder)
         } catch (e: kotlinx.serialization.SerializationException) {
-            logger.warn(e) { "Failed to deserialize element, falling back to default value" }
+            logger.w(e) { "Failed to deserialize element, falling back to default value" }
             default
         }
     }

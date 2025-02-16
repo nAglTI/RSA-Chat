@@ -2,13 +2,24 @@ package com.hypergonial.chat
 
 import androidx.compose.foundation.LocalContextMenuRepresentation
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Tray
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.arkivanov.decompose.DefaultComponentContext
@@ -62,12 +73,11 @@ fun main() {
     val root = runOnUiThread { DefaultRootComponent(ctx = DefaultComponentContext(lifecycle, stateKeeper)) }
 
     application {
-        val windowState = rememberWindowState()
+        val windowState = rememberWindowState(width = 1024.dp, height = 768.dp)
         LifecycleController(lifecycle, windowState)
 
         Window(
             onCloseRequest = {
-                // Save state when closing the window
                 stateKeeper.save().writeToFile(File(SAVED_STATE_FILE_NAME))
                 exitApplication()
             },

@@ -1,6 +1,7 @@
 package com.hypergonial.chat.view.components
 
 import androidx.compose.runtime.Composable
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -11,7 +12,6 @@ import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.UserUpdateEvent
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.view.content.UserSettingsContent
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.vinceglb.filekit.core.FileKit
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
@@ -63,7 +63,7 @@ class DefaultUserSettingsComponent(
         )
     private val scope = ctx.coroutineScope()
     private val usernameRegex = Regex("^([a-z0-9]|[a-z0-9]+(?:[._][a-z0-9]+)*)\$")
-    private val logger = KotlinLogging.logger {}
+    private val logger = Logger.withTag("DefaultUserSettingsComponent")
 
     init {
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onUserUpdate)
@@ -153,7 +153,7 @@ class DefaultUserSettingsComponent(
                     data.value.copy(
                         snackbarMessage = "Failed to update user settings, please try again later.".containAsEffect()
                     )
-                logger.error { "Failed to update user settings: ${e.message}" }
+                logger.e { "Failed to update user settings: ${e.message}" }
                 return@launch
             }
 
@@ -187,7 +187,7 @@ class DefaultUserSettingsComponent(
                     data.value.copy(
                         snackbarMessage = "Failed to update avatar, please try again later.".containAsEffect()
                     )
-                logger.error { "Failed to update avatar: ${e.message}" }
+                logger.e { "Failed to update avatar: ${e.message}" }
                 return@launch
             }
 

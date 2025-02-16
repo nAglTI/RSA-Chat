@@ -104,10 +104,12 @@ class DefaultLoginComponent(
         data.value = data.value.copy(logoClickCount = data.value.logoClickCount + 1)
 
         if (data.value.logoClickCount in 3..7) {
+            val steps = 8 - data.value.logoClickCount
             data.value =
                 data.value.copy(
                     snackbarMessage =
-                        ("Click ${8 - data.value.logoClickCount} more times to open debug settings").containAsEffect()
+                        ("You are $steps ${if (steps > 1) "steps" else "step"} away from becoming a developer")
+                            .containAsEffect()
                 )
         }
 

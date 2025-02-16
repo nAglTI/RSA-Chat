@@ -126,6 +126,14 @@ abstract class AppSettings {
         setSerializable("API_CONFIG", config)
         cachedDevSettings = config
     }
+
+    fun getLastOpenedPrefs(): LastOpenedPrefs {
+        return getSerializable("LAST_OPENED_PREFS") ?: LastOpenedPrefs.default()
+    }
+
+    fun setLastOpenedPrefs(prefs: LastOpenedPrefs) {
+        setSerializable("LAST_OPENED_PREFS", prefs)
+    }
 }
 
 /** The persistent settings store for this platform */

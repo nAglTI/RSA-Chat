@@ -28,6 +28,7 @@ import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
+import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.view.content.MainContent
 import com.hypergonial.chat.withFallbackValue
 import kotlinx.coroutines.launch
@@ -221,6 +222,11 @@ class DefaultSideBarComponent(
             subscribeWithLifeCycle(ctx.lifecycle, ::onAssetFocus)
             subscribeWithLifeCycle(ctx.lifecycle, ::onUserUpdate)
         }
+
+        scope.launch {
+            client.waitUntilReady()
+            openLastGuild()
+        }
     }
 
     /**
@@ -229,14 +235,30 @@ class DefaultSideBarComponent(
      * @param guildId The ID of the guild to get the default channel for
      * @return The default channel for the guild
      */
-    private fun getDefaultGuildChannel(guildId: Snowflake): Channel? {
-        val id = client.cache.getChannelsForGuild(guildId).keys.minOrNull()
-        return id?.let { client.cache.getChannel(it) }
+    private fun getLastOpenChannel(guildId: Snowflake): Channel? {
+        val lastChannel = settings.getLastOpenedPrefs().lastOpenChannels[guildId]?.let { client.cache.getChannel(it) }
+
+        return if (lastChannel != null) {
+            return lastChannel
+        } else {
+            // TODO: Replace with actual logic when channels have positions
+            client.cache.getChannelsForGuild(guildId).values.minByOrNull { it.id }
+        }
+    }
+
+    private fun openLastGuild() {
+        val lastOpenedPrefs = settings.getLastOpenedPrefs()
+        val lastGuild = lastOpenedPrefs.lastOpenGuild
+
+        if (lastGuild != null) {
+            onGuildSelected(lastGuild)
+        }
     }
 
     override fun onHomeSelected() {
         data.value = data.value.copy(selectedGuild = null, selectedChannel = null, channels = emptyList())
         slotNavigation.activate(SlotConfig.Home(hasGuilds = data.value.guilds.isNotEmpty()))
+        settings.setLastOpenedPrefs(settings.getLastOpenedPrefs().copy(lastOpenGuild = null))
     }
 
     override fun onLogoutClicked() {
@@ -253,8 +275,7 @@ class DefaultSideBarComponent(
             return
         }
 
-        // TODO: Update when channels have positions
-        val channel = getDefaultGuildChannel(guild.id)
+        val channel = getLastOpenChannel(guild.id)
 
         data.value =
             data.value.copy(
@@ -262,6 +283,8 @@ class DefaultSideBarComponent(
                 selectedChannel = channel,
                 channels = client.cache.getChannelsForGuild(guild.id).values.toList().sortedBy { it.id },
             )
+
+        settings.setLastOpenedPrefs(settings.getLastOpenedPrefs().copy(lastOpenGuild = guild.id))
 
         if (channel?.id != null) {
             slotNavigation.activate(SlotConfig.Channel(channel.id))
@@ -281,6 +304,14 @@ class DefaultSideBarComponent(
             slotNavigation.activate(SlotConfig.Channel(channel.id))
         }
 
+        settings.setLastOpenedPrefs(
+            settings
+                .getLastOpenedPrefs()
+                .copy(
+                    lastOpenChannels =
+                        settings.getLastOpenedPrefs().lastOpenChannels.apply { put(channel.guildId, channel.id) }
+                )
+        )
         data.value = data.value.copy(navDrawerCommand = SidebarComponent.NavDrawerCommand.CLOSE.containAsEffect())
     }
 
@@ -374,7 +405,7 @@ class DefaultSideBarComponent(
         }
 
         if (event.channel.id == data.value.selectedChannel?.id) {
-            data.value.selectedGuild?.id?.let { getDefaultGuildChannel(it) }?.let { onChannelSelected(it) }
+            data.value.selectedGuild?.id?.let { getLastOpenChannel(it) }?.let { onChannelSelected(it) }
         }
 
         data.value = data.value.copy(channels = data.value.channels.filter { it.id != event.channel.id })

@@ -34,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,16 +53,15 @@ import io.github.vinceglb.filekit.core.PlatformFile
 
 @Composable
 fun ChannelContent(component: ChannelComponent) {
+    val state by component.data.subscribeAsState()
+    val snackbarState = remember { SnackbarHostState() }
 
-    FileDropTarget(component::onFilesDropped) {
-        val state by component.data.subscribeAsState()
-        val snackbarState = remember { SnackbarHostState() }
+    val canSend by
+        remember(state.chatBarValue, state.pendingAttachments) {
+            derivedStateOf { state.chatBarValue.text.isNotEmpty() || state.pendingAttachments.isNotEmpty() }
+        }
 
-        val canSend by
-            remember(state.chatBarValue, state.pendingAttachments) {
-                derivedStateOf { state.chatBarValue.text.isNotEmpty() || state.pendingAttachments.isNotEmpty() }
-            }
-
+    FileDropTarget(onFilesDropped = component::onFilesDropped) {
         Scaffold(Modifier.fillMaxSize(), snackbarHost = { SnackbarHost(snackbarState) }) {
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
                 // Is a LazyColumn wrapped in a custom composable

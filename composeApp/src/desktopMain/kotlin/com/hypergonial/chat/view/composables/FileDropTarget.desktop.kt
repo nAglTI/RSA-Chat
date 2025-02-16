@@ -35,22 +35,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import io.github.vinceglb.filekit.core.PlatformFile
 import java.awt.datatransfer.DataFlavor
 import java.io.File
 
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class, ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 actual fun FileDropTarget(onFilesDropped: (List<PlatformFile>) -> Unit, content: @Composable () -> Unit) {
     var isActive by remember { mutableStateOf(false) }
-    val hazeState = remember { HazeState() }
 
-    val dragAndDropTarget = remember {
+    val dragAndDropTarget = remember(onFilesDropped) {
         object : DragAndDropTarget {
             override fun onStarted(event: DragAndDropEvent) {
                 isActive = true
@@ -87,7 +81,6 @@ actual fun FileDropTarget(onFilesDropped: (List<PlatformFile>) -> Unit, content:
     Box(
         modifier =
             Modifier.fillMaxSize()
-                .hazeSource(hazeState)
                 .dragAndDropTarget(shouldStartDragAndDrop = { it.isFileDrag() }, target = dragAndDropTarget)
     ) {
         content()
@@ -98,7 +91,6 @@ actual fun FileDropTarget(onFilesDropped: (List<PlatformFile>) -> Unit, content:
                     Modifier.fillMaxSize()
                         .pointerInput(Unit) { /* Disable touch events */ }
                         .background(Color.Black.copy(alpha = 0.6f), shape = RoundedCornerShape(12.dp, 0.dp, 0.dp, 0.dp))
-                        .hazeEffect(hazeState, style = HazeMaterials.thin())
             )
         }
 

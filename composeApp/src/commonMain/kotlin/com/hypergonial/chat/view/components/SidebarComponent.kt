@@ -299,7 +299,6 @@ class DefaultSideBarComponent(
                 channels = client.cache.getChannelsForGuild(guild.id).values.toList().sortedBy { it.id },
             )
 
-        logger.e("Setting last opened guild to ${guild.id}")
         settings.setLastOpenedPrefs(settings.getLastOpenedPrefs().copy(lastOpenGuild = guild.id))
 
         if (channel?.id != null) {

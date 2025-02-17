@@ -136,12 +136,14 @@ interface ChannelComponent : MainContentComponent, Displayable {
  * @param ctx The component context.
  * @param client The client to use for API operations.
  * @param channelId The ID of the channel to display.
+ * @param initialEditorState The initial state of the chat bar editor.
  * @param onLogout The callback to call when the user logs out. Includes the http URL of the asset.
  */
 class DefaultChannelComponent(
     private val ctx: ComponentContext,
     private val client: Client,
     private val channelId: Snowflake,
+    initialEditorState: TextFieldValue? = null,
     private val onLogout: () -> Unit,
 ) : ChannelComponent, ComponentContext by ctx {
     private val scope = ctx.coroutineScope()
@@ -150,6 +152,7 @@ class DefaultChannelComponent(
     override val data =
         MutableValue(
             ChannelComponent.ChannelState(
+                chatBarValue = initialEditorState ?: TextFieldValue(),
                 messageEntries =
                     mutableStateListOf(
                         messageEntryComponent(mutableStateListOf(), topEndIndicator = LoadMoreMessagesIndicator())

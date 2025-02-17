@@ -39,7 +39,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -159,11 +158,12 @@ fun Entry(component: MessageEntryComponent) {
     }
 }
 
-/** A context menu for a message.
+/**
+ * A context menu for a message.
  *
  * @param component The message to display the context menu for.
  * @param content The composable to apply the context menu to.
- * */
+ */
 @Composable
 fun MessageContextMenu(component: MessageComponent, content: @Composable () -> Unit) {
     val state by component.data.subscribeAsState()
@@ -256,6 +256,7 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
         if (state.isBeingEdited) {
             ChatBar(
                 value = state.editorState,
+                editorKey = "EDITOR_${component.getKey()}",
                 onValueChange = { component.onEditorStateChanged(it) },
                 onSubmit = { component.onEditFinish() },
                 onFocusLoss = { component.onEditCancel() },
@@ -364,7 +365,7 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
 
 @Composable
 fun DesktopOnlySelectionContainer(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    if (platform.isDesktop()) {
+    if (platform.isDesktopOrWeb()) {
         SelectionContainer(modifier) { content() }
     } else {
         content()

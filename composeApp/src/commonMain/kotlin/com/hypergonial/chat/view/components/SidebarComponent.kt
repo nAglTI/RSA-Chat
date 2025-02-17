@@ -1,6 +1,7 @@
 package com.hypergonial.chat.view.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.input.TextFieldValue
 import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
@@ -21,7 +22,6 @@ import com.hypergonial.chat.model.FocusGuildEvent
 import com.hypergonial.chat.model.GuildCreateEvent
 import com.hypergonial.chat.model.GuildRemoveEvent
 import com.hypergonial.chat.model.GuildUpdateEvent
-import com.hypergonial.chat.model.InvalidationReason
 import com.hypergonial.chat.model.ReadyEvent
 import com.hypergonial.chat.model.SessionInvalidatedEvent
 import com.hypergonial.chat.model.UserUpdateEvent
@@ -195,6 +195,7 @@ class DefaultSideBarComponent(
     private val slotNavigation = SlotNavigation<SlotConfig>()
     private val scope = ctx.coroutineScope()
     private val logger = Logger.withTag("DefaultSideBarComponent")
+    private val lastEditorStates = hashMapOf<Snowflake, TextFieldValue>()
 
     override val mainContent: Value<ChildSlot<*, MainContentComponent>> =
         childSlot(
@@ -209,7 +210,15 @@ class DefaultSideBarComponent(
             when (config) {
                 is SlotConfig.Home -> DefaultHomeComponent(childCtx, client, hasGuilds = config.hasGuilds)
                 is SlotConfig.Fallback -> DefaultFallbackMainComponent(childCtx, ::onChannelCreateClicked)
-                is SlotConfig.Channel -> DefaultChannelComponent(childCtx, client, config.channelId) { onLogout() }
+                is SlotConfig.Channel ->
+                    DefaultChannelComponent(
+                        childCtx,
+                        client,
+                        config.channelId,
+                        initialEditorState = lastEditorStates[config.channelId],
+                    ) {
+                        onLogout()
+                    }
             }
         }
 
@@ -314,6 +323,12 @@ class DefaultSideBarComponent(
     }
 
     private fun navigateToChannel(channel: Channel) {
+        // Save the editor state of the current channel
+        if (mainContent.value.child?.instance is ChannelComponent) {
+            lastEditorStates[data.value.selectedChannel?.id ?: return] =
+                (mainContent.value.child?.instance as ChannelComponent).data.value.chatBarValue
+        }
+
         if (channel.id != data.value.selectedChannel?.id) {
             data.value = data.value.copy(selectedChannel = channel)
             slotNavigation.activate(SlotConfig.Channel(channel.id))

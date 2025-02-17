@@ -5,10 +5,12 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlin.jvm.JvmInline
 
 /** Wrapper for a secret value to ensure it doesn't accidentally get printed */
 @Serializable(with = SecretSerializer::class)
-data class Secret<T>(private val inner: T) {
+@JvmInline
+value class Secret<T>(private val inner: T) {
     /** Expose the inner value */
     fun expose(): T = inner
 

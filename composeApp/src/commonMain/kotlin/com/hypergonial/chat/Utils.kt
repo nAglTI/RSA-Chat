@@ -22,6 +22,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -446,3 +453,21 @@ suspend fun PlatformFile.toDataUrl(): String {
  * @param onClick The callback to call when the alt-click is detected
  */
 @Composable expect fun Modifier.altClickable(onClick: () -> Unit): Modifier
+
+private fun KeyEvent.isModifierGesture(key: Key): Boolean {
+    if (this.type != KeyEventType.KeyDown || this.key != key) {
+        return false
+    }
+
+    return if (platform.platformType == PlatformType.MAC) {
+        this.isMetaPressed
+    } else {
+        this.isCtrlPressed
+    }
+}
+
+fun KeyEvent.isCopyGesture(): Boolean = isModifierGesture(Key.C)
+
+fun KeyEvent.isCutGesture(): Boolean = isModifierGesture(Key.X)
+
+fun KeyEvent.isPasteGesture(): Boolean = isModifierGesture(Key.V)

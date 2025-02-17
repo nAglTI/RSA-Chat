@@ -58,13 +58,13 @@ fun HomeContent(component: HomeComponent) {
             Text("Welcome to Chat!", style = MaterialTheme.typography.headlineSmall)
             Text(
                 "It looks like you're not part of any guilds yet.\n" +
-                    "${if (platform.isDesktop()) "Click" else "Tap"} the green + in the sidebar to join or create one!",
+                    "${if (platform.isDesktopOrWeb()) "Click" else "Tap"} the green + in the sidebar to join or create one!",
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 50.dp),
             )
         }
 
-        if (isSmall && !platform.isDesktop()) {
+        if (isSmall && !platform.isDesktopOrWeb()) {
             AnimatedArrow()
         }
     }

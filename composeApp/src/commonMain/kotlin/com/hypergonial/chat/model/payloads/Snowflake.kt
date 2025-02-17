@@ -8,6 +8,7 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlin.jvm.JvmInline
 
 private const val EPOCH: ULong = 1_672_531_200_000u
 
@@ -19,7 +20,8 @@ private const val EPOCH: ULong = 1_672_531_200_000u
  * @param inner The snowflake as a ULong.
  */
 @Serializable(with = SnowflakeSerializer::class)
-data class Snowflake(val inner: ULong) : Comparable<Snowflake> {
+@JvmInline
+value class Snowflake(val inner: ULong) : Comparable<Snowflake> {
     override fun compareTo(other: Snowflake): Int {
         return inner.compareTo(other.inner)
     }

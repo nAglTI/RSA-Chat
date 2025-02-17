@@ -22,7 +22,6 @@ import com.hypergonial.chat.model.FocusChannelEvent
 import com.hypergonial.chat.model.FocusGuildEvent
 import com.hypergonial.chat.model.InvalidationReason
 import com.hypergonial.chat.model.SessionInvalidatedEvent
-import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.components.prompts.CreateChannelComponent
@@ -33,7 +32,6 @@ import com.hypergonial.chat.view.components.prompts.DefaultJoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.DefaultNewGuildComponent
 import com.hypergonial.chat.view.components.prompts.JoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.NewGuildComponent
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName

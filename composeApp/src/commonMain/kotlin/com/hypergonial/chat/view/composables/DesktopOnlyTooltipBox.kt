@@ -20,7 +20,7 @@ fun DesktopOnlyTooltipBox(
     enableUserInput: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    if (platform.isDesktop()) {
+    if (platform.isDesktopOrWeb()) {
         TooltipBox(
             positionProvider = positionProvider,
             tooltip = tooltip,

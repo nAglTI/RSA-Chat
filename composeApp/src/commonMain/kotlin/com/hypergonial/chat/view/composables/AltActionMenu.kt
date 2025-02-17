@@ -67,8 +67,10 @@ fun DefaultAltActionMenu(
     }
     val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
     val isSmall = remember(windowSizeClass) { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT }
-    val shouldUseBottomSheet = isSmall && !platform.isDesktop()
+    val shouldUseBottomSheet = isSmall && !platform.isDesktopOrWeb()
     val altMenuItems = remember(altActions) { AltMenuScope().apply(altActions).allItems }
+
+    EditorFocusInhibitor("ALT_ACTION_MENU", isActive)
 
     if (shouldUseBottomSheet) {
         ModalBottomSheet(onDismissRequest = onDismissRequest) {
@@ -134,7 +136,7 @@ private fun AltAction(
 ) {
     val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
     val isSmall = remember(windowSizeClass) { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT }
-    val shouldUseBottomSheet = isSmall && !platform.isDesktop()
+    val shouldUseBottomSheet = isSmall && !platform.isDesktopOrWeb()
 
     if (!shouldUseBottomSheet) {
         DropdownMenuItem(

@@ -44,39 +44,40 @@ import java.io.File
 actual fun FileDropTarget(onFilesDropped: (List<PlatformFile>) -> Unit, content: @Composable () -> Unit) {
     var isActive by remember { mutableStateOf(false) }
 
-    val dragAndDropTarget = remember(onFilesDropped) {
-        object : DragAndDropTarget {
-            override fun onStarted(event: DragAndDropEvent) {
-                isActive = true
-            }
-
-            override fun onEnded(event: DragAndDropEvent) {
-                isActive = false
-            }
-
-            override fun onDrop(event: DragAndDropEvent): Boolean {
-                val files =
-                    event.awtTransferable.let { transferable ->
-                        if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-                            @Suppress("UNCHECKED_CAST")
-                            val files = transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<File>
-
-                            files.filter { it.exists() && it.isFile }.map { PlatformFile(it) }
-                        } else {
-                            emptyList()
-                        }
-                    }
-
-                // Handle the dropped files
-                if (files.isNotEmpty()) {
-                    onFilesDropped(files)
+    val dragAndDropTarget =
+        remember(onFilesDropped) {
+            object : DragAndDropTarget {
+                override fun onStarted(event: DragAndDropEvent) {
+                    isActive = true
                 }
 
-                isActive = false
-                return true
+                override fun onEnded(event: DragAndDropEvent) {
+                    isActive = false
+                }
+
+                override fun onDrop(event: DragAndDropEvent): Boolean {
+                    val files =
+                        event.awtTransferable.let { transferable ->
+                            if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                                @Suppress("UNCHECKED_CAST")
+                                val files = transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<File>
+
+                                files.filter { it.exists() && it.isFile }.map { PlatformFile(it) }
+                            } else {
+                                emptyList()
+                            }
+                        }
+
+                    // Handle the dropped files
+                    if (files.isNotEmpty()) {
+                        onFilesDropped(files)
+                    }
+
+                    isActive = false
+                    return true
+                }
             }
         }
-    }
 
     Box(
         modifier =

@@ -14,7 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -22,11 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 
 /**
  * A full-screen progress indicator that can be displayed over the content, blocking user interaction.
@@ -36,11 +30,11 @@ import dev.chrisbanes.haze.materials.HazeMaterials
  * @param loadingText The text to display below the progress indicator
  * @param content The content to display behind the progress indicator
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun FullScreenProgressIndicator(isActive: Boolean, loadingText: String? = null, content: @Composable () -> Unit) {
-    val hazeState = remember { HazeState() }
     val focusManager = LocalFocusManager.current
+
+    EditorFocusInhibitor("PROGRESS_INDICATOR", isActive)
 
     // Clear focus when the overlay activates (to prevent the IME staying open)
     LaunchedEffect(isActive) {
@@ -49,7 +43,7 @@ fun FullScreenProgressIndicator(isActive: Boolean, loadingText: String? = null, 
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
+    Box(modifier = Modifier.fillMaxSize()) {
         content()
         // Semi-transparent box to dim the content behind the spinner
         AnimatedVisibility(visible = isActive, enter = fadeIn(), exit = fadeOut()) {
@@ -66,7 +60,6 @@ fun FullScreenProgressIndicator(isActive: Boolean, loadingText: String? = null, 
                                 endY = Float.POSITIVE_INFINITY,
                             )
                         )
-                        .hazeEffect(hazeState, style = HazeMaterials.thin())
             )
         }
 

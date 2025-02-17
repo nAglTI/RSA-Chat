@@ -84,6 +84,9 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(kotlin("reflect"))
+            // Atomics
+            implementation(libs.atomicfu)
+            // Compose
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -102,17 +105,18 @@ kotlin {
             implementation(libs.multiplatform.settings.coroutines)
             // JSON Serialization
             implementation(libs.kotlinx.serialization.json)
-            // HTTP
+            // ktor (HTTP & WebSockets)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.websockets)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
+            // Coroutines
             implementation(libs.kotlinx.coroutines.core)
             // Async Image Loading from URL
+            // TODO: Add GIF support when it is merged: https://github.com/coil-kt/coil/pull/2594
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
             implementation(libs.coil.svg)
-            // TODO: Add GIF support when it is merged: https://github.com/coil-kt/coil/pull/2594
             implementation(libs.coil.network.cache.control)
             // Markdown Rendering
             implementation(libs.multiplatform.markdown.renderer)
@@ -122,7 +126,7 @@ kotlin {
             // Base64
             implementation(libs.ktor.utils)
             // Logging
-            implementation("co.touchlab:kermit:2.0.5")
+            implementation(libs.kermit)
             // Datetime
             implementation(libs.kotlinx.datetime)
             // File picker
@@ -144,10 +148,14 @@ kotlin {
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
+            // HTTP and coroutine impl
+            implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.swing)
+            // SLF4J for use with Kermit
             implementation(libs.slf4j.api)
             implementation(libs.slf4j.simple)
-            implementation(libs.ktor.client.okhttp)
+            // Stdlib extensions
+            implementation(libs.commons.lang3)
         }
     }
 }

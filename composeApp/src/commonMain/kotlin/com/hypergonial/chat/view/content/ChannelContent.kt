@@ -34,7 +34,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,6 +83,7 @@ fun ChannelContent(component: ChannelComponent) {
                     ChatBar(
                         state.chatBarValue,
                         Modifier.fillMaxWidth(),
+                        editorKey = "MAIN_EDITOR",
                         onValueChange = component::onChatBarContentChanged,
                         onEditLastRequested = component::onEditLastMessage,
                         leadingIcon = { FileUploadIcon(component) },

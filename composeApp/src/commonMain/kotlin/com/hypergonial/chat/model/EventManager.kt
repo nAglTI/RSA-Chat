@@ -2,13 +2,8 @@ package com.hypergonial.chat.model
 
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.doOnDestroy
-import com.hypergonial.chat.model.exceptions.EventManagerException
 import kotlin.reflect.KClass
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 /** A type that has an event manager. */
@@ -50,61 +45,16 @@ private sealed class Instruction {
 }
 
 /** Inner class managing the event subscriptions and dispatching. */
-private class EventManagerActor {
+private class EventManagerActor : Actor<Instruction>() {
     /** A map of event types to their subscribers. */
     private val subscribers: MutableMap<KClass<out Event>, HashSet<EventSubscriber<out Event>>> = mutableMapOf()
 
-    /** A queue of instructions to handle. */
-    private var channel = Channel<Instruction>(Channel.Factory.UNLIMITED)
-
-    /** The coroutine scope for this event manager. */
-    private var scope: CoroutineScope? = null
-
-    /** The currently running job processing instructions. */
-    private var runningJob: Job? = null
-
-    /** Starts processing instructions and blocks until the channel is closed or the runningJob is cancelled. */
-    suspend fun run() = coroutineScope {
-        if (runningJob != null) {
-            runningJob?.cancel()
+    override fun onMessage(message: Instruction) {
+        when (message) {
+            is Instruction.Subscribe -> subscribe(message.event, message.subscriber)
+            is Instruction.Unsubscribe -> unsubscribe(message.event, message.subscriber)
+            is Instruction.Dispatch -> dispatch(message.event)
         }
-        scope = this
-        runningJob = launch { handleInstructions() }
-    }
-
-    /** Stops the event manager. */
-    fun stop() {
-        runningJob?.cancel()
-        runningJob = null
-    }
-
-    private suspend fun handleInstructions() {
-        for (instruction in channel) {
-            when (instruction) {
-                is Instruction.Subscribe -> subscribe(instruction.event, instruction.subscriber)
-                is Instruction.Unsubscribe -> unsubscribe(instruction.event, instruction.subscriber)
-                is Instruction.Dispatch -> dispatch(instruction.event)
-            }
-        }
-    }
-
-    /**
-     * Send an instruction to the event manager.
-     *
-     * @param instruction The instruction to send.
-     */
-    suspend fun sendInstruction(instruction: Instruction) {
-        channel.send(instruction)
-    }
-
-    /**
-     * Try to send an instruction to the event manager.
-     *
-     * @param instruction The instruction to send.
-     * @return True if the instruction was queued successfully, false otherwise.
-     */
-    fun trySendInstruction(instruction: Instruction): Boolean {
-        return channel.trySend(instruction).isSuccess
     }
 
     private fun <T : Event> subscribe(eventType: KClass<out T>, subscriber: EventSubscriber<out T>) {
@@ -173,10 +123,7 @@ class EventManager {
      *   event as the only parameter.
      */
     fun <T : Event> subscribe(eventType: KClass<T>, callback: suspend (T) -> Unit) {
-        val res = inner.trySendInstruction(Instruction.Subscribe(eventType, EventSubscriber(callback)))
-        if (!res) {
-            throw EventManagerException("Failed to subscribe $callback to $eventType")
-        }
+        inner.sendMessage(Instruction.Subscribe(eventType, EventSubscriber(callback)))
     }
 
     /**
@@ -216,10 +163,7 @@ class EventManager {
      * @param callback The callback to remove from the subscribers list.
      */
     fun <T : Event> unsubscribe(eventType: KClass<T>, callback: suspend (T) -> Unit) {
-        val res = inner.trySendInstruction(Instruction.Unsubscribe(eventType, EventSubscriber(callback)))
-        if (!res) {
-            throw EventManagerException("Failed to unsubscribe $callback from $eventType")
-        }
+        inner.sendMessage(Instruction.Unsubscribe(eventType, EventSubscriber(callback)))
     }
 
     /**
@@ -255,9 +199,6 @@ class EventManager {
      * @param event The event to dispatch.
      */
     fun dispatch(event: Event) {
-        val res = inner.trySendInstruction(Instruction.Dispatch(event))
-        if (!res) {
-            throw EventManagerException("Failed to dispatch $event")
-        }
+        inner.sendMessage(Instruction.Dispatch(event))
     }
 }

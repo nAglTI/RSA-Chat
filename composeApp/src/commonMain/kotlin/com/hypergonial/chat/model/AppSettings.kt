@@ -1,6 +1,5 @@
 package com.hypergonial.chat.model
 
-import co.touchlab.kermit.Logger
 import com.russhwolf.settings.Settings
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json

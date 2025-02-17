@@ -158,7 +158,7 @@ fun MainTopBar(component: SidebarComponent, drawerState: DrawerState) {
             AnimatedVisibility(visible = isSmall) {
                 // Flash menu icon when no guild is selected
                 val borderColor =
-                    if (state.selectedGuild == null && isSmall && platform.isDesktop()) {
+                    if (state.selectedGuild == null && isSmall && platform.isDesktopOrWeb()) {
                         val infiniteTransition = rememberInfiniteTransition()
                         val flashingAlpha by
                             infiniteTransition.animateFloat(

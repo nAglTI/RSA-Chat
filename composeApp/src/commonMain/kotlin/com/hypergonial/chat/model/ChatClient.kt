@@ -451,6 +451,18 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                     eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.AuthenticationFailure))
                     return@webSocket
                 }
+                catch (e: WebsocketDeserializeException) {
+                    if (e.frame is Frame.Close) {
+                        logger.i { "Gateway session closed: ${e.frame}" }
+                        eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.AuthenticationFailure))
+                        return@webSocket
+                    }
+
+                    logger.e { "Failed to deserialize IDENTIFY response: $e\nFrame: ${e.frame}" }
+                    eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.Abnormal))
+
+                    return@webSocket
+                }
 
             logger.i { "Gateway session authenticated" }
 
@@ -458,6 +470,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                 logger.e { "Expected READY, got $ready" }
 
                 outgoing.send(Frame.Close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Expected READY")))
+                eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.Abnormal))
                 return@webSocket
             }
 

@@ -77,6 +77,8 @@ fun AssetViewerOverlay(
     // Handle backs to close the overlay
     BackHandler(isEnabled = isActive, onBack = onClose)
 
+    EditorFocusInhibitor("ASSET_VIEWER", isActive)
+
     // Clear focus when the overlay activates (to prevent the IME staying open)
     LaunchedEffect(isActive) {
         if (isActive) {

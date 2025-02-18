@@ -1,18 +1,7 @@
 package com.hypergonial.chat.view
 
-import com.hypergonial.chat.model.Actor
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-
-sealed interface FocusInhibitorMessage {
-    data class Acquire(val key: String) : FocusInhibitorMessage
-
-    data class Release(val key: String) : FocusInhibitorMessage
-
-    data class Query(val result: CompletableDeferred<Boolean>) : FocusInhibitorMessage
-}
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * This interface is responsible for registering and releasing the inhibition of editor auto-focus behaviour via global
@@ -29,14 +18,14 @@ sealed interface FocusInhibitorMessage {
  */
 interface EditorFocusInhibitor {
     /** Acquire the focus for the given key. Acquiring the same key multiple times will do nothing. */
-    fun acquire(key: String)
+    suspend fun acquire(key: String)
 
     /**
      * Release the focus for the given key.
      *
      * Releasing the same key multiple times will do nothing.
      */
-    fun release(key: String)
+    suspend fun release(key: String)
 
     /** Check if the editor is free to grab focus. */
     suspend fun isFree(): Boolean
@@ -44,49 +33,31 @@ interface EditorFocusInhibitor {
 
 /** For use on platforms that do not need to support editor focus inhibition. */
 object NoOpEditorFocusInhibitor : EditorFocusInhibitor {
-    override fun acquire(key: String) = Unit
+    override suspend fun acquire(key: String) = Unit
 
-    override fun release(key: String) = Unit
+    override suspend fun release(key: String) = Unit
 
     override suspend fun isFree(): Boolean = true
 }
 
-/** The default implementation of [EditorFocusInhibitor]. */
-@DelicateCoroutinesApi
-class DefaultEditorFocusInhibitor : EditorFocusInhibitor, Actor<FocusInhibitorMessage>() {
-    private val focusState = hashSetOf<String>()
+class DefaultEditorFocusInhibitor : EditorFocusInhibitor {
+    private val lock = Mutex()
+    private val focusStates = hashSetOf<String>()
 
-    init {
-        // Run as a global background service
-        GlobalScope.launch { run() }
-    }
-
-    override fun onMessage(message: FocusInhibitorMessage) {
-        when (message) {
-            is FocusInhibitorMessage.Acquire -> {
-                focusState.add(message.key)
-            }
-            is FocusInhibitorMessage.Release -> {
-                focusState.remove(message.key)
-            }
-            is FocusInhibitorMessage.Query -> {
-                message.result.complete(focusState.isEmpty())
-            }
+    override suspend fun acquire(key: String) {
+        lock.withLock {
+            focusStates.add(key)
         }
     }
 
-    override fun acquire(key: String) {
-        sendMessage(FocusInhibitorMessage.Acquire(key))
+    override suspend fun release(key: String) {
+        lock.withLock {
+            focusStates.remove(key)
+        }
     }
 
-    override fun release(key: String) {
-        sendMessage(FocusInhibitorMessage.Release(key))
-    }
-
-    override suspend fun isFree(): Boolean {
-        val result = CompletableDeferred<Boolean>()
-        sendMessage(FocusInhibitorMessage.Query(result))
-        return result.await()
+    override suspend fun isFree(): Boolean = lock.withLock {
+        focusStates.isEmpty()
     }
 }
 

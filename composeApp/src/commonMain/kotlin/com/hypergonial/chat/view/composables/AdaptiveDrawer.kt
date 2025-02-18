@@ -18,12 +18,14 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.hypergonial.chat.view.editorFocusInhibitor
+import kotlinx.coroutines.launch
 
 enum class DrawerDirection {
     Left,
@@ -58,18 +60,21 @@ fun AdaptiveDrawer(
     content: @Composable () -> Unit,
 ) {
     val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
+    val scope = rememberCoroutineScope()
     val isSmall = remember(windowSizeClass) { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT }
 
     DisposableEffect(isSmall, drawerState.targetValue) {
-        if (!isSmall) {
-            editorFocusInhibitor.release("MODAL_DRAWER")
-        } else if (drawerState.targetValue == DrawerValue.Open) {
-            editorFocusInhibitor.acquire("MODAL_DRAWER")
-        } else if (drawerState.targetValue == DrawerValue.Closed) {
-            editorFocusInhibitor.release("MODAL_DRAWER")
+        scope.launch {
+            if (!isSmall) {
+                editorFocusInhibitor.release("MODAL_DRAWER")
+            } else if (drawerState.targetValue == DrawerValue.Open) {
+                editorFocusInhibitor.acquire("MODAL_DRAWER")
+            } else if (drawerState.targetValue == DrawerValue.Closed) {
+                editorFocusInhibitor.release("MODAL_DRAWER")
+            }
         }
 
-        onDispose { editorFocusInhibitor.release("MODAL_DRAWER") }
+        onDispose { scope.launch { editorFocusInhibitor.release("MODAL_DRAWER") } }
     }
 
     LaunchedEffect(isSmall) {

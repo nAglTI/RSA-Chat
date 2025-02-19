@@ -78,7 +78,7 @@ import com.hypergonial.chat.view.components.HomeComponent
 import com.hypergonial.chat.view.components.SidebarComponent
 import com.hypergonial.chat.view.composables.AdaptiveDrawer
 import com.hypergonial.chat.view.composables.AltActionMenu
-import com.hypergonial.chat.view.composables.AssetViewerOverlay
+import com.hypergonial.chat.view.composables.AssetViewerDialog
 import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 import com.hypergonial.chat.view.composables.GuildIcon
 import com.hypergonial.chat.view.composables.SidebarChannelItem
@@ -341,22 +341,18 @@ fun MainContent(component: SidebarComponent) {
     val navDrawerState = remember { DrawerState(DrawerValue.Closed) }
 
     FullScreenProgressIndicator(state.isConnecting, state.connectingMessage) {
-        AssetViewerOverlay(state.assetViewerActive, state.assetViewerUrl, component::onAssetViewerClosed) {
-            AdaptiveDrawer(
-                drawerState = navDrawerState,
-                drawerContent = { SidebarContent(component, navDrawerState) },
-            ) {
-                Scaffold(
-                    topBar = { MainTopBar(component, navDrawerState) },
-                    snackbarHost = { SnackbarHost(snackbarState) },
-                ) { padding ->
-                    Box(Modifier.padding(padding).imePadding()) {
-                        when (val c = mainContent.child?.instance) {
-                            is HomeComponent -> HomeContent(c)
-                            is ChannelComponent -> ChannelContent(c)
-                            is FallbackMainComponent -> FallbackContent(c)
-                            else -> error("Unknown child: $c")
-                        }
+        AssetViewerDialog(state.assetViewerActive, state.assetViewerUrl, component::onAssetViewerClosed)
+        AdaptiveDrawer(drawerState = navDrawerState, drawerContent = { SidebarContent(component, navDrawerState) }) {
+            Scaffold(
+                topBar = { MainTopBar(component, navDrawerState) },
+                snackbarHost = { SnackbarHost(snackbarState) },
+            ) { padding ->
+                Box(Modifier.padding(padding).imePadding()) {
+                    when (val c = mainContent.child?.instance) {
+                        is HomeComponent -> HomeContent(c)
+                        is ChannelComponent -> ChannelContent(c)
+                        is FallbackMainComponent -> FallbackContent(c)
+                        else -> error("Unknown child: $c")
                     }
                 }
             }

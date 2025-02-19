@@ -51,6 +51,7 @@ fun FullScreenProgressIndicator(isActive: Boolean, loadingText: String? = null) 
 
     AnimatedDialog(
         onDismissRequest = { /* Thou shalt not be dismissed */ },
+        properties = AnimatedDialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,

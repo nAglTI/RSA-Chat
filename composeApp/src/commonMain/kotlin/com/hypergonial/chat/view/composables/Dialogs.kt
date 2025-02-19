@@ -10,7 +10,6 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,12 +18,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -49,6 +44,30 @@ class AnimatedDialogScope(
 }
 
 /**
+ * Properties for the animated dialog
+ *
+ * @param dismissOnBackPress: If true, the dialog will be dismissed when the back button is pressed
+ * @param dismissOnClickOutside: If true, the dialog will be dismissed when the user clicks outside the dialog
+ */
+data class AnimatedDialogProperties(val dismissOnBackPress: Boolean = true, val dismissOnClickOutside: Boolean = true) {
+    fun toDialogProperties(): DialogProperties {
+        return DialogProperties(
+            dismissOnBackPress = dismissOnBackPress,
+            dismissOnClickOutside = dismissOnClickOutside,
+            usePlatformDefaultWidth = false,
+        )
+    }
+
+    fun toPopupProperties(): PopupProperties {
+        return PopupProperties(
+            dismissOnBackPress = dismissOnBackPress,
+            dismissOnClickOutside = dismissOnClickOutside,
+            focusable = true,
+        )
+    }
+}
+
+/**
  * A dialog with an animated entry and exit animation
  *
  * @param onDismissRequest: A callback that is invoked when the dialog is dismissed
@@ -64,15 +83,31 @@ fun AnimatedDialog(
     enter: EnterTransition = fadeIn(),
     exit: ExitTransition = fadeOut(),
     needsScrim: Boolean = true,
+    properties: AnimatedDialogProperties? = null,
     contentAlignment: Alignment = Alignment.Center,
     content: @Composable AnimatedDialogScope.() -> Unit,
 ) {
     // The popup implementation doesn't apply scrim on mobile properly
     // But the Dialog impl scrim doesn't have an animated entry/exit
     if (platform.isMobile() && needsScrim) {
-        DialogImpl(onDismissRequest, enter, exit, contentAlignment, content)
+        DialogImpl(
+            onDismissRequest,
+            enter,
+            exit,
+            contentAlignment,
+            (properties ?: AnimatedDialogProperties()).toDialogProperties(),
+            content,
+        )
     } else {
-        PopupImpl(onDismissRequest, enter, exit, needsScrim, contentAlignment, content)
+        PopupImpl(
+            onDismissRequest,
+            enter,
+            exit,
+            needsScrim,
+            contentAlignment,
+            (properties ?: AnimatedDialogProperties()).toPopupProperties(),
+            content,
+        )
     }
 }
 
@@ -82,6 +117,7 @@ private fun DialogImpl(
     enter: EnterTransition = fadeIn(),
     exit: ExitTransition = fadeOut(),
     contentAlignment: Alignment = Alignment.Center,
+    properties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
     content: @Composable AnimatedDialogScope.() -> Unit,
 ) {
     val onDismissFlow: MutableSharedFlow<Any> = remember { MutableSharedFlow() }
@@ -106,7 +142,7 @@ private fun DialogImpl(
         launch { onDismissFlow.collectLatest { onDismissAnimated() } }
     }
 
-    Dialog(onDismissRequest = { onDismissAnimated() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    Dialog(onDismissRequest = { onDismissAnimated() }, properties = properties) {
         // Indicate that the popup has been inflated
         LaunchedEffect(Unit) { dialogInflated = true }
 
@@ -125,6 +161,7 @@ private fun PopupImpl(
     exit: ExitTransition = fadeOut(),
     needsScrim: Boolean = true,
     contentAlignment: Alignment = Alignment.Center,
+    properties: PopupProperties = PopupProperties(dismissOnClickOutside = false, focusable = true),
     content: @Composable AnimatedDialogScope.() -> Unit,
 ) {
     val onDismissFlow: MutableSharedFlow<Any> = remember { MutableSharedFlow() }
@@ -149,39 +186,23 @@ private fun PopupImpl(
         launch { onDismissFlow.collectLatest { onDismissAnimated() } }
     }
 
-    Popup(
-        onDismissRequest = { onDismissAnimated() },
-        properties = PopupProperties(dismissOnClickOutside = false, focusable = true),
-    ) {
+    Popup(onDismissRequest = { onDismissAnimated() }, properties = properties) {
         // Indicate that the popup has been inflated
         LaunchedEffect(Unit) { popupInflated = true }
 
-        Box(
-            contentAlignment = contentAlignment,
-            modifier =
-                Modifier.fillMaxSize().focusable(),
-        ) {
+        Box(contentAlignment = contentAlignment, modifier = Modifier.fillMaxSize().focusable()) {
             if (needsScrim) {
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = fadeIn(),
                     exit = fadeOut(),
-                    modifier =
-                    Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                 ) {
-                    Box(
-                        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f))
-                    )
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)))
                 }
             }
 
-
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = enter,
-                exit = exit,
-                modifier = Modifier.fillMaxSize(),
-            ) {
+            AnimatedVisibility(visible = isVisible, enter = enter, exit = exit, modifier = Modifier.fillMaxSize()) {
                 content(AnimatedDialogScope(scope, onDismissFlow))
             }
         }

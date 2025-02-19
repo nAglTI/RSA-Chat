@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -41,6 +42,7 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.hypergonial.chat.isPasteGesture
@@ -107,8 +109,6 @@ fun ChatBar(
     val isFocused by interactionSource.collectIsFocusedAsState()
     var hasGrabbedFocus by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val borderColor by
-        animateColorAsState(targetValue = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent)
 
     EditorFocusInhibitor(editorKey, isFocused)
 
@@ -208,11 +208,12 @@ fun ChatBar(
                     false
                 }
                 .focusRequester(focusRequester)
-                .border(1.dp, borderColor, RoundedCornerShape(16.dp)),
+                .shadow(16.dp, RoundedCornerShape(16.dp), clip = false),
         enabled = enabled,
         value = value,
         placeholder = { Text("Type a message...") },
         onValueChange = onValueChange,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight(350)),
         interactionSource = interactionSource,
         shape = RoundedCornerShape(16.dp),
         colors =

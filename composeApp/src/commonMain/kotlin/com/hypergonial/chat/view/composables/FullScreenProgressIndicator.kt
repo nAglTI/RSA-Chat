@@ -28,13 +28,18 @@ import androidx.compose.ui.unit.dp
  * @param isActive Whether the progress indicator should be displayed If false, the progress indicator will not be
  *   displayed and the content will be displayed as normal
  * @param loadingText The text to display below the progress indicator
- * @param content The content to display behind the progress indicator
  */
 @Composable
-fun FullScreenProgressIndicator(isActive: Boolean, loadingText: String? = null, content: @Composable () -> Unit) {
+fun FullScreenProgressIndicator(isActive: Boolean, loadingText: String? = null) {
+    EditorFocusInhibitor("PROGRESS_INDICATOR", isActive)
+
+    if (!isActive) {
+        return
+    }
+
     val focusManager = LocalFocusManager.current
 
-    EditorFocusInhibitor("PROGRESS_INDICATOR", isActive)
+
 
     // Clear focus when the overlay activates (to prevent the IME staying open)
     LaunchedEffect(isActive) {
@@ -43,26 +48,10 @@ fun FullScreenProgressIndicator(isActive: Boolean, loadingText: String? = null, 
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        content()
-        // Semi-transparent box to dim the content behind the spinner
-        AnimatedVisibility(visible = isActive, enter = fadeIn(), exit = fadeOut()) {
-            Box(
-                modifier =
-                    Modifier.fillMaxSize()
-                        .pointerInput(Unit) {
-                            // Disable touch events
-                        }
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent),
-                                startY = 0f,
-                                endY = Float.POSITIVE_INFINITY,
-                            )
-                        )
-            )
-        }
 
+    AnimatedDialog(
+        onDismissRequest = { /* Thou shalt not be dismissed */ },
+    ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,

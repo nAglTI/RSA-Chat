@@ -72,108 +72,108 @@ fun RegisterContent(component: RegisterComponent) {
     val focusManager = LocalFocusManager.current
     val snackBarState = remember { SnackbarHostState() }
 
-    FullScreenProgressIndicator(state.isRegistering, "Creating account...") {
-        Scaffold(topBar = { RegisterTopBar(component) }, snackbarHost = { SnackbarHost(snackBarState) }) {
-            Column(
-                Modifier.fillMaxSize().safeDrawingPadding(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    "Register an account",
-                    fontSize = 24.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 60.dp),
-                )
+    FullScreenProgressIndicator(state.isRegistering, "Creating account...")
 
-                OutlinedTextField(
-                    value = state.username,
-                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
-                    singleLine = true,
-                    isError = state.usernameErrors.isNotEmpty(),
-                    onValueChange = { component.onUsernameChange(it) },
-                    label = { Text("Username*") },
-                    leadingIcon = { Icon(Icons.Filled.AccountCircle, contentDescription = "Username") },
-                    trailingIcon = {
-                        if (state.checkingUsernameAvailability) CircularProgressIndicator(Modifier.size(25.dp))
-                        else if (state.usernameErrors.isEmpty() && state.username.isNotBlank())
-                            Icon(
-                                Icons.Filled.Check,
-                                contentDescription = "Username available",
-                                tint = ChatTheme.colorScheme.success,
-                            )
-                        else if (state.username.isNotEmpty())
-                            Icon(
-                                Icons.Filled.Close,
-                                contentDescription = "Username error",
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                    },
-                    keyboardOptions =
-                        KeyboardOptions(
-                            autoCorrectEnabled = false,
-                            keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Next,
-                        ),
-                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                )
+    Scaffold(topBar = { RegisterTopBar(component) }, snackbarHost = { SnackbarHost(snackBarState) }) {
+        Column(
+            Modifier.fillMaxSize().safeDrawingPadding(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                "Register an account",
+                fontSize = 24.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 60.dp),
+            )
 
-                for (error in state.usernameErrors) {
-                    Row { Text(error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error) }
-                }
+            OutlinedTextField(
+                value = state.username,
+                modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
+                singleLine = true,
+                isError = state.usernameErrors.isNotEmpty(),
+                onValueChange = { component.onUsernameChange(it) },
+                label = { Text("Username*") },
+                leadingIcon = { Icon(Icons.Filled.AccountCircle, contentDescription = "Username") },
+                trailingIcon = {
+                    if (state.checkingUsernameAvailability) CircularProgressIndicator(Modifier.size(25.dp))
+                    else if (state.usernameErrors.isEmpty() && state.username.isNotBlank())
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = "Username available",
+                            tint = ChatTheme.colorScheme.success,
+                        )
+                    else if (state.username.isNotEmpty())
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Username error",
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                },
+                keyboardOptions =
+                    KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next,
+                    ),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+            )
 
-                PasswordTextField(
-                    value = state.password.expose(),
-                    label = { Text("Password*") },
-                    onValueChange = { component.onPasswordChange(password = it) },
-                    isError = state.passwordErrors.isNotEmpty(),
-                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                    keyboardOptions =
-                        KeyboardOptions(
-                            autoCorrectEnabled = false,
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Next,
-                        ),
-                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
-                )
+            for (error in state.usernameErrors) {
+                Row { Text(error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error) }
+            }
 
-                for (error in state.passwordErrors) {
-                    Row { Text(error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error) }
-                }
+            PasswordTextField(
+                value = state.password.expose(),
+                label = { Text("Password*") },
+                onValueChange = { component.onPasswordChange(password = it) },
+                isError = state.passwordErrors.isNotEmpty(),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                keyboardOptions =
+                    KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next,
+                    ),
+                modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
+            )
 
-                PasswordTextField(
-                    value = state.passwordConfirm.expose(),
-                    label = { Text("Confirm Password*") },
-                    isError = state.passwordErrors.isNotEmpty(),
-                    onValueChange = { component.onPasswordConfirmChange(it) },
-                    keyboardOptions =
-                        KeyboardOptions(
-                            autoCorrectEnabled = false,
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Go,
-                        ),
-                    keyboardActions =
-                        KeyboardActions(
-                            onGo = {
-                                if (state.canRegister) {
-                                    focusManager.clearFocus()
-                                    component.onRegisterAttempt()
-                                }
+            for (error in state.passwordErrors) {
+                Row { Text(error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error) }
+            }
+
+            PasswordTextField(
+                value = state.passwordConfirm.expose(),
+                label = { Text("Confirm Password*") },
+                isError = state.passwordErrors.isNotEmpty(),
+                onValueChange = { component.onPasswordConfirmChange(it) },
+                keyboardOptions =
+                    KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Go,
+                    ),
+                keyboardActions =
+                    KeyboardActions(
+                        onGo = {
+                            if (state.canRegister) {
+                                focusManager.clearFocus()
+                                component.onRegisterAttempt()
                             }
-                        ),
-                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
-                )
+                        }
+                    ),
+                modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
+            )
 
-                ChatButton(
-                    modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),
-                    onClick = {
-                        focusManager.clearFocus()
-                        component.onRegisterAttempt()
-                    },
-                    enabled = state.canRegister,
-                ) {
-                    Text("Register")
-                }
+            ChatButton(
+                modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),
+                onClick = {
+                    focusManager.clearFocus()
+                    component.onRegisterAttempt()
+                },
+                enabled = state.canRegister,
+            ) {
+                Text("Register")
             }
         }
     }

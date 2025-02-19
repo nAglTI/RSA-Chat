@@ -32,35 +32,33 @@ fun JoinGuildContent(component: JoinGuildComponent) {
     val state by component.data.subscribeAsState()
     val snackbarState = remember { SnackbarHostState() }
 
-    FullScreenProgressIndicator(isActive = state.isLoading) {
-        Scaffold(Modifier.fillMaxSize(), snackbarHost = { SnackbarHostState() }) {
-            Box {
-                if (platform.needsBackButton()) {
-                    IconButton(
-                        onClick = component::onBackClicked,
-                        modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart),
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
+    FullScreenProgressIndicator(isActive = state.isLoading)
 
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxSize(),
+    Scaffold(Modifier.fillMaxSize(), snackbarHost = { SnackbarHostState() }) {
+        Box {
+            if (platform.needsBackButton()) {
+                IconButton(
+                    onClick = component::onBackClicked,
+                    modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart),
                 ) {
-                    OutlinedTextField(
-                        value = state.inviteCode,
-                        onValueChange = component::onInviteCodeChanged,
-                        singleLine = true,
-                        placeholder = { Text("Enter invite code...") },
-                        label = { Text("Invite Code") },
-                    )
-
-                    Button(onClick = component::onGuildJoinClicked, enabled = state.isJoinButtonEnabled) {
-                        Text("Join")
-                    }
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                OutlinedTextField(
+                    value = state.inviteCode,
+                    onValueChange = component::onInviteCodeChanged,
+                    singleLine = true,
+                    placeholder = { Text("Enter invite code...") },
+                    label = { Text("Invite Code") },
+                )
+
+                Button(onClick = component::onGuildJoinClicked, enabled = state.isJoinButtonEnabled) { Text("Join") }
             }
         }
     }

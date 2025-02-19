@@ -84,8 +84,6 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(kotlin("reflect"))
-            // Atomics
-            implementation(libs.atomicfu)
             // Compose
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -216,7 +214,7 @@ compose.desktop {
 
         buildTypes.release.proguard {
             configurationFiles.from("proguard-desktop-rules.pro")
-            joinOutputJars = false
+            joinOutputJars = true
             optimize = true
             obfuscate = false
         }

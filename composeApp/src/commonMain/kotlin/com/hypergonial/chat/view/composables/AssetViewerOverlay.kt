@@ -46,17 +46,17 @@ import com.hypergonial.chat.model.downloader
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AssetViewerDialog(isActive: Boolean = false, url: String? = null, onClose: () -> Unit) {
+    EditorFocusInhibitor("ASSET_VIEWER", isActive)
+
     if (!isActive || url == null) {
         return
     }
 
     val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
     val isSmall = remember(windowSizeClass) { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT }
-    val imagePadding by animateDpAsState(if (isSmall) 10.dp else 40.dp)
+    val imagePadding by animateDpAsState(if (isSmall) 20.dp else 40.dp)
     val uriHandler = LocalUriHandler.current
     val focusManager = LocalFocusManager.current
-
-    EditorFocusInhibitor("ASSET_VIEWER", isActive)
 
     // Clear focus when the overlay activates (to prevent the IME staying open)
     LaunchedEffect(isActive) {

@@ -67,8 +67,6 @@ interface RootComponent : BackHandlerOwner {
 
         class MainChild(override val component: SidebarComponent) : Child(component)
 
-        class NotFoundChild(override val component: NotFoundComponent) : Child(component)
-
         class NewGuildChild(override val component: NewGuildComponent) : Child(component)
 
         class CreateGuildChild(override val component: CreateGuildComponent) : Child(component)
@@ -174,8 +172,6 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
                         },
                     )
                 )
-
-            is Config.NotFound -> RootComponent.Child.NotFoundChild(DefaultNotFoundComponent(ctx = childCtx))
 
             is Config.Main ->
                 RootComponent.Child.MainChild(
@@ -304,8 +300,6 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
         @Serializable @SerialName("LOGIN") data object Login : Config()
 
         @Serializable @SerialName("REGISTER") data object Register : Config()
-
-        @Serializable @SerialName("NOT_FOUND") data object NotFound : Config()
 
         @Serializable @SerialName("DEBUG_SETTINGS") data object DebugSettings : Config()
 

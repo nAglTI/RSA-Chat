@@ -67,72 +67,72 @@ fun LoginContent(component: LoginComponent) {
     val focusManager = LocalFocusManager.current
     val snackbarState = remember { SnackbarHostState() }
 
-    FullScreenProgressIndicator(state.isLoggingIn, "Logging in...") {
-        Scaffold(bottomBar = { LoginBottomBar(component) }, snackbarHost = { SnackbarHost(snackbarState) }) {
-            Column(
-                Modifier.fillMaxSize().safeDrawingPadding().padding(0.dp, 0.dp, 0.dp, 50.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Image(
-                    painter = painterResource(Res.drawable.compose_multiplatform),
-                    contentDescription = "Logo",
-                    modifier =
-                        Modifier.size(200.dp).padding(0.dp, 0.dp, 0.dp, 50.dp).clickable(
-                            interactionSource = null,
-                            indication = null,
-                        ) {
-                            component.onLogoClick()
-                        },
-                )
+    FullScreenProgressIndicator(state.isLoggingIn, "Logging in...")
 
-                OutlinedTextField(
-                    value = state.username,
-                    isError = state.loginFailed,
-                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
-                    singleLine = true,
-                    enabled = !state.isLoggingIn,
-                    onValueChange = { component.onUsernameChange(username = it) },
-                    label = { Text("Username") },
-                    leadingIcon = { Icon(Icons.Filled.AccountCircle, contentDescription = "Username") },
-                    placeholder = { Text("Enter your username...") },
-                    keyboardOptions =
-                        KeyboardOptions(
-                            capitalization = KeyboardCapitalization.None,
-                            autoCorrectEnabled = false,
-                            keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Next,
-                        ),
-                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                )
-
-                PasswordTextField(
-                    value = state.password.expose(),
-                    isError = state.loginFailed,
-                    enabled = !state.isLoggingIn,
-                    label = { Text("Password") },
-                    placeholder = { Text("Enter your password...") },
-                    onValueChange = { component.onPasswordChange(password = it) },
-                    keyboardActions =
-                        KeyboardActions(
-                            onDone = {
-                                focusManager.clearFocus()
-                                if (state.canLogin) component.onLoginAttempt()
-                            }
-                        ),
-                    modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
-                )
-
-                ChatButton(
-                    modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),
-                    onClick = {
-                        focusManager.clearFocus()
-                        if (state.canLogin) component.onLoginAttempt()
+    Scaffold(bottomBar = { LoginBottomBar(component) }, snackbarHost = { SnackbarHost(snackbarState) }) {
+        Column(
+            Modifier.fillMaxSize().safeDrawingPadding().padding(0.dp, 0.dp, 0.dp, 50.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Image(
+                painter = painterResource(Res.drawable.compose_multiplatform),
+                contentDescription = "Logo",
+                modifier =
+                    Modifier.size(200.dp).padding(0.dp, 0.dp, 0.dp, 50.dp).clickable(
+                        interactionSource = null,
+                        indication = null,
+                    ) {
+                        component.onLogoClick()
                     },
-                    enabled = state.canLogin && !state.isLoggingIn,
-                ) {
-                    Text("Login")
-                }
+            )
+
+            OutlinedTextField(
+                value = state.username,
+                isError = state.loginFailed,
+                modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
+                singleLine = true,
+                enabled = !state.isLoggingIn,
+                onValueChange = { component.onUsernameChange(username = it) },
+                label = { Text("Username") },
+                leadingIcon = { Icon(Icons.Filled.AccountCircle, contentDescription = "Username") },
+                placeholder = { Text("Enter your username...") },
+                keyboardOptions =
+                    KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next,
+                    ),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+            )
+
+            PasswordTextField(
+                value = state.password.expose(),
+                isError = state.loginFailed,
+                enabled = !state.isLoggingIn,
+                label = { Text("Password") },
+                placeholder = { Text("Enter your password...") },
+                onValueChange = { component.onPasswordChange(password = it) },
+                keyboardActions =
+                    KeyboardActions(
+                        onDone = {
+                            focusManager.clearFocus()
+                            if (state.canLogin) component.onLoginAttempt()
+                        }
+                    ),
+                modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
+            )
+
+            ChatButton(
+                modifier = Modifier.padding(0.dp, 15.dp, 0.dp, 0.dp).width(125.dp).height(45.dp),
+                onClick = {
+                    focusManager.clearFocus()
+                    if (state.canLogin) component.onLoginAttempt()
+                },
+                enabled = state.canLogin && !state.isLoggingIn,
+            ) {
+                Text("Login")
             }
         }
     }

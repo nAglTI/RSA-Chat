@@ -33,34 +33,34 @@ fun CreateGuildContent(component: CreateGuildComponent) {
     val state by component.data.subscribeAsState()
     val snackbarState = remember { SnackbarHostState() }
 
-    FullScreenProgressIndicator(isActive = state.isLoading) {
-        Scaffold(Modifier.fillMaxSize(), snackbarHost = { SnackbarHost((snackbarState)) }) {
-            Box {
-                if (platform.needsBackButton()) {
-                    IconButton(
-                        onClick = component::onBackClicked,
-                        modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart),
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
+    FullScreenProgressIndicator(isActive = state.isLoading)
 
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxSize(),
+    Scaffold(Modifier.fillMaxSize(), snackbarHost = { SnackbarHost((snackbarState)) }) {
+        Box {
+            if (platform.needsBackButton()) {
+                IconButton(
+                    onClick = component::onBackClicked,
+                    modifier = Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp).align(Alignment.TopStart),
                 ) {
-                    OutlinedTextField(
-                        value = state.guildName,
-                        onValueChange = component::onGuildNameChanged,
-                        singleLine = true,
-                        placeholder = { Text("Enter the name of your guild...") },
-                        label = { Text("Guild Name") },
-                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            }
 
-                    Button(onClick = component::onGuildCreateClicked, enabled = state.isCreateButtonEnabled) {
-                        Text("Create")
-                    }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                OutlinedTextField(
+                    value = state.guildName,
+                    onValueChange = component::onGuildNameChanged,
+                    singleLine = true,
+                    placeholder = { Text("Enter the name of your guild...") },
+                    label = { Text("Guild Name") },
+                )
+
+                Button(onClick = component::onGuildCreateClicked, enabled = state.isCreateButtonEnabled) {
+                    Text("Create")
                 }
             }
         }

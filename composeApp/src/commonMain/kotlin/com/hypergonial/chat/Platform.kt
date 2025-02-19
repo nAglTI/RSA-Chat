@@ -8,6 +8,8 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback
 import com.arkivanov.decompose.extensions.compose.stack.animation.scale
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.essenty.backhandler.BackHandler
+import com.hypergonial.chat.PlatformType.ANDROID
+import com.hypergonial.chat.PlatformType.IOS
 import com.hypergonial.chat.view.iOSBackAnimation
 
 enum class PlatformType {
@@ -67,6 +69,14 @@ interface Platform {
     /** Returns whether the platform is a mobile platform. */
     fun isMobile(): Boolean {
         return platformType.isMobile()
+    }
+
+    fun tapVerb(): String {
+        return if (isMobile()) {
+            "tap"
+        } else {
+            "click"
+        }
     }
 
     /**

@@ -216,7 +216,7 @@ compose.desktop {
             configurationFiles.from("proguard-desktop-rules.pro")
             joinOutputJars = true
             optimize = true
-            obfuscate = false
+            obfuscate = true
         }
     }
 }

@@ -287,7 +287,7 @@ fun SidebarContent(component: SidebarComponent, drawerState: DrawerState) {
                     }
                 }
 
-                if (state.selectedGuild != null) {
+                if (state.selectedGuild != null && state.currentUser?.id == state.selectedGuild?.ownerId) {
                     item {
                         SidebarChannelItem(
                             label = "New Channel",

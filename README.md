@@ -20,14 +20,45 @@ To build a distributable package:
 ./gradlew :composeApp:createDistributable
 ```
 
+To create a release distributable:
+
+```shell
+./gradlew :composeApp:createReleaseDistributable
+```
+
+The output will be in `composeApp/build/compose/binaries/main/app`.
+
+> [!WARNING]
+> The release build of the desktop app is currently experimental, and may have issues due to the Proguard configuration.
+
 ### Android
 
 Open the project in [Android Studio](https://developer.android.com/studio) and run the "Android App" configuration.
 
+Alternatively, if you want to just build the APK and manually install it on a device, you can run:
+
+```shell
+./gradlew :composeApp:assembleRelease
+```
+
+or for a debug build:
+
+```shell
+./gradlew :composeApp:assembleDebug
+```
+
+The output will be in `composeApp/build/outputs/apk`.
+
 ### iOS
 
-iOS development requires a Mac with Xcode installed.
-The iOS build is untested due to me unfortunately not having a Mac, and may not work out of the box. Contributions are welcome to fix issues here.
+iOS development requires a Mac with Xcode installed. This build process is by far the most complicated one.
+
+First, download [kdoctor](https://github.com/Kotlin/kdoctor) and run it to identify & fix any the issues with your setup.
+
+Then open Android Studio, and either add or execute the iOS configuration.
+
+> [!IMPORTANT]
+> The iOS app is currently experimental and rarely tested due to not having a Mac available during regular development.
 
 ### Web
 

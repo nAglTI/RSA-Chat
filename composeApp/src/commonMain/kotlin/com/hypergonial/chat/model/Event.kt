@@ -53,7 +53,7 @@ class ChannelCreateEvent(val channel: Channel) : Event()
 class ChannelRemoveEvent(val channel: Channel) : Event()
 
 /** Event dispatched after the client has authenticated with the gateway */
-class ReadyEvent(val user: User, val guilds: List<Guild>) : Event()
+class ReadyEvent(val user: User, val guilds: List<Guild>, val wasReconnect: Boolean = false) : Event()
 
 /** Event dispatched when a user's presence is updated */
 class PresenceUpdateEvent(val userId: Snowflake, val presence: String) : Event()

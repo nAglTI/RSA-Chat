@@ -141,7 +141,7 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * @see isConnected
      * @see waitUntilDisconnected
      */
-    suspend fun connect()
+    fun connect()
 
     /**
      * Check if the client is connected to the gateway

@@ -394,10 +394,12 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         gatewayCloseJob.complete()
     }
 
-    override suspend fun connect() {
+    override fun connect() = connect(isReconnect = false)
+
+    private fun connect(isReconnect: Boolean) {
         gatewayCloseJob = Job()
         gatewayConnectedJob = Job()
-        gatewaySession = scope.launch { gatewaySession() }
+        gatewaySession = scope.launch { gatewaySession(isReconnect) }
         scope.launch {
             delay(5000)
             if (!gatewayConnectedJob.isCompleted) {
@@ -420,7 +422,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
 
     override suspend fun waitUntilDisconnected() = gatewaySession?.join() ?: Unit
 
-    private suspend fun gatewaySession() {
+    private suspend fun gatewaySession(isReconnect: Boolean) {
         check(token != null) { "Cannot connect without a token" }
 
         logger.i { "Starting new gateway session to ${config.gatewayUrl}" }
@@ -450,8 +452,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                     logger.e { "Channel was closed after IDENTIFY: $reason" }
                     eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.AuthenticationFailure))
                     return@webSocket
-                }
-                catch (e: WebsocketDeserializeException) {
+                } catch (e: WebsocketDeserializeException) {
                     if (e.frame is Frame.Close) {
                         logger.i { "Gateway session closed: ${e.frame}" }
                         eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.AuthenticationFailure))
@@ -487,7 +488,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
 
             logger.i { "Gateway session is ready" }
 
-            eventManager.dispatch(ready.toEvent())
+            eventManager.dispatch(ReadyEvent(ready.data.user, ready.data.guilds, isReconnect))
 
             val jobs =
                 listOf(
@@ -542,7 +543,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         scope.launch {
             delay(_reconnectAttempts * 5000L)
             logger.w { "Attempting to reconnect to gateway..." }
-            connect()
+            connect(isReconnect = true)
         }
     }
 

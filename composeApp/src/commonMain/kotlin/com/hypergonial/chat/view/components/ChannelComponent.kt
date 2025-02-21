@@ -21,6 +21,7 @@ import com.hypergonial.chat.model.MessageCreateEvent
 import com.hypergonial.chat.model.MessageRemoveEvent
 import com.hypergonial.chat.model.MessageUpdateEvent
 import com.hypergonial.chat.model.Mime
+import com.hypergonial.chat.model.ReadyEvent
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.getMimeType
 import com.hypergonial.chat.model.payloads.Attachment
@@ -165,7 +166,7 @@ class DefaultChannelComponent(
             subscribeWithLifeCycle(ctx.lifecycle, ::onMessageCreate)
             subscribeWithLifeCycle(ctx.lifecycle, ::onMessageUpdate)
             subscribeWithLifeCycle(ctx.lifecycle, ::onMessageDelete)
-            subscribeWithLifeCycle(ctx.lifecycle, ::onResume)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onReady)
         }
     }
 
@@ -530,9 +531,16 @@ class DefaultChannelComponent(
         }
     }
 
-    @Suppress("UnusedParameter")
-    private fun onResume(event: LifecycleResumedEvent) {
-        refreshMessageList()
+    /** Callback called when the client is connected to the gateway.
+     *
+     * The message list should be refreshed if this was a reconnection to ensure that the list is up-to-date.
+     *
+     * @param event The event that was emitted.
+     * */
+    private fun onReady(event: ReadyEvent) {
+        if (event.wasReconnect) {
+            refreshMessageList()
+        }
     }
 
     /**

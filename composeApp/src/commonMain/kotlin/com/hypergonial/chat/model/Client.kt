@@ -196,6 +196,13 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     ): List<Message>
 
     /**
+     * Set a typing indicator in the given channel
+     *
+     * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the channel does not exist
+     */
+    suspend fun setTypingIndicator(channelId: Snowflake)
+
+    /**
      * Send a message to the given channel
      *
      * @param channelId The ID of the channel to send the message to

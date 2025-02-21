@@ -13,23 +13,23 @@ open class Event
 /** Base class for events that are only used inside the application, and are not coming from the gateway directly */
 open class InternalEvent : Event()
 
-/** Base class for events dispatched when a message related event is received from the gateway. */
-open class MessageEvent(val message: Message) : Event()
-
 /** Event dispatched when the gateway acknowledges a heartbeat sent by the client. */
 class HeartbeatAckEvent : Event()
 
 /** Event dispatched when a message is created */
-class MessageCreateEvent(message: Message) : MessageEvent(message)
+class MessageCreateEvent(val message: Message) : Event()
 
 /** Event dispatched when a message is edited */
-class MessageUpdateEvent(message: Message) : MessageEvent(message)
-
-/** Event dispatched when a user is updated */
-class UserUpdateEvent(val user: User) : Event()
+class MessageUpdateEvent(val message: Message) : Event()
 
 /** Event dispatched when a message is deleted */
 class MessageRemoveEvent(val id: Snowflake, val channelId: Snowflake, val guildId: Snowflake) : Event()
+
+/** Event dispatched when a user starts typing in a channel */
+class TypingStartEvent(val channelId: Snowflake, val userId: Snowflake) : Event()
+
+/** Event dispatched when a user is updated */
+class UserUpdateEvent(val user: User) : Event()
 
 /** Event dispatched when a member is created */
 class MemberCreateEvent(val member: Member) : Event()

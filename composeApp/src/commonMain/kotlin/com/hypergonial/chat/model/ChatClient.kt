@@ -22,8 +22,8 @@ import com.hypergonial.chat.model.payloads.gateway.Heartbeat
 import com.hypergonial.chat.model.payloads.gateway.HeartbeatAck
 import com.hypergonial.chat.model.payloads.gateway.Hello
 import com.hypergonial.chat.model.payloads.gateway.Identify
-import com.hypergonial.chat.model.payloads.gateway.InvalidSession
 import com.hypergonial.chat.model.payloads.gateway.Ready
+import com.hypergonial.chat.model.payloads.gateway.StartTyping
 import com.hypergonial.chat.model.payloads.rest.AuthResponse
 import com.hypergonial.chat.model.payloads.rest.ChannelCreateRequest
 import com.hypergonial.chat.model.payloads.rest.GuildCreateRequest
@@ -356,11 +356,6 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             } catch (e: SerializationException) {
                 logger.e { "Failed to deserialize message: $e" }
                 continue
-            }
-
-            if (msg is InvalidSession) {
-                logger.e { "Server invalidated gateway session: ${msg.reason}" }
-                return
             }
 
             if (msg is HeartbeatAck) {
@@ -720,6 +715,10 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             }
             .body<List<Message>>()
             .sortedBy { it.id }
+    }
+
+    override suspend fun setTypingIndicator(channelId: Snowflake) {
+        sendGatewayMessage(StartTyping(channelId))
     }
 
     override suspend fun sendMessage(

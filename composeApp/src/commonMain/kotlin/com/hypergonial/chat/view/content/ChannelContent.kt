@@ -1,16 +1,15 @@
 package com.hypergonial.chat.view.content
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,11 +35,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.hypergonial.chat.LocalUsingDarkTheme
 import com.hypergonial.chat.getIcon
 import com.hypergonial.chat.model.Mime
 import com.hypergonial.chat.trimFilename
@@ -48,12 +49,13 @@ import com.hypergonial.chat.view.components.ChannelComponent
 import com.hypergonial.chat.view.composables.ChatBar
 import com.hypergonial.chat.view.composables.FileDropTarget
 import com.hypergonial.chat.view.composables.MessageList
-import io.github.vinceglb.filekit.core.PlatformFile
+import com.hypergonial.chat.view.composables.TypingIndicator
 
 @Composable
 fun ChannelContent(component: ChannelComponent) {
     val state by component.data.subscribeAsState()
     val snackbarState = remember { SnackbarHostState() }
+    val isDarkMode = LocalUsingDarkTheme.current
 
     val canSend by
         remember(state.chatBarValue, state.pendingAttachments) {
@@ -74,11 +76,12 @@ fun ChannelContent(component: ChannelComponent) {
                 Column(
                     Modifier.padding(20.dp, 0.dp, 20.dp, 20.dp)
                         .background(
-                            MaterialTheme.colorScheme.secondaryContainer,
+                            if (isDarkMode) MaterialTheme.colorScheme.surfaceBright
+                            else MaterialTheme.colorScheme.surfaceDim,
                             RoundedCornerShape(16.dp, 16.dp, 16.dp, 16.dp),
                         )
                 ) {
-                    PendingFilesList(state.pendingAttachments, onPendingFileCancel = component::onPendingFileCancel)
+                    ChatBarTopBar(component)
 
                     ChatBar(
                         state.chatBarValue,
@@ -137,31 +140,50 @@ fun FileUploadIcon(component: ChannelComponent) {
 }
 
 @Composable
-fun PendingFilesList(
-    pendingAttachments: List<PlatformFile>,
-    modifier: Modifier = Modifier,
-    onPendingFileCancel: (PlatformFile) -> Unit,
-) {
-    val shape = remember { RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp) }
-    val mimes by remember(pendingAttachments) { derivedStateOf { pendingAttachments.map { Mime.fromUrl(it.name) } } }
+fun ChatBarTopBar(component: ChannelComponent) {
+    val state by component.data.subscribeAsState()
+    val mimes by
+        remember(state.pendingAttachments) { derivedStateOf { state.pendingAttachments.map { Mime.fromUrl(it.name) } } }
 
-    AnimatedVisibility(
-        pendingAttachments.isNotEmpty(),
-        modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .padding(start = 20.dp, end = 20.dp)
-            .background(MaterialTheme.colorScheme.secondaryContainer, shape = shape),
-        enter = expandVertically(expandFrom = Alignment.Top),
-        exit = shrinkVertically(shrinkTowards = Alignment.Top),
-    ) {
-        // Min height to prevent the LazyRow from shrinking to 0 height before the anim finishes
-        LazyRow(Modifier.defaultMinSize(0.dp, 25.dp)) {
-            itemsIndexed(pendingAttachments) { i, attachment ->
+    Column(Modifier.fillMaxWidth().padding(start = 20.dp)) {
+        val typingText =
+            remember(state.typingIndicators) {
+                if (state.typingIndicators.size <= 3) {
+                    state.typingIndicators.joinToString(separator = ", ") { it.username } +
+                        " ${if (state.typingIndicators.size == 1) "is" else "are"} typing..."
+                } else {
+                    "Multiple users are typing..."
+                }
+            }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier =
+                Modifier.fillMaxWidth()
+                    .animateContentSize()
+                    .padding(vertical = if (state.typingIndicators.isNotEmpty()) 5.dp else 0.dp),
+        ) {
+            if (state.typingIndicators.isNotEmpty()) {
+                val kindaGray = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f).compositeOver(Color.Gray)
+                val lessGray = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f).compositeOver(Color.Gray)
+
+                TypingIndicator(initialColor = kindaGray, bounceColor = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    typingText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(8.dp, 0.dp, 20.dp, 0.dp),
+                    color = lessGray,
+                )
+            }
+        }
+
+        LazyRow(Modifier.fillMaxWidth().animateContentSize()) {
+            itemsIndexed(state.pendingAttachments) { i, attachment ->
                 InputChip(
-                    onClick = { onPendingFileCancel(attachment) },
+                    onClick = { component.onPendingFileCancel(attachment) },
                     label = { Text(attachment.name.trimFilename()) },
-                    selected = true,
+                    selected = false,
+                    modifier = Modifier.padding(horizontal = 5.dp),
                     avatar = {
                         Icon(mimes[i]?.getIcon() ?: Icons.Outlined.FilePresent, contentDescription = "Attachment")
                     },

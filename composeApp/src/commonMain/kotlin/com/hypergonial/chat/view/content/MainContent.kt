@@ -63,6 +63,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
@@ -343,7 +344,12 @@ fun MainContent(component: SidebarComponent) {
     FullScreenProgressIndicator(state.isConnecting, state.connectingMessage)
     AssetViewerDialog(state.assetViewerActive, state.assetViewerUrl, component::onAssetViewerClosed)
 
-    AdaptiveDrawer(drawerState = navDrawerState, drawerContent = { SidebarContent(component, navDrawerState) }) {
+    AdaptiveDrawer(
+        drawerState = navDrawerState,
+        drawerContent = { SidebarContent(component, navDrawerState) },
+        // NOTE: This must be here otherwise the Android Studio layout inspector violently explodes
+        modifier = Modifier.clearAndSetSemantics {},
+    ) {
         Scaffold(topBar = { MainTopBar(component, navDrawerState) }, snackbarHost = { SnackbarHost(snackbarState) }) {
             padding ->
             Box(Modifier.padding(padding).imePadding()) {

@@ -10,6 +10,9 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FileDownloadOff
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CardElevation
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +41,7 @@ import com.hypergonial.chat.trimFilename
 fun AttachmentCard(filename: String, mime: Mime, url: String, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
 
-    Card(modifier) {
+    Card(modifier, elevation = CardDefaults.elevatedCardElevation()) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 mime.getIcon(),
@@ -64,7 +67,7 @@ fun AttachmentCard(filename: String, mime: Mime, url: String, modifier: Modifier
  */
 @Composable
 fun FailedAttachmentCard(filename: String, modifier: Modifier = Modifier) {
-    Card(modifier) {
+    Card(modifier, elevation = CardDefaults.elevatedCardElevation()) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Filled.Error,

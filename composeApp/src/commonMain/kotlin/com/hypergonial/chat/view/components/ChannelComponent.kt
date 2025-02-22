@@ -25,8 +25,10 @@ import com.hypergonial.chat.model.ReadyEvent
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.getMimeType
 import com.hypergonial.chat.model.payloads.Attachment
+import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.model.payloads.User
 import com.hypergonial.chat.prependMessages
 import com.hypergonial.chat.removeFirstMessages
 import com.hypergonial.chat.removeLastMessages
@@ -128,6 +130,8 @@ interface ChannelComponent : MainContentComponent, Displayable {
         val isFileUploadDropdownOpen: Boolean = false,
         /** The message to be displayed in the snackbar */
         val snackbarMessage: EffectContainer<String> = "".containAsEffect(),
+        /** The set of users currently typing in the channel */
+        val typingIndicators: HashSet<Member> = hashSetOf(),
     )
 }
 

@@ -27,6 +27,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isAltPressed
@@ -208,7 +209,7 @@ fun ChatBar(
                     false
                 }
                 .focusRequester(focusRequester)
-                .shadow(16.dp, RoundedCornerShape(16.dp), clip = false),
+                .shadow(8.dp, RoundedCornerShape(16.dp), clip = false),
         enabled = enabled,
         value = value,
         placeholder = { Text("Type a message...") },

@@ -10,5 +10,4 @@ class StartTyping(val data: StartTypingPayload) : GatewayMessage() {
     constructor(channelId: Snowflake) : this(StartTypingPayload(channelId))
 }
 
-@Serializable
-data class StartTypingPayload(@SerialName("channel_id") val channelId: Snowflake)
+@Serializable data class StartTypingPayload(@SerialName("channel_id") val channelId: Snowflake)

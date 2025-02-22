@@ -1,11 +1,6 @@
 package com.hypergonial.chat.view.composables
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -16,9 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 
@@ -39,15 +31,12 @@ fun FullScreenProgressIndicator(isActive: Boolean, loadingText: String? = null) 
 
     val focusManager = LocalFocusManager.current
 
-
-
     // Clear focus when the overlay activates (to prevent the IME staying open)
     LaunchedEffect(isActive) {
         if (isActive) {
             focusManager.clearFocus()
         }
     }
-
 
     AnimatedDialog(
         onDismissRequest = { /* Thou shalt not be dismissed */ },

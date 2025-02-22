@@ -22,8 +22,10 @@ import com.hypergonial.chat.model.payloads.gateway.Heartbeat
 import com.hypergonial.chat.model.payloads.gateway.HeartbeatAck
 import com.hypergonial.chat.model.payloads.gateway.Hello
 import com.hypergonial.chat.model.payloads.gateway.Identify
+import com.hypergonial.chat.model.payloads.gateway.MessageCreate
 import com.hypergonial.chat.model.payloads.gateway.Ready
 import com.hypergonial.chat.model.payloads.gateway.StartTyping
+import com.hypergonial.chat.model.payloads.gateway.TypingStart
 import com.hypergonial.chat.model.payloads.rest.AuthResponse
 import com.hypergonial.chat.model.payloads.rest.ChannelCreateRequest
 import com.hypergonial.chat.model.payloads.rest.GuildCreateRequest
@@ -79,6 +81,7 @@ import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -90,6 +93,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withTimeout
+import kotlinx.datetime.Clock
 import kotlinx.io.IOException
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -144,6 +148,8 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     private var gatewayConnectedJob = Job()
     /** A job that represents the current gateway session */
     private var gatewaySession: Job? = null
+    /** A job that manages typing indicators and dispatches appropriate events */
+    private var typingIndicatorManageJob: Job? = null
     /**
      * The interval at which the gateway should send heartbeats This is set by the HELLO message received from the
      * gateway.
@@ -262,6 +268,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     }
 
     init {
+        typingIndicatorManageJob = scope.launch { manageTypingIndicators() }
         scope.launch { eventManager.run() }
         eventManager.apply {
             subscribe(::onGuildCreate)
@@ -282,7 +289,9 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     override fun replaceScope(scope: CoroutineScope) {
         closeGateway()
         eventManager.stop()
+        typingIndicatorManageJob?.cancel()
         _scope = scope
+        typingIndicatorManageJob = scope.launch { manageTypingIndicators() }
         scope.launch { eventManager.run() }
     }
 
@@ -301,12 +310,17 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             )
         }
 
-        withTimeout(2500) { waitUntilDisconnected() }
         _isSuspended = false
-        logger.i { "Reconnecting to gateway..." }
+
         if (isLoggedIn()) {
-            connect()
+            withTimeout(2500) { waitUntilDisconnected() }
+
+            logger.i { "Reconnecting to gateway..." }
+            if (isLoggedIn()) {
+                connect()
+            }
         }
+
         eventManager.dispatch(LifecycleResumedEvent())
     }
 
@@ -363,6 +377,23 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                 continue
             }
 
+            // Abstract away raw typing events, do not dispatch TYPING_START on indicator updates
+            if (msg is TypingStart) {
+                if (cache.updateTypingIndicator(msg.data.channelId, msg.data.userId)) {
+                    logger.d { "Dispatching event: 'TypingStartEvent'" }
+                    eventManager.dispatch(TypingStartEvent(msg.data.channelId, msg.data.userId))
+                }
+                continue
+            }
+
+            // Remove typing indicators when a message is created by that user
+            if (msg is MessageCreate) {
+                if (cache.removeTypingIndicator(msg.message.channelId, msg.message.author.id)) {
+                    logger.d { "Dispatching event: 'TypingEndEvent'" }
+                    eventManager.dispatch(TypingEndEvent(msg.message.channelId, msg.message.author.id))
+                }
+            }
+
             if (msg is EventConvertible) {
                 val event = msg.toEvent()
                 logger.d { "Dispatching event: '${event::class.simpleName}'" }
@@ -394,7 +425,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     private fun connect(isReconnect: Boolean) {
         gatewayCloseJob = Job()
         gatewayConnectedJob = Job()
-        gatewaySession = scope.launch { gatewaySession(isReconnect) }
+        gatewaySession = scope.launch { runGatewaySession(isReconnect) }
         scope.launch {
             delay(5000)
             if (!gatewayConnectedJob.isCompleted) {
@@ -417,7 +448,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
 
     override suspend fun waitUntilDisconnected() = gatewaySession?.join() ?: Unit
 
-    private suspend fun gatewaySession(isReconnect: Boolean) {
+    private suspend fun runGatewaySession(isReconnect: Boolean) {
         check(token != null) { "Cannot connect without a token" }
 
         logger.i { "Starting new gateway session to ${config.gatewayUrl}" }
@@ -611,6 +642,20 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         }
     }
 
+    private suspend fun manageTypingIndicators() {
+        while (true) {
+            val now = Clock.System.now()
+            cache.retainTypingIndicators { channelId, indicator ->
+                if (now - indicator.lastUpdated <= 6.seconds) true
+                else {
+                    eventManager.dispatch(TypingEndEvent(channelId, indicator.userId))
+                    false
+                }
+            }
+            delay(1000)
+        }
+    }
+
     override suspend fun waitUntilReady() {
         readyJob.join()
     }
@@ -766,8 +811,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
 
                 onUpload { bytesSent, contentLength ->
                     val completionRate = bytesSent.toDouble() / (contentLength?.toDouble() ?: return@onUpload)
-                    val nonce = nonce ?: return@onUpload
-                    eventManager.dispatch(UploadProgressEvent(nonce, completionRate))
+                    eventManager.dispatch(UploadProgressEvent(nonce ?: return@onUpload, completionRate))
                 }
             }
             .body<Message>()

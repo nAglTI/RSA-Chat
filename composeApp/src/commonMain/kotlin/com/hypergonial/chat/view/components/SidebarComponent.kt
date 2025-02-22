@@ -214,11 +214,11 @@ class DefaultSideBarComponent(
                     DefaultChannelComponent(
                         childCtx,
                         client,
-                        config.channelId,
+                        guildId = data.value.selectedGuild?.id,
+                        channelId = config.channelId,
                         initialEditorState = lastEditorStates[config.channelId],
-                    ) {
-                        onLogout()
-                    }
+                        onLogout = onLogout,
+                    )
             }
         }
 

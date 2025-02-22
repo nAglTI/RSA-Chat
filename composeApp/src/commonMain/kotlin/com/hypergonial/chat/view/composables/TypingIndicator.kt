@@ -28,7 +28,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** A typing indicator that animates three dots to simulate typing.
+/**
+ * A typing indicator that animates three dots to simulate typing.
  *
  * @param dotSize The size of each dot.
  * @param dotSpacing The spacing between each dot.
@@ -38,7 +39,7 @@ import kotlinx.coroutines.launch
  * @param initialColor The color of the dots when they are not bouncing.
  * @param bounceColor The color of the dots when they are bouncing.
  * @param dotCount The number of dots to animate.
- * */
+ */
 @Composable
 fun TypingIndicator(
     dotSize: Dp = 7.dp,
@@ -101,12 +102,12 @@ fun TypingIndicator(
         dots.forEach { animatable ->
             Box(
                 modifier =
-                Modifier.size(dotSize)
-                    .graphicsLayer { translationY = animatable.value }
-                    .background(
-                        color = initialColor.copy(alpha = 1 + animatable.value).compositeOver(bounceColor),
-                        shape = CircleShape,
-                    )
+                    Modifier.size(dotSize)
+                        .graphicsLayer { translationY = animatable.value }
+                        .background(
+                            color = initialColor.copy(alpha = 1 + animatable.value).compositeOver(bounceColor),
+                            shape = CircleShape,
+                        )
             )
         }
     }

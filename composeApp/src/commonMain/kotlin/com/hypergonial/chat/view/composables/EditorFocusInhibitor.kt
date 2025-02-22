@@ -16,9 +16,7 @@ fun EditorFocusInhibitor(key: String, isEnabled: Boolean = true) {
 
     DisposableEffect(isEnabled) {
         if (isEnabled) {
-            scope.launch {
-                editorFocusInhibitor.acquire(key)
-            }
+            scope.launch { editorFocusInhibitor.acquire(key) }
         }
 
         onDispose { scope.launch { editorFocusInhibitor.release(key) } }

@@ -1,5 +1,6 @@
 package com.hypergonial.chat.model.payloads
 
+import kotlin.jvm.JvmInline
 import kotlinx.datetime.Instant
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -8,7 +9,6 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlin.jvm.JvmInline
 
 private const val EPOCH: ULong = 1_672_531_200_000u
 

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -39,6 +40,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.LocalUsingDarkTheme
 import com.hypergonial.chat.getIcon
@@ -72,27 +74,30 @@ fun ChannelContent(component: ChannelComponent) {
                     isCruising = state.isCruising,
                 )
 
-                Column(
-                    Modifier.padding(20.dp, 0.dp, 20.dp, 20.dp)
-                        .background(
-                            if (isDarkMode) MaterialTheme.colorScheme.surfaceBright
-                            else MaterialTheme.colorScheme.surfaceDim,
-                            RoundedCornerShape(16.dp, 16.dp, 16.dp, 16.dp),
-                        )
-                ) {
-                    ChatBarTopBar(component)
+                // The typing indicator should always fit without layout shifts
+                Column(Modifier.heightIn(min = 102.dp).fillMaxWidth(), verticalArrangement = Arrangement.Bottom) {
+                    Column(
+                        Modifier.padding(20.dp, 0.dp, 20.dp, 20.dp)
+                            .background(
+                                if (isDarkMode) MaterialTheme.colorScheme.surfaceBright
+                                else MaterialTheme.colorScheme.surfaceDim,
+                                RoundedCornerShape(16.dp, 16.dp, 16.dp, 16.dp),
+                            )
+                    ) {
+                        ChatBarTopBar(component)
 
-                    ChatBar(
-                        state.chatBarValue,
-                        Modifier.fillMaxWidth(),
-                        editorKey = "MAIN_EDITOR",
-                        onValueChange = component::onChatBarContentChanged,
-                        onEditLastRequested = component::onEditLastMessage,
-                        leadingIcon = { FileUploadIcon(component) },
-                        onLeadingIconClick = component::onFileUploadDropdownOpen,
-                        trailingButtonEnabled = canSend,
-                        onSubmit = component::onMessageSend,
-                    )
+                        ChatBar(
+                            state.chatBarValue,
+                            Modifier.fillMaxWidth(),
+                            editorKey = "MAIN_EDITOR",
+                            onValueChange = component::onChatBarContentChanged,
+                            onEditLastRequested = component::onEditLastMessage,
+                            leadingIcon = { FileUploadIcon(component) },
+                            onLeadingIconClick = component::onFileUploadDropdownOpen,
+                            trailingButtonEnabled = canSend,
+                            onSubmit = component::onMessageSend,
+                        )
+                    }
                 }
             }
         }
@@ -145,13 +150,15 @@ fun ChatBarTopBar(component: ChannelComponent) {
         remember(state.pendingAttachments) { derivedStateOf { state.pendingAttachments.map { Mime.fromUrl(it.name) } } }
 
     Column(Modifier.fillMaxWidth().padding(start = 20.dp)) {
-        val typingText =
+        val typingText by
             remember(state.typingIndicators) {
-                if (state.typingIndicators.size <= 3) {
-                    state.typingIndicators.joinToString(separator = ", ") { it.username } +
-                        " ${if (state.typingIndicators.size == 1) "is" else "are"} typing..."
-                } else {
-                    "Multiple users are typing..."
+                derivedStateOf {
+                    if (state.typingIndicators.size <= 3) {
+                        state.typingIndicators.values.joinToString(separator = ", ") { it.resolvedName } +
+                            " ${if (state.typingIndicators.size <= 1) "is" else "are"} typing..."
+                    } else {
+                        "Multiple users are typing..."
+                    }
                 }
             }
 
@@ -166,12 +173,18 @@ fun ChatBarTopBar(component: ChannelComponent) {
                 val kindaGray = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f).compositeOver(Color.Gray)
                 val lessGray = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f).compositeOver(Color.Gray)
 
-                TypingIndicator(initialColor = kindaGray, bounceColor = MaterialTheme.colorScheme.onSurface)
+                TypingIndicator(
+                    initialColor = kindaGray,
+                    bounceColor = MaterialTheme.colorScheme.onSurface,
+                    dotSize = 5.dp,
+                    bounceHeight = 5.dp,
+                )
                 Text(
                     typingText,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(8.dp, 0.dp, 20.dp, 0.dp),
                     color = lessGray,
+                    fontSize = 12.sp,
                 )
             }
         }

@@ -6,6 +6,7 @@ import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
+import kotlinx.datetime.Clock
 
 /** A type that has a cache. */
 interface CacheAware {
@@ -21,6 +22,10 @@ class Cache {
     private val _users: MutableMap<Snowflake, User> = hashMapOf()
 
     private val _channels: MutableMap<Snowflake, Channel> = hashMapOf()
+
+    // This is a nested map of maps as opposed to a pair keyed map because
+    // it is a common operation to query all typing indicators in a channel.
+    private val _typingIndicators: MutableMap<Snowflake, HashMap<Snowflake, TypingIndicator>> = hashMapOf()
 
     private val _messages: MutableMap<Snowflake, ArrayDeque<Message>> = hashMapOf()
 
@@ -41,6 +46,10 @@ class Cache {
     /** A map of all members in the cache, keyed by a pair of guild ID and user ID. */
     val members: Map<Pair<Snowflake, Snowflake>, Member>
         get() = _members
+
+    /** A map of all typing indicators in the cache, keyed by channel ID. */
+    val typingIndicators: Map<Snowflake, Map<Snowflake, TypingIndicator>>
+        get() = _typingIndicators
 
     /** The current user, if cached */
     val ownUser: User?
@@ -88,6 +97,61 @@ class Cache {
      */
     fun getChannelsForGuild(guildId: Snowflake): Map<Snowflake, Channel> {
         return _channels.filterValues { it.guildId == guildId }
+    }
+
+    /**
+     * Retain typing indicators that pass the given filter.
+     *
+     * @param f The filter to apply to the typing indicators. It is passed the channel ID and the typing indicator.
+     */
+    internal fun retainTypingIndicators(f: (Snowflake, TypingIndicator) -> Boolean) {
+        for ((channelId, indicators) in _typingIndicators) {
+            indicators.values.retainAll { f(channelId, it) }
+        }
+    }
+
+    /**
+     * Add or update a typing indicator.
+     *
+     * @param channelId The ID of the channel the typing indicator is in.
+     * @param userId The ID of the user that is typing.
+     * @return True if a new typing indicator was added, false if it was updated.
+     */
+    internal fun updateTypingIndicator(channelId: Snowflake, userId: Snowflake): Boolean {
+        val indicators = _typingIndicators.getOrPut(channelId) { hashMapOf() }
+        return indicators.put(userId, TypingIndicator(userId, Clock.System.now())) == null
+    }
+
+    /**
+     * Remove a typing indicator.
+     *
+     * @param channelId The ID of the channel the typing indicator is in.
+     * @param userId The ID of the user that is typing.
+     * @return True if the typing indicator was removed, false if it was not present.
+     */
+    internal fun removeTypingIndicator(channelId: Snowflake, userId: Snowflake): Boolean {
+        return _typingIndicators[channelId]?.remove(userId) != null
+    }
+
+    /**
+     * Get typing indicators for a channel.
+     *
+     * @param channelId The ID of the channel to get typing indicators for.
+     * @return A set of typing indicators for the given channel.
+     */
+    fun getTypingIndicators(channelId: Snowflake): Collection<TypingIndicator> {
+        return _typingIndicators[channelId]?.values ?: emptySet()
+    }
+
+    /**
+     * Get a typing indicator for a channel.
+     *
+     * @param channelId The ID of the channel the typing indicator is in.
+     * @param userId The ID of the user that is typing.
+     * @return The typing indicator for the given channel and user.
+     */
+    fun getTypingIndicator(channelId: Snowflake, userId: Snowflake): TypingIndicator? {
+        return _typingIndicators[channelId]?.get(userId)
     }
 
     /**
@@ -157,11 +221,24 @@ class Cache {
     }
 
     /**
+     * Returns the member with the given guild and user IDs, if it is cached. If no guild ID is provided, returns the
+     * user with the given ID, if it is cached.
+     *
+     * @param guildId The ID of the guild the member is in.
+     * @param userId The ID of the member to get.
+     * @return The member or user with the given guild and user IDs, if it is cached. Implementors should check the
+     *   return value's type to determine if it is a member or user.
+     */
+    fun getMemberOrUser(userId: Snowflake, guildId: Snowflake? = null): User? {
+        return guildId?.let { getMember(it, userId) } ?: getUser(userId)
+    }
+
+    /**
      * Insert or update a guild in the cache.
      *
      * @param guild The guild to insert or update.
      */
-    fun putGuild(guild: Guild) {
+    internal fun putGuild(guild: Guild) {
         _guilds[guild.id] = guild
     }
 
@@ -170,7 +247,7 @@ class Cache {
      *
      * @param channel The channel to insert or update.
      */
-    fun putChannel(channel: Channel) {
+    internal fun putChannel(channel: Channel) {
         _channels[channel.id] = channel
     }
 
@@ -179,7 +256,7 @@ class Cache {
      *
      * @param user The user to insert or update.
      */
-    fun putUser(user: User) {
+    internal fun putUser(user: User) {
         _users[user.id] = user
     }
 
@@ -188,7 +265,7 @@ class Cache {
      *
      * @param member The member to insert or update.
      */
-    fun putMember(member: Member) {
+    internal fun putMember(member: Member) {
         _members[Pair(member.guildId, member.id)] = member
     }
 
@@ -197,7 +274,7 @@ class Cache {
      *
      * @param user The current user to insert or update.
      */
-    fun putOwnUser(user: User) {
+    internal fun putOwnUser(user: User) {
         _ownUser = user
     }
 
@@ -206,7 +283,7 @@ class Cache {
      *
      * @param message The message to insert or update.
      */
-    fun addMessage(message: Message) {
+    internal fun addMessage(message: Message) {
         val messages = _messages[message.channelId] ?: ArrayDeque()
         messages.add(message)
 
@@ -222,7 +299,7 @@ class Cache {
      *
      * @param message The message to update.
      */
-    fun updateMessage(message: Message) {
+    internal fun updateMessage(message: Message) {
         val messages = _messages[message.channelId] ?: return
         val index = messages.indexOfFirst { it.id == message.id }
 
@@ -237,7 +314,7 @@ class Cache {
      * @param channelId The ID of the channel the message is in.
      * @param messageId The ID of the message to drop.
      */
-    fun dropMessage(channelId: Snowflake, messageId: Snowflake) {
+    internal fun dropMessage(channelId: Snowflake, messageId: Snowflake) {
         val messages = _messages[channelId] ?: return
         val index = messages.indexOfFirst { it.id == messageId }
 
@@ -251,7 +328,7 @@ class Cache {
      *
      * @param messages The messages to add.
      */
-    fun addMessages(messages: List<Message>) {
+    internal fun addMessages(messages: List<Message>) {
         val grouped = messages.groupBy { it.channelId }
 
         for ((channelId, group) in grouped) {
@@ -271,7 +348,7 @@ class Cache {
      *
      * @param guildId The ID of the guild to drop.
      */
-    fun dropGuild(guildId: Snowflake) {
+    internal fun dropGuild(guildId: Snowflake) {
         val guildChannels = _channels.filterValues { it.guildId == guildId }.map { it.value.id }
         val guildMembers = _members.filterKeys { it.first == guildId }.map { it.value.id }
 
@@ -285,7 +362,7 @@ class Cache {
      *
      * @param channelId The ID of the channel to drop.
      */
-    fun dropChannel(channelId: Snowflake) {
+    internal fun dropChannel(channelId: Snowflake) {
         _channels.remove(channelId)
         _messages.remove(channelId)
     }
@@ -295,7 +372,7 @@ class Cache {
      *
      * @param userId The ID of the user to drop.
      */
-    fun dropUser(userId: Snowflake) {
+    internal fun dropUser(userId: Snowflake) {
         _users.remove(userId)
     }
 
@@ -305,7 +382,7 @@ class Cache {
      * @param guildId The ID of the guild the member is in.
      * @param userId The ID of the member to drop.
      */
-    fun dropMember(guildId: Snowflake, userId: Snowflake) {
+    internal fun dropMember(guildId: Snowflake, userId: Snowflake) {
         _members.remove(Pair(guildId, userId))
     }
 }

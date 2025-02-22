@@ -3,7 +3,9 @@ package com.hypergonial.chat.view.components
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.text.input.TextFieldValue
 import co.touchlab.kermit.Logger
@@ -16,16 +18,16 @@ import com.hypergonial.chat.appendMessages
 import com.hypergonial.chat.containAsEffect
 import com.hypergonial.chat.genNonce
 import com.hypergonial.chat.model.Client
-import com.hypergonial.chat.model.LifecycleResumedEvent
 import com.hypergonial.chat.model.MessageCreateEvent
 import com.hypergonial.chat.model.MessageRemoveEvent
 import com.hypergonial.chat.model.MessageUpdateEvent
 import com.hypergonial.chat.model.Mime
 import com.hypergonial.chat.model.ReadyEvent
+import com.hypergonial.chat.model.TypingEndEvent
+import com.hypergonial.chat.model.TypingStartEvent
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.getMimeType
 import com.hypergonial.chat.model.payloads.Attachment
-import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
@@ -48,6 +50,7 @@ import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlin.math.max
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -131,7 +134,7 @@ interface ChannelComponent : MainContentComponent, Displayable {
         /** The message to be displayed in the snackbar */
         val snackbarMessage: EffectContainer<String> = "".containAsEffect(),
         /** The set of users currently typing in the channel */
-        val typingIndicators: HashSet<Member> = hashSetOf(),
+        val typingIndicators: SnapshotStateMap<Snowflake, User> = mutableStateMapOf(),
     )
 }
 
@@ -148,25 +151,36 @@ class DefaultChannelComponent(
     private val ctx: ComponentContext,
     private val client: Client,
     private val channelId: Snowflake,
+    private val guildId: Snowflake? = null,
     initialEditorState: TextFieldValue? = null,
     private val onLogout: () -> Unit,
 ) : ChannelComponent, ComponentContext by ctx {
     private val scope = ctx.coroutineScope()
     private val logger = Logger.withTag("DefaultChannelComponent")
+    private var lastSentTypingIndicator = Instant.DISTANT_PAST
 
     override val data =
         MutableValue(
             ChannelComponent.ChannelState(
                 chatBarValue = initialEditorState ?: TextFieldValue(),
+                typingIndicators =
+                    mutableStateMapOf<Snowflake, User>().apply {
+                        client.cache
+                            .getTypingIndicators(channelId)
+                            .mapNotNull { client.cache.getMemberOrUser(it.userId, guildId) }
+                            .forEach { put(it.id, it) }
+                    },
                 messageEntries =
                     mutableStateListOf(
                         messageEntryComponent(mutableStateListOf(), topEndIndicator = LoadMoreMessagesIndicator())
-                    )
+                    ),
             )
         )
 
     init {
         client.eventManager.apply {
+            subscribeWithLifeCycle(ctx.lifecycle, ::onTypingStart)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onTypingEnd)
             subscribeWithLifeCycle(ctx.lifecycle, ::onMessageCreate)
             subscribeWithLifeCycle(ctx.lifecycle, ::onMessageUpdate)
             subscribeWithLifeCycle(ctx.lifecycle, ::onMessageDelete)
@@ -535,12 +549,24 @@ class DefaultChannelComponent(
         }
     }
 
-    /** Callback called when the client is connected to the gateway.
+    private fun onTypingStart(event: TypingStartEvent) {
+        if (event.channelId != channelId || event.userId == client.cache.ownUser?.id) return
+        val user = client.cache.getMemberOrUser(event.userId, guildId) ?: return
+        data.value.typingIndicators[user.id] = user
+    }
+
+    private fun onTypingEnd(event: TypingEndEvent) {
+        if (event.channelId != channelId || event.userId == client.cache.ownUser?.id) return
+        data.value.typingIndicators.remove(event.userId)
+    }
+
+    /**
+     * Callback called when the client is connected to the gateway.
      *
      * The message list should be refreshed if this was a reconnection to ensure that the list is up-to-date.
      *
      * @param event The event that was emitted.
-     * */
+     */
     private fun onReady(event: ReadyEvent) {
         if (event.wasReconnect) {
             refreshMessageList()
@@ -575,6 +601,7 @@ class DefaultChannelComponent(
 
         scope.launch {
             val nonce = genNonce(client.sessionId)
+            lastSentTypingIndicator = Instant.DISTANT_PAST
             data.value.pendingAttachments.clear()
             data.value = data.value.copy(chatBarValue = data.value.chatBarValue.copy(text = ""), cumulativeFileSize = 0)
             addPendingMessage(content, nonce, attachments = attachments)
@@ -615,6 +642,19 @@ class DefaultChannelComponent(
 
     override fun onChatBarContentChanged(value: TextFieldValue) {
         data.value = data.value.copy(chatBarValue = value.sanitized())
+
+        val now = Clock.System.now()
+
+        if (now - lastSentTypingIndicator >= 5.seconds) {
+            scope.launch {
+                try {
+                    client.setTypingIndicator(channelId)
+                    lastSentTypingIndicator = now
+                } catch (e: ClientException) {
+                    logger.e { "Failed to send typing indicator: ${e.message}" }
+                }
+            }
+        }
     }
 
     /**

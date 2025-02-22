@@ -196,7 +196,8 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     ): List<Message>
 
     /**
-     * Set a typing indicator in the given channel
+     * Set a typing indicator in the given channel. Implementations are expected to keep displaying this for about 6
+     * seconds, then remove it.
      *
      * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the channel does not exist
      */

@@ -16,8 +16,6 @@ class TypingStart(val data: TypingStartData) : GatewayMessage(), EventConvertibl
 
 @Serializable
 data class TypingStartData(
-    @SerialName("channel_id")
-    val channelId: Snowflake,
-    @SerialName("user_id")
-    val userId: Snowflake
+    @SerialName("channel_id") val channelId: Snowflake,
+    @SerialName("user_id") val userId: Snowflake,
 )

@@ -45,20 +45,14 @@ class DefaultEditorFocusInhibitor : EditorFocusInhibitor {
     private val focusStates = hashSetOf<String>()
 
     override suspend fun acquire(key: String) {
-        lock.withLock {
-            focusStates.add(key)
-        }
+        lock.withLock { focusStates.add(key) }
     }
 
     override suspend fun release(key: String) {
-        lock.withLock {
-            focusStates.remove(key)
-        }
+        lock.withLock { focusStates.remove(key) }
     }
 
-    override suspend fun isFree(): Boolean = lock.withLock {
-        focusStates.isEmpty()
-    }
+    override suspend fun isFree(): Boolean = lock.withLock { focusStates.isEmpty() }
 }
 
 /** The editor focus inhibitor instance of the application. */

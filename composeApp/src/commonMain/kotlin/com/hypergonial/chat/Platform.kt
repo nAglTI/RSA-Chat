@@ -35,7 +35,6 @@ enum class PlatformType {
     }
 }
 
-
 /**
  * Platform information for the app.
  *

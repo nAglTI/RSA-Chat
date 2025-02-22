@@ -28,6 +28,15 @@ class MessageRemoveEvent(val id: Snowflake, val channelId: Snowflake, val guildI
 /** Event dispatched when a user starts typing in a channel */
 class TypingStartEvent(val channelId: Snowflake, val userId: Snowflake) : Event()
 
+/**
+ * Event dispatched when a user stops typing in a channel.
+ *
+ * This is always dispatched before a [MessageCreateEvent] when a user sends a message.
+ *
+ * This is an internal event, it's not dispatched by the gateway directly.
+ */
+class TypingEndEvent(val channelId: Snowflake, val userId: Snowflake) : InternalEvent()
+
 /** Event dispatched when a user is updated */
 class UserUpdateEvent(val user: User) : Event()
 

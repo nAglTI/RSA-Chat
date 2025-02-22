@@ -645,6 +645,12 @@ class DefaultChannelComponent(
 
         val now = Clock.System.now()
 
+        if (value.text == "/type_test") {
+            data.value.typingIndicators[Snowflake(0u)] = User(Snowflake(0u), "<USERNAME>", null, null, null)
+        } else {
+            data.value.typingIndicators.remove(Snowflake(0u))
+        }
+
         if (now - lastSentTypingIndicator >= 5.seconds) {
             scope.launch {
                 try {

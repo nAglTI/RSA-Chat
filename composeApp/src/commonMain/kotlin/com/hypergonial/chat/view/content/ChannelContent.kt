@@ -39,7 +39,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.LocalUsingDarkTheme
@@ -74,8 +80,27 @@ fun ChannelContent(component: ChannelComponent) {
                     isCruising = state.isCruising,
                 )
 
+                val dynamicMinHeight by
+                    remember(state.listState) {
+                        derivedStateOf {
+                            if (state.listState.firstVisibleItemIndex == 0) {
+                                val firstItem = state.listState.layoutInfo.visibleItemsInfo.firstOrNull()
+                                if (firstItem != null) {
+                                    val visibleFraction =
+                                        ((firstItem.size - state.listState.firstVisibleItemScrollOffset).toFloat() /
+                                                firstItem.size)
+                                            .coerceIn(0f, 1f)
+                                    lerp(0.dp, 102.dp, visibleFraction)
+                                } else 102.dp
+                            } else 0.dp
+                        }
+                    }
+
                 // The typing indicator should always fit without layout shifts
-                Column(Modifier.heightIn(min = 102.dp).fillMaxWidth(), verticalArrangement = Arrangement.Bottom) {
+                Column(
+                    Modifier.heightIn(min = dynamicMinHeight).fillMaxWidth(),
+                    verticalArrangement = Arrangement.Bottom,
+                ) {
                     Column(
                         Modifier.padding(20.dp, 0.dp, 20.dp, 20.dp)
                             .background(
@@ -150,17 +175,26 @@ fun ChatBarTopBar(component: ChannelComponent) {
         remember(state.pendingAttachments) { derivedStateOf { state.pendingAttachments.map { Mime.fromUrl(it.name) } } }
 
     Column(Modifier.fillMaxWidth().padding(start = 20.dp)) {
-        val typingText by
-            remember(state.typingIndicators) {
-                derivedStateOf {
-                    if (state.typingIndicators.size <= 3) {
-                        state.typingIndicators.values.joinToString(separator = ", ") { it.resolvedName } +
-                            " ${if (state.typingIndicators.size <= 1) "is" else "are"} typing..."
-                    } else {
-                        "Multiple users are typing..."
+        val typingText by remember(state.typingIndicators) {
+            derivedStateOf {
+                if (state.typingIndicators.size <= 3) {
+                    buildAnnotatedString {
+                        state.typingIndicators.values.forEachIndexed { index, user ->
+                            // Make the username bold
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append(user.resolvedName)
+                            }
+                            if (index != state.typingIndicators.size - 1) {
+                                append(", ")
+                            }
+                        }
+                        append(" ${if (state.typingIndicators.size <= 1) "is" else "are"} typing...")
                     }
+                } else {
+                    AnnotatedString("Multiple users are typing...")
                 }
             }
+        }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,

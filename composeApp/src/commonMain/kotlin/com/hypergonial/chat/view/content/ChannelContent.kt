@@ -94,7 +94,7 @@ fun ChannelContent(component: ChannelComponent) {
                             brush =
                                 Brush.verticalGradient(
                                     colors = listOf(Color.Transparent, MaterialTheme.colorScheme.background),
-                                    endY = 50f,
+                                    endY = 75f,
                                 )
                         )
                         .padding(start = 20.dp, end = 20.dp)

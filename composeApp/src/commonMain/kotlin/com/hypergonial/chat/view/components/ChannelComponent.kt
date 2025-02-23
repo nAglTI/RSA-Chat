@@ -495,6 +495,10 @@ class DefaultChannelComponent(
     }
 
     override fun setJumpToBottomFlag() {
+        if (data.value.isCruising) {
+            return
+        }
+
         data.value = data.value.copy(isJumpingToBottom = true)
     }
 

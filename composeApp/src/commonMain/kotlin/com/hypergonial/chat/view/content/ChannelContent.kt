@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -39,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.PointerIcon
@@ -76,43 +76,41 @@ fun ChannelContent(component: ChannelComponent) {
 
     FileDropTarget(onFilesDropped = component::onFilesDropped) {
         Scaffold(Modifier.fillMaxSize(), snackbarHost = { SnackbarHost(snackbarState) }) {
-            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
+            Box(Modifier.fillMaxSize()) {
                 // Is a LazyColumn wrapped in a custom composable
                 MessageList(
                     state.messageEntries,
-                    Modifier.fillMaxWidth().weight(1f),
+                    Modifier.fillMaxWidth().align(Alignment.BottomCenter),
                     listState = state.listState,
                     isCruising = state.isCruising,
+                    bottomSpacer = 102.dp,
                 )
 
-                val dynamicMinHeight by
-                    remember(state.listState) {
-                        derivedStateOf {
-                            if (state.listState.firstVisibleItemIndex == 0) {
-                                val firstItem = state.listState.layoutInfo.visibleItemsInfo.firstOrNull()
-                                if (firstItem != null) {
-                                    val visibleFraction =
-                                        ((firstItem.size - state.listState.firstVisibleItemScrollOffset).toFloat() /
-                                                firstItem.size)
-                                            .coerceIn(0f, 1f)
-                                    lerp(0.dp, 102.dp, visibleFraction)
-                                } else 102.dp
-                            } else 0.dp
-                        }
-                    }
-
-                // The typing indicator should always fit without layout shifts
                 Column(
-                    Modifier.heightIn(min = dynamicMinHeight).fillMaxWidth(),
-                    verticalArrangement = Arrangement.Bottom,
+                    // The sides have a slight vertical gradient background
+                    // (so the content fades away as it scrolls past), while below the ChatBar is a solid color
+                    Modifier.fillMaxWidth()
+                        .background(
+                            brush =
+                                Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, MaterialTheme.colorScheme.background),
+                                    endY = 50f,
+                                )
+                        )
+                        .padding(start = 20.dp, end = 20.dp)
+                        .background(
+                            MaterialTheme.colorScheme.background,
+                            RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                        )
+                        .padding(bottom = 20.dp)
+                        .align(Alignment.BottomCenter)
                 ) {
                     Column(
-                        Modifier.padding(20.dp, 0.dp, 20.dp, 20.dp)
-                            .background(
-                                if (isDarkMode) MaterialTheme.colorScheme.surfaceBright
-                                else MaterialTheme.colorScheme.surfaceDim,
-                                RoundedCornerShape(16.dp, 16.dp, 16.dp, 16.dp),
-                            )
+                        Modifier /*.padding(start = 20.dp, 0.dp, end = 20.dp)*/.background(
+                            if (isDarkMode) MaterialTheme.colorScheme.surfaceBright
+                            else MaterialTheme.colorScheme.surfaceDim,
+                            RoundedCornerShape(16.dp),
+                        )
                     ) {
                         ChatBarTopBar(component)
 
@@ -246,7 +244,7 @@ fun ChatBarTopBar(component: ChannelComponent) {
                         component.setJumpToBottomFlag()
                         scope.launch { state.listState.animateScrollToItem(0, 0) }
                     },
-                    modifier = Modifier.padding(end = 20.dp).size(16.dp)
+                    modifier = Modifier.padding(end = 20.dp).size(16.dp),
                 ) {
                     Icon(Icons.Filled.ArrowDownward, contentDescription = "Scroll to bottom")
                 }

@@ -7,8 +7,10 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -92,6 +94,7 @@ fun MessageList(
     features: List<MessageEntryComponent>,
     modifier: Modifier = Modifier,
     isCruising: Boolean,
+    bottomSpacer: Dp = 0.dp,
     listState: LazyListState = rememberLazyListState(),
 ) {
     val isDarkTheme = LocalUsingDarkTheme.current
@@ -100,6 +103,12 @@ fun MessageList(
 
     CompositionLocalProvider(LocalHighlights provides highlightsBuilder) {
         LazyColumn(modifier, state = listState, reverseLayout = true) {
+            if (!isCruising && bottomSpacer > 0.dp) {
+                item(key = "BOTTOM_SPACER") {
+                    Spacer(modifier = Modifier.height(bottomSpacer))
+                }
+            }
+
             itemsIndexed(features, key = { _, item -> item.getKey() }) { _, item -> Entry(item) }
         }
     }

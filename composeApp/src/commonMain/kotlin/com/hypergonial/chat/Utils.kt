@@ -41,6 +41,7 @@ import androidx.compose.ui.window.PopupPositionProvider
 import co.touchlab.kermit.Logger
 import com.hypergonial.chat.model.Mime
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
+import com.russhwolf.settings.Settings
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.ktor.util.encodeBase64
 import kotlin.random.Random
@@ -50,9 +51,11 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.Json
 
 /**
  * A container that when used as state, always causes a recomposition when changed, even if the value is the same. This
@@ -171,6 +174,39 @@ fun genSessionId(): String {
 fun genNonce(sessionId: String): String {
     val chars = ('a'..'z') + ('A'..'Z') + ('0'..'9')
     return sessionId + "." + (0..16).map { chars.random() }.joinToString("")
+}
+
+
+
+object SettingsExt {
+    val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
+
+    /**
+     * Get a serializable object from the settings
+     *
+     * @param key The key to get the object for
+     * @return The object or null if it does not exist
+     */
+    inline fun <reified T>Settings.getSerializable(key: String): @Serializable T? {
+        val value = this.getStringOrNull(key)
+
+        return if (value.isNullOrEmpty()) null else json.decodeFromString(value)
+    }
+
+    /**
+     * Set a serializable object in the settings
+     *
+     * @param key The key to set the object for
+     * @param value The object to set
+     */
+    inline fun <reified T>Settings.setSerializable(key: String, value: @Serializable T) {
+        val serialized = json.encodeToString(value)
+
+        this.putString(key, serialized)
+    }
 }
 
 /**

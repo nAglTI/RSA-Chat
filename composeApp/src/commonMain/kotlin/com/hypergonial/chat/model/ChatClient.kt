@@ -661,8 +661,17 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     }
 
     override suspend fun login(username: String, password: Secret<String>) {
-        token = http.get("users/auth") { basicAuth(username, password.expose()) }.body<AuthResponse>().token
+        val resp = http.get("users/auth") { basicAuth(username, password.expose()) }.body<AuthResponse>()
+        token = resp.token
+
+        // Wipe all settings if the user has changed
+        if (settings.getLastLoggedInAs() != resp.userId) {
+            cache.clear()
+            settings.clearUserPreferences()
+        }
+
         settings.setToken(token!!.expose())
+        settings.setLastLoggedInAs(resp.userId)
 
         eventManager.dispatch(LoginEvent())
     }

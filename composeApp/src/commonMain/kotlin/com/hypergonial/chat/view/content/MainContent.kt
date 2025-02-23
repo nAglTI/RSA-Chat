@@ -348,6 +348,7 @@ fun MainContent(component: SidebarComponent) {
         drawerState = navDrawerState,
         drawerContent = { SidebarContent(component, navDrawerState) },
         // NOTE: This must be here otherwise the Android Studio layout inspector violently explodes
+        // Relevant Bug Report: https://issuetracker.google.com/issues/258053978
         modifier = Modifier.clearAndSetSemantics {},
     ) {
         Scaffold(topBar = { MainTopBar(component, navDrawerState) }, snackbarHost = { SnackbarHost(snackbarState) }) {

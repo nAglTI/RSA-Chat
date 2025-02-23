@@ -55,3 +55,15 @@ private class SnowflakeSerializer : KSerializer<Snowflake> {
         }
     }
 }
+
+fun String.toSnowflake(): Snowflake {
+    return Snowflake(this.toULong())
+}
+
+fun ULong.toSnowflake(): Snowflake {
+    return Snowflake(this)
+}
+
+fun Long.toSnowflake(): Snowflake {
+    return Snowflake(this.toULong())
+}

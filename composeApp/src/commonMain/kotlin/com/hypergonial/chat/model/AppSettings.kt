@@ -1,5 +1,10 @@
 package com.hypergonial.chat.model
 
+import co.touchlab.kermit.Logger
+import com.hypergonial.chat.SettingsExt.getSerializable
+import com.hypergonial.chat.SettingsExt.setSerializable
+import com.hypergonial.chat.model.payloads.Snowflake
+import com.hypergonial.chat.model.payloads.toSnowflake
 import com.russhwolf.settings.Settings
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -23,36 +28,6 @@ abstract class AppSettings {
 
     /** The cached developer settings for faster access */
     private var cachedDevSettings: DevSettings? = null
-
-    /** The JSON serializer/deserializer */
-    private var json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-    }
-
-    /**
-     * Get a serializable object from the settings
-     *
-     * @param key The key to get the object for
-     * @return The object or null if it does not exist
-     */
-    private inline fun <reified T> getSerializable(key: String): @Serializable T? {
-        val value = userPreferences.getStringOrNull(key)
-
-        return if (value.isNullOrEmpty()) null else json.decodeFromString(value)
-    }
-
-    /**
-     * Set a serializable object in the settings
-     *
-     * @param key The key to set the object for
-     * @param value The object to set
-     */
-    private inline fun <reified T> setSerializable(key: String, value: @Serializable T) {
-        val serialized = json.encodeToString(value)
-
-        userPreferences.putString(key, serialized)
-    }
 
     /**
      * Get a secret from the settings, uses the secrets store if one is available on the platform.
@@ -85,6 +60,17 @@ abstract class AppSettings {
         }
     }
 
+    /** Clear all settings */
+    fun clear() {
+        userPreferences.clear()
+        secrets?.clear()
+    }
+
+    /** Clear all settings specific to the current user */
+    fun clearUserPreferences() {
+        clearLastOpenedPrefs()
+    }
+
     /**
      * Get the current user's token
      *
@@ -102,6 +88,17 @@ abstract class AppSettings {
     /** Remove the current user's token, effectively logging them out */
     fun removeToken() = setSecret("TOKEN", "")
 
+    /** Get the last user's ID we logged in as */
+    fun getLastLoggedInAs(): Snowflake? {
+        val value = userPreferences.getStringOrNull("LAST_LOGGED_IN_ID")
+        return if (value.isNullOrEmpty()) null else value.toSnowflake()
+    }
+
+    /** Set the last user's ID we logged in as */
+    fun setLastLoggedInAs(id: Snowflake) {
+        userPreferences.putString("LAST_LOGGED_IN_ID", id.toString())
+    }
+
     /**
      * Get the developer settings
      *
@@ -111,7 +108,7 @@ abstract class AppSettings {
         if (cachedDevSettings != null) {
             return cachedDevSettings!!
         } else {
-            val config = getSerializable("API_CONFIG") ?: DevSettings.default()
+            val config = userPreferences.getSerializable("API_CONFIG") ?: DevSettings.default()
             cachedDevSettings = config
             return config
         }
@@ -123,16 +120,29 @@ abstract class AppSettings {
      * @param config The developer settings to set
      */
     fun setDevSettings(config: DevSettings) {
-        setSerializable("API_CONFIG", config)
+        userPreferences.setSerializable("API_CONFIG", config)
         cachedDevSettings = config
     }
 
+    /** Get the last opened guilds and channels
+     *
+     * @return The last opened guilds and channels by this user
+     * */
     fun getLastOpenedPrefs(): LastOpenedPrefs {
-        return getSerializable("LAST_OPENED_PREFS") ?: LastOpenedPrefs.default()
+        return userPreferences.getSerializable("LAST_OPENED_PREFS") ?: LastOpenedPrefs.default()
     }
 
+    /** Set the last opened guilds and channels
+     *
+     * @param prefs The last opened guilds and channels by this user
+     * */
     fun setLastOpenedPrefs(prefs: LastOpenedPrefs) {
-        setSerializable("LAST_OPENED_PREFS", prefs)
+        userPreferences.setSerializable("LAST_OPENED_PREFS", prefs)
+    }
+
+    /** Clear the last opened guilds and channels */
+    fun clearLastOpenedPrefs() {
+        userPreferences.remove("LAST_OPENED_PREFS")
     }
 }
 

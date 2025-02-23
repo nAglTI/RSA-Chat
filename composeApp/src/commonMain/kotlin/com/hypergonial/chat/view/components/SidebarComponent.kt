@@ -265,7 +265,7 @@ class DefaultSideBarComponent(
         val lastGuild = lastOpenedPrefs.lastOpenGuild
 
         if (lastGuild != null) {
-            onGuildSelected(lastGuild)
+            navigateToGuild(lastGuild)
         }
     }
 

@@ -130,9 +130,8 @@ kotlin {
             // File picker
             implementation(libs.filekit.core)
             implementation(libs.filekit.compose)
-            // Blur effects
-            implementation(libs.haze)
-            implementation(libs.haze.materials)
+            // Material You Color scheme generation on other platforms
+            implementation(libs.material.kolor)
             // Note: The following dependencies are declared as api() to work with iOS
             // Navigation
             api(libs.decompose)
@@ -145,10 +144,10 @@ kotlin {
             api(libs.back.handler)
         }
         desktopMain.dependencies {
-            /*implementation(compose.desktop.currentOs)*/
-            implementation(compose.desktop.windows_x64)
+            implementation(compose.desktop.currentOs)
+            /*implementation(compose.desktop.windows_x64)
             implementation(compose.desktop.linux_x64)
-            implementation(compose.desktop.macos_arm64)
+            implementation(compose.desktop.macos_arm64)*/
             // HTTP and coroutine impl
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.swing)

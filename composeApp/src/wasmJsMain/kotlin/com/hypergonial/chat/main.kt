@@ -16,6 +16,8 @@ import com.arkivanov.essenty.lifecycle.resume
 import com.arkivanov.essenty.statekeeper.SerializableContainer
 import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
 import com.hypergonial.chat.view.components.DefaultRootComponent
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamicColorScheme
 import kotlinx.browser.document
 import kotlinx.browser.localStorage
 import kotlinx.browser.window
@@ -24,21 +26,6 @@ import org.w3c.dom.get
 import org.w3c.dom.set
 
 private const val KEY_SAVED_STATE = "SAVED_STATE"
-
-private val lightColorScheme =
-    lightColorScheme(
-        primary = Color(0xFF476810),
-        onPrimary = Color(0xFF476810),
-        primaryContainer = Color(0xFFC7F089),
-        onPrimaryContainer = Color(0xFFC7F089),
-    )
-private val darkColorScheme =
-    darkColorScheme(
-        primary = Color(0xFFACD370),
-        onPrimary = Color(0xFF213600),
-        primaryContainer = Color(0xFF324F00),
-        onPrimaryContainer = Color(0xFF324F00),
-    )
 
 /** Change the app's lifecycle based on the document's visibility. */
 private fun LifecycleRegistry.attachToDocument() {
@@ -54,10 +41,12 @@ private fun LifecycleRegistry.attachToDocument() {
 fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
 
     val colorScheme =
-        when {
-            useDarkTheme -> darkColorScheme
-            else -> lightColorScheme
-        }
+        dynamicColorScheme(
+            seedColor = Color(104, 165, 39),
+            isDark = useDarkTheme,
+            isAmoled = false,
+            style = PaletteStyle.TonalSpot,
+        )
 
     CompositionLocalProvider(LocalUsingDarkTheme provides useDarkTheme) {
         MaterialTheme(colorScheme = colorScheme, content = content)

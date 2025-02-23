@@ -3,14 +3,9 @@ package com.hypergonial.chat
 import androidx.compose.foundation.LocalContextMenuRepresentation
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -24,6 +19,8 @@ import com.hypergonial.chat.view.colors.colorProvider
 import com.hypergonial.chat.view.components.DefaultRootComponent
 import com.hypergonial.chat.view.composables.Material3ContextMenuRepresentation
 import com.hypergonial.chat.view.globalKeyEventFlow
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamicColorScheme
 import java.awt.Dimension
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
@@ -35,21 +32,15 @@ private const val SAVED_STATE_FILE_NAME = "state.dat"
 @Composable
 fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
 
-    val primary = colorProvider.getAccentColorOfOS() ?: Color(117, 156, 223)
-
-    val luminance = (0.299 * primary.red + 0.587 * primary.green + 0.114 * primary.blue)
-
-    val onPrimary = if (luminance > 0.5) {
-        Color.Black.copy(alpha = 0.80f).compositeOver(primary)
-    } else {
-        Color.White
-    }
+    val seedColor = colorProvider.getAccentColorOfOS() ?: Color(117, 156, 223)
 
     val colorScheme =
-        when {
-            useDarkTheme -> darkColorScheme(primary = primary, onPrimary = onPrimary)
-            else -> lightColorScheme(primary = primary, onPrimary = onPrimary)
-        }
+        dynamicColorScheme(
+            seedColor = seedColor,
+            isDark = useDarkTheme,
+            isAmoled = false,
+            style = PaletteStyle.TonalSpot,
+        )
 
     CompositionLocalProvider(LocalUsingDarkTheme provides useDarkTheme) {
         CompositionLocalProvider(LocalContextMenuRepresentation provides Material3ContextMenuRepresentation()) {
@@ -83,21 +74,21 @@ fun main() {
             },
         ) {
             // TODO: Handle window focus events for notifs
-            window.addWindowFocusListener(object : WindowFocusListener {
-                override fun windowGainedFocus(e: WindowEvent) {
-                    println("Window gained focus")
-                }
+            window.addWindowFocusListener(
+                object : WindowFocusListener {
+                    override fun windowGainedFocus(e: WindowEvent) {
+                        println("Window gained focus")
+                    }
 
-                override fun windowLostFocus(e: WindowEvent) {
-                    println("Window lost focus")
+                    override fun windowLostFocus(e: WindowEvent) {
+                        println("Window lost focus")
+                    }
                 }
-            })
+            )
 
             window.minimumSize = Dimension(300, 600)
 
-            AppTheme {
-                App(root)
-            }
+            AppTheme { App(root) }
         }
     }
 }

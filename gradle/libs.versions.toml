@@ -27,6 +27,7 @@ kotlinxSerializationJson = "1.8.0"
 kotlinxDatetime = "0.6.1"
 kotlinParcelize = "2.1.0"
 essenty = "2.3.0"
+materialKolor = "2.0.2"
 multiplatformMarkdownRenderer = "0.31.0"
 startupRuntime = "1.2.0"
 ktor = "3.1.0"
@@ -82,6 +83,7 @@ ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx
 lib-zoomable = { module = "net.engawapg.lib:zoomable", version.ref = "zoomableVersion" }
 lifecycle = { module = "com.arkivanov.essenty:lifecycle", version.ref = "essenty" }
 lifecycle-coroutines = { module = "com.arkivanov.essenty:lifecycle-coroutines", version.ref = "essenty" }
+material-kolor = { module = "com.materialkolor:material-kolor", version.ref = "materialKolor" }
 multiplatform-markdown-renderer = { module = "com.mikepenz:multiplatform-markdown-renderer", version.ref = "multiplatformMarkdownRenderer" }
 multiplatform-markdown-renderer-code = { module = "com.mikepenz:multiplatform-markdown-renderer-code", version.ref = "multiplatformMarkdownRenderer" }
 multiplatform-markdown-renderer-coil3 = { module = "com.mikepenz:multiplatform-markdown-renderer-coil3", version.ref = "multiplatformMarkdownRenderer" }

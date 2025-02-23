@@ -411,9 +411,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     }
 
     /** Send a message to the gateway. */
-    private suspend fun sendGatewayMessage(msg: GatewayMessage) {
-        responses.send(msg)
-    }
+    private suspend fun sendGatewayMessage(msg: GatewayMessage) = responses.send(msg)
 
     override fun closeGateway() {
         gatewayCloseJob.complete()
@@ -486,7 +484,6 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
 
                     logger.e { "Failed to deserialize IDENTIFY response: $e\nFrame: ${e.frame}" }
                     eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.Abnormal))
-
                     return@webSocket
                 }
 

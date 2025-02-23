@@ -89,7 +89,6 @@ val LocalHighlights = compositionLocalOf { Highlights.Builder() }
  * @param isCruising Whether the user currently has the bottom of the list loaded.
  */
 @Composable
-@Suppress("UnusedParameter")
 fun MessageList(
     features: List<MessageEntryComponent>,
     modifier: Modifier = Modifier,

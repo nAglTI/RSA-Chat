@@ -411,7 +411,6 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     }
 
     /** Send a message to the gateway. */
-    @Suppress("UnusedPrivateMember")
     private suspend fun sendGatewayMessage(msg: GatewayMessage) {
         responses.send(msg)
     }

@@ -299,6 +299,10 @@ class DefaultSideBarComponent(
             return
         }
 
+        if (guild.id !in data.value.guilds.map { it.id }) {
+            return
+        }
+
         val channel = getLastOpenChannel(guild.id)
 
         data.value =
@@ -323,6 +327,10 @@ class DefaultSideBarComponent(
     }
 
     private fun navigateToChannel(channel: Channel) {
+        if (channel.id !in data.value.channels.map { it.id }) {
+            return
+        }
+
         // Save the editor state of the current channel
         if (mainContent.value.child?.instance is ChannelComponent) {
             lastEditorStates[data.value.selectedChannel?.id ?: return] =

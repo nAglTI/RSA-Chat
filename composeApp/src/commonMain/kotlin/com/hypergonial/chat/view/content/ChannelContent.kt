@@ -106,7 +106,7 @@ fun ChannelContent(component: ChannelComponent) {
                         .align(Alignment.BottomCenter)
                 ) {
                     Column(
-                        Modifier /*.padding(start = 20.dp, 0.dp, end = 20.dp)*/.background(
+                        Modifier.background(
                             if (isDarkMode) MaterialTheme.colorScheme.surfaceBright
                             else MaterialTheme.colorScheme.surfaceDim,
                             RoundedCornerShape(16.dp),

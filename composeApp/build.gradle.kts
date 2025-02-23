@@ -145,7 +145,10 @@ kotlin {
             api(libs.back.handler)
         }
         desktopMain.dependencies {
-            implementation(compose.desktop.currentOs)
+            /*implementation(compose.desktop.currentOs)*/
+            implementation(compose.desktop.windows_x64)
+            implementation(compose.desktop.linux_x64)
+            implementation(compose.desktop.macos_arm64)
             // HTTP and coroutine impl
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.swing)
@@ -154,6 +157,10 @@ kotlin {
             implementation(libs.slf4j.simple)
             // Stdlib extensions
             implementation(libs.commons.lang3)
+            // dbus
+            implementation(libs.dbus.java.core)
+            // JNA for native OS calls
+            implementation(libs.jna.platform)
         }
     }
 }

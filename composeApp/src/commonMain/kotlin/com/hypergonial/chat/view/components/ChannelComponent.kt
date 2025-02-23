@@ -95,6 +95,16 @@ interface ChannelComponent : MainContentComponent, Displayable {
     /** Callback called when the user drops files into the attachment drop target. */
     fun onFilesDropped(files: List<PlatformFile>)
 
+    /**
+     * Set the scroll to bottom flag. This should be called before initiating a scroll to the bottom.
+     *
+     * It will ensure correct message fetching behavior by overriding the logic that is triggered
+     * when the bottom loading indicator comes into view.
+     *
+     * View implementations are expected to animate scroll to the bottom of the list right after this call.
+     */
+    fun setJumpToBottomFlag()
+
     /** Callback called when the user requests to remove a pending file. */
     fun onPendingFileCancel(file: PlatformFile)
 
@@ -129,6 +139,8 @@ interface ChannelComponent : MainContentComponent, Displayable {
         val listState: LazyListState = LazyListState(),
         /** If true, the bottom of the message list is no longer loaded */
         val isCruising: Boolean = false,
+        /** If true, the user pressed the jump to bottom button */
+        val isJumpingToBottom: Boolean = false,
         /** If true, the file upload dropdown is open */
         val isFileUploadDropdownOpen: Boolean = false,
         /** The message to be displayed in the snackbar */
@@ -251,8 +263,10 @@ class DefaultChannelComponent(
      * Requests more messages from the server.
      *
      * @param lastMessage The ID of the last message to fetch messages before.
+     * @param replace If true, the current list of messages will be replaced with the new ones. This essentially resets
+     *   the list to the state it was in when the channel was opened.
      */
-    private fun requestMessagesScrollingUp(lastMessage: Snowflake? = null) {
+    private fun requestMessagesScrollingUp(lastMessage: Snowflake? = null, replace: Boolean = false) {
         scope.launch {
             logger.i { "Requesting more messages before $lastMessage..." }
 
@@ -265,7 +279,12 @@ class DefaultChannelComponent(
                     return@launch
                 }
 
-            val currentEntries = data.value.messageEntries
+            val currentEntries =
+                if (replace) {
+                    mutableStateListOf(
+                        messageEntryComponent(mutableStateListOf(), topEndIndicator = LoadMoreMessagesIndicator())
+                    )
+                } else data.value.messageEntries
             val features = createMessageFeatures(messages)
             val isEnd = messages.size.toUInt() < MESSAGE_BATCH_SIZE
 
@@ -297,6 +316,8 @@ class DefaultChannelComponent(
                 currentEntries.first().setBottomEndIndicator(LoadMoreMessagesIndicator())
                 data.value = data.value.copy(isCruising = true)
             }
+            data.value =
+                data.value.copy(messageEntries = currentEntries, isCruising = data.value.isCruising && !replace)
         }
     }
 
@@ -335,8 +356,6 @@ class DefaultChannelComponent(
                 currentEntries.first().setBottomEndIndicator(LoadMoreMessagesIndicator())
             }
 
-            data.value.listState.layoutInfo.visibleItemsInfo.size
-
             // Drop elements beyond from the top 300 messages to prevent memory leaks
             if (currentEntries.totalMessageCount().toUInt() > maximumMessageCount() * 3u) {
                 val dropCount = currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3
@@ -355,6 +374,17 @@ class DefaultChannelComponent(
      * user should not notice any changes.
      */
     private fun refreshMessageList() {
+        // If the list was already at the bottom, just reset everything and start again
+        if (
+            data.value.listState.firstVisibleItemIndex == 0 &&
+                data.value.listState.firstVisibleItemScrollOffset == 0 &&
+                !data.value.isCruising
+        ) {
+            requestMessagesScrollingUp(null, replace = true)
+            return
+        }
+
+        // Otherwise try to refresh the messages around the current scroll position
         scope.launch {
             logger.i { "Refreshing message list..." }
             // Determine message at the center of the screen
@@ -399,6 +429,12 @@ class DefaultChannelComponent(
     }
 
     override fun onMoreMessagesRequested(lastMessage: Snowflake?, isAtTop: Boolean) {
+        if (!isAtTop && data.value.isJumpingToBottom) {
+            requestMessagesScrollingUp(null, replace = true)
+            data.value = data.value.copy(isJumpingToBottom = false)
+            return
+        }
+
         if (isAtTop) {
             requestMessagesScrollingUp(lastMessage)
         } else {
@@ -456,6 +492,10 @@ class DefaultChannelComponent(
             data.value.pendingAttachments.add(it)
             data.value = data.value.copy(cumulativeFileSize = data.value.cumulativeFileSize + size)
         }
+    }
+
+    override fun setJumpToBottomFlag() {
+        data.value = data.value.copy(isJumpingToBottom = true)
     }
 
     override fun onPendingFileCancel(file: PlatformFile) {

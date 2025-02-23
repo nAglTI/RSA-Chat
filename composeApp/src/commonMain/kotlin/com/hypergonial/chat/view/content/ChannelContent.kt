@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Attachment
 import androidx.compose.material.icons.outlined.FilePresent
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -33,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -57,6 +61,7 @@ import com.hypergonial.chat.view.composables.ChatBar
 import com.hypergonial.chat.view.composables.FileDropTarget
 import com.hypergonial.chat.view.composables.MessageList
 import com.hypergonial.chat.view.composables.TypingIndicator
+import kotlinx.coroutines.launch
 
 @Composable
 fun ChannelContent(component: ChannelComponent) {
@@ -171,30 +176,30 @@ fun FileUploadIcon(component: ChannelComponent) {
 @Composable
 fun ChatBarTopBar(component: ChannelComponent) {
     val state by component.data.subscribeAsState()
+    val scope = rememberCoroutineScope()
     val mimes by
         remember(state.pendingAttachments) { derivedStateOf { state.pendingAttachments.map { Mime.fromUrl(it.name) } } }
 
     Column(Modifier.fillMaxWidth().padding(start = 20.dp)) {
-        val typingText by remember(state.typingIndicators) {
-            derivedStateOf {
-                if (state.typingIndicators.size <= 3) {
-                    buildAnnotatedString {
-                        state.typingIndicators.values.forEachIndexed { index, user ->
-                            // Make the username bold
-                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append(user.resolvedName)
+        val typingText by
+            remember(state.typingIndicators) {
+                derivedStateOf {
+                    if (state.typingIndicators.size <= 3) {
+                        buildAnnotatedString {
+                            state.typingIndicators.values.forEachIndexed { index, user ->
+                                // Make the username bold
+                                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append(user.resolvedName) }
+                                if (index != state.typingIndicators.size - 1) {
+                                    append(", ")
+                                }
                             }
-                            if (index != state.typingIndicators.size - 1) {
-                                append(", ")
-                            }
+                            append(" ${if (state.typingIndicators.size <= 1) "is" else "are"} typing...")
                         }
-                        append(" ${if (state.typingIndicators.size <= 1) "is" else "are"} typing...")
+                    } else {
+                        AnnotatedString("Multiple users are typing...")
                     }
-                } else {
-                    AnnotatedString("Multiple users are typing...")
                 }
             }
-        }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -216,10 +221,35 @@ fun ChatBarTopBar(component: ChannelComponent) {
                 Text(
                     typingText,
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(8.dp, 0.dp, 20.dp, 0.dp),
+                    modifier = Modifier.padding(start = 8.dp),
                     color = lessGray,
                     fontSize = 12.sp,
                 )
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier =
+                Modifier.fillMaxWidth().animateContentSize().padding(vertical = if (state.isCruising) 5.dp else 0.dp),
+        ) {
+            if (state.isCruising) {
+                Text(
+                    "You're looking at older messages",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 8.dp),
+                    fontSize = 12.sp,
+                )
+                IconButton(
+                    onClick = {
+                        component.setJumpToBottomFlag()
+                        scope.launch { state.listState.animateScrollToItem(0, 0) }
+                    },
+                    modifier = Modifier.padding(end = 20.dp).size(16.dp)
+                ) {
+                    Icon(Icons.Filled.ArrowDownward, contentDescription = "Scroll to bottom")
+                }
             }
         }
 

@@ -19,8 +19,10 @@ import com.hypergonial.chat.view.colors.colorProvider
 import com.hypergonial.chat.view.components.DefaultRootComponent
 import com.hypergonial.chat.view.composables.Material3ContextMenuRepresentation
 import com.hypergonial.chat.view.globalKeyEventFlow
+import com.materialkolor.DynamicMaterialTheme
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamicColorScheme
+import com.materialkolor.rememberDynamicMaterialThemeState
 import java.awt.Dimension
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
@@ -34,17 +36,16 @@ fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
 
     val seedColor = colorProvider.getAccentColorOfOS() ?: Color(117, 156, 223)
 
-    val colorScheme =
-        dynamicColorScheme(
-            seedColor = seedColor,
-            isDark = useDarkTheme,
-            isAmoled = false,
-            style = PaletteStyle.TonalSpot,
-        )
+    val dynamicThemeState = rememberDynamicMaterialThemeState(
+        seedColor = seedColor,
+        isDark = useDarkTheme,
+        isAmoled = false,
+        style = PaletteStyle.TonalSpot,
+    )
 
     CompositionLocalProvider(LocalUsingDarkTheme provides useDarkTheme) {
         CompositionLocalProvider(LocalContextMenuRepresentation provides Material3ContextMenuRepresentation()) {
-            MaterialTheme(colorScheme = colorScheme, content = content)
+            DynamicMaterialTheme(state = dynamicThemeState, animate = true, content = content)
         }
     }
 }

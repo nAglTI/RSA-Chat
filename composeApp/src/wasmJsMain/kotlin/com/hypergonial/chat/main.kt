@@ -16,8 +16,10 @@ import com.arkivanov.essenty.lifecycle.resume
 import com.arkivanov.essenty.statekeeper.SerializableContainer
 import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
 import com.hypergonial.chat.view.components.DefaultRootComponent
+import com.materialkolor.DynamicMaterialTheme
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamicColorScheme
+import com.materialkolor.rememberDynamicMaterialThemeState
 import kotlinx.browser.document
 import kotlinx.browser.localStorage
 import kotlinx.browser.window
@@ -36,20 +38,19 @@ private fun LifecycleRegistry.attachToDocument() {
     document.addEventListener(type = "visibilitychange", callback = { onVisibilityChanged() })
 }
 
-/// Adaptive theming depending on system theme.
 @Composable
 fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
 
-    val colorScheme =
-        dynamicColorScheme(
-            seedColor = Color(104, 165, 39),
-            isDark = useDarkTheme,
-            isAmoled = false,
-            style = PaletteStyle.TonalSpot,
-        )
+
+    val dynamicThemeState = rememberDynamicMaterialThemeState(
+        seedColor = Color(104, 165, 39),
+        isDark = useDarkTheme,
+        isAmoled = false,
+        style = PaletteStyle.TonalSpot,
+    )
 
     CompositionLocalProvider(LocalUsingDarkTheme provides useDarkTheme) {
-        MaterialTheme(colorScheme = colorScheme, content = content)
+        DynamicMaterialTheme(state = dynamicThemeState, animate = true, content = content)
     }
 }
 

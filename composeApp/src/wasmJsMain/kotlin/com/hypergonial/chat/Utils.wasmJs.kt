@@ -50,7 +50,7 @@ actual fun Modifier.altClickable(onClick: () -> Unit): Modifier {
 }
 
 /** Returns a sequence of files if the clipboard contains files. */
-actual fun ClipboardManager.getFiles(): List<PlatformFile>? {
+actual suspend fun ClipboardManager.getFiles(): List<PlatformFile>? {
     // Web Clipboard API for files is asynchronous and requires user interaction.
     // This implementation currently returns null until file extraction is supported.
     return null

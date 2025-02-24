@@ -59,7 +59,7 @@ actual fun Modifier.altClickable(onClick: () -> Unit): Modifier {
 }
 
 /** Returns a sequence of files if the clipboard contains files. */
-actual fun ClipboardManager.getFiles(): List<PlatformFile>? {
+actual suspend fun ClipboardManager.getFiles(): List<PlatformFile>? {
     val pasteboard = UIPasteboard.generalPasteboard
     val url = pasteboard.URL ?: return null
     // Check if the URL scheme is "file"

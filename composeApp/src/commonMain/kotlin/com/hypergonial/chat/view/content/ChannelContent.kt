@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Attachment
 import androidx.compose.material.icons.outlined.FilePresent
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -49,7 +50,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.LocalUsingDarkTheme
@@ -71,7 +71,9 @@ fun ChannelContent(component: ChannelComponent) {
 
     val canSend by
         remember(state.chatBarValue, state.pendingAttachments) {
-            derivedStateOf { state.chatBarValue.text.isNotEmpty() || state.pendingAttachments.isNotEmpty() }
+            derivedStateOf {
+                (state.chatBarValue.text.isNotEmpty() || state.pendingAttachments.isNotEmpty()) && !state.hasTransferJob
+            }
         }
 
     FileDropTarget(onFilesDropped = component::onFilesDropped) {
@@ -121,7 +123,11 @@ fun ChannelContent(component: ChannelComponent) {
                             onValueChange = component::onChatBarContentChanged,
                             onEditLastRequested = component::onEditLastMessage,
                             leadingIcon = { FileUploadIcon(component) },
-                            onFilesPasted = component::onFilesDropped,
+                            onFilePasteStart = component::onFileTransferStart,
+                            onFilesPasted = {
+                                component.onFileTransferEnd()
+                                component.onFilesDropped(it)
+                            },
                             onLeadingIconClick = component::onFileUploadDropdownOpen,
                             trailingButtonEnabled = canSend,
                             onSubmit = component::onMessageSend,
@@ -264,6 +270,27 @@ fun ChatBarTopBar(component: ChannelComponent) {
                     },
                     trailingIcon = { Icon(Icons.Filled.Close, contentDescription = "Cancel") },
                 )
+            }
+
+            if (state.hasTransferJob) {
+                item {
+                    Box {
+                        InputChip(
+                            enabled = false,
+                            onClick = {},
+                            label = { Text("Processing...") },
+                            selected = false,
+                            modifier = Modifier.padding(horizontal = 5.dp),
+                            avatar = { Icon(Icons.Outlined.FilePresent, contentDescription = "Attachment") },
+                            trailingIcon = { Icon(Icons.Filled.Close, contentDescription = "Cancel") },
+                        )
+
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp).align(Alignment.Center),
+                            strokeWidth = 2.dp,
+                        )
+                    }
+                }
             }
         }
     }

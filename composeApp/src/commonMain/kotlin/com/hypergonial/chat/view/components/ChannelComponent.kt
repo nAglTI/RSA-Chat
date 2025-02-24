@@ -92,6 +92,12 @@ interface ChannelComponent : MainContentComponent, Displayable {
     /** Callback called when the user requests to close the file upload dropdown. */
     fun onFileUploadDropdownClose()
 
+    /** Should be called if an expensive clipboard operation is starting. */
+    fun onFileTransferStart()
+
+    /** Should be called if an expensive clipboard operation is ending. */
+    fun onFileTransferEnd()
+
     /** Callback called when the user drops files into the attachment drop target. */
     fun onFilesDropped(files: List<PlatformFile>)
 
@@ -129,6 +135,8 @@ interface ChannelComponent : MainContentComponent, Displayable {
         val chatBarValue: TextFieldValue = TextFieldValue(),
         /** Attachments awaiting upload */
         val pendingAttachments: SnapshotStateList<PlatformFile> = mutableStateListOf(),
+        /** If true, the client is currently copying file(s) from the clipboard service */
+        val hasTransferJob: Boolean = false,
         /** The cumulative file size of all pending attachments */
         val cumulativeFileSize: Long = 0,
         /** The list of message entries to display */
@@ -450,6 +458,14 @@ class DefaultChannelComponent(
         data.value = data.value.copy(isFileUploadDropdownOpen = false)
     }
 
+    override fun onFileTransferStart() {
+        data.value = data.value.copy(hasTransferJob = true)
+    }
+
+    override fun onFileTransferEnd() {
+        data.value = data.value.copy(hasTransferJob = false)
+    }
+
     override fun onFileAttachRequested(isMedia: Boolean) {
         onFileUploadDropdownClose()
 
@@ -641,7 +657,7 @@ class DefaultChannelComponent(
         val content = data.value.chatBarValue.text.trim()
         val attachments = data.value.pendingAttachments.toList()
 
-        if (content.isBlank() && attachments.isEmpty()) return
+        if ((content.isBlank() && attachments.isEmpty()) || data.value.hasTransferJob) return
 
         scope.launch {
             val nonce = genNonce(client.sessionId)

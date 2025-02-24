@@ -60,7 +60,7 @@ actual fun Modifier.altClickable(onClick: () -> Unit): Modifier {
 }
 
 /** Returns a sequence of files if the clipboard contains files. */
-actual fun ClipboardManager.getFiles(): List<PlatformFile>? {
+actual suspend fun ClipboardManager.getFiles(): List<PlatformFile>? {
     // Cast to Android clipboard manager to access Android-specific API
     val clipboardManager = this as? android.content.ClipboardManager ?: return null
     val context = ContextHelper.retrieveAppContext() ?: return null
@@ -68,7 +68,6 @@ actual fun ClipboardManager.getFiles(): List<PlatformFile>? {
 
     val files = mutableListOf<PlatformFile>()
 
-    // Iterate over clip items to check for file URIs
     for (i in 0 until clipData.itemCount) {
         val item = clipData.getItemAt(i)
         val uri: Uri? = item.uri
@@ -76,7 +75,6 @@ actual fun ClipboardManager.getFiles(): List<PlatformFile>? {
             uri != null &&
                 clipboardManager.primaryClipDescription?.hasMimeType(ClipDescription.MIMETYPE_TEXT_URILIST) == true
         ) {
-            // Only proceed if the URI uses a file scheme
             if (uri.scheme.equals("file", ignoreCase = true)) {
                 val file = File(uri.path ?: continue)
                 if (file.exists() && file.isFile) {

@@ -510,4 +510,4 @@ fun KeyEvent.isCutGesture(): Boolean = isModifierGesture(Key.X)
 fun KeyEvent.isPasteGesture(): Boolean = isModifierGesture(Key.V)
 
 /** Returns a sequence of files if the clipboard contains files. */
-expect fun ClipboardManager.getFiles(): List<PlatformFile>?
+expect suspend fun ClipboardManager.getFiles(): List<PlatformFile>?

@@ -88,6 +88,7 @@ fun ChatBar(
     onValueChange: (TextFieldValue) -> Unit,
     onFocusGain: (() -> Unit)? = null,
     onFocusLoss: (() -> Unit)? = null,
+    onFilePasteStart: (() -> Unit)? = null,
     onFilesPasted: ((List<PlatformFile>) -> Unit)? = null,
     onEditLastRequested: (() -> Unit)? = null,
     onLeadingIconClick: (() -> Unit)? = null,
@@ -128,7 +129,9 @@ fun ChatBar(
                                     value.text + clipboardManager.getText()?.text
                                 } else {
                                     if (onFilesPasted != null) {
-                                        clipboardManager.getFiles()?.let { onFilesPasted(it) }
+                                        onFilePasteStart?.invoke()
+                                        scope.launch { clipboardManager.getFiles()?.let { onFilesPasted(it) } }
+
                                     }
                                     value.text
                                 }
@@ -204,7 +207,8 @@ fun ChatBar(
                     }
 
                     if (it.isPasteGesture() && onFilesPasted != null && !clipboardManager.hasText()) {
-                        clipboardManager.getFiles()?.let { files -> onFilesPasted(files) }
+                        onFilePasteStart?.invoke()
+                        scope.launch { clipboardManager.getFiles()?.let { files -> onFilesPasted(files) } }
                         return@onPreviewKeyEvent true
                     }
 

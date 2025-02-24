@@ -11,6 +11,8 @@ import co.touchlab.kermit.Logger
 import com.arkivanov.essenty.statekeeper.SerializableContainer
 import com.hypergonial.chat.model.Mime
 import io.github.vinceglb.filekit.core.PlatformFile
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.swing.SwingUtilities
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -97,26 +99,24 @@ fun File.readToSerializableContainer(): SerializableContainer? =
 
 /** Returns a sequence of files if the clipboard contains files. */
 @Suppress("TooGenericExceptionCaught")
-actual fun ClipboardManager.getFiles(): List<PlatformFile>? {
-    return try {
+actual suspend fun ClipboardManager.getFiles(): List<PlatformFile>? = withContext(Dispatchers.IO) {
+    return@withContext try {
         val systemClipboard = Toolkit.getDefaultToolkit().systemClipboard
-        val contents = systemClipboard.getContents(null) ?: return null
 
         // If the clipboard has files
-        if (contents.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+        if (systemClipboard.isDataFlavorAvailable(DataFlavor.javaFileListFlavor)) {
             @Suppress("UNCHECKED_CAST")
-            val fileList = contents.getTransferData(DataFlavor.javaFileListFlavor) as? List<File>
-            return fileList?.map { file -> PlatformFile(file) }
+            val fileList = systemClipboard.getData(DataFlavor.javaFileListFlavor) as? List<File>
+            fileList?.map { file -> PlatformFile(file) }
         }
-
         // If the clipboard is holding an image in memory
-        if (contents.isDataFlavorSupported(DataFlavor.imageFlavor)) {
-            val image = contents.getTransferData(DataFlavor.imageFlavor) as? BufferedImage ?: return null
+        else if (systemClipboard.isDataFlavorAvailable(DataFlavor.imageFlavor)) {
+            val image = systemClipboard.getData(DataFlavor.imageFlavor) as? BufferedImage ?: return@withContext null
             val tempFile = File.createTempFile("image", ".png")
             tempFile.writeBytes(image.toBytes())
-            return listOf(PlatformFile(tempFile))
-        }
-        return null
+            tempFile.deleteOnExit()
+            listOf(PlatformFile(tempFile))
+        } else null
     } catch (e: Exception) {
         Logger.w { "Failed to copy file(s) from clipboard: ${e.message}" }
         null

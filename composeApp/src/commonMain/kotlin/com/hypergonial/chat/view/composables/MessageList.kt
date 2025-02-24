@@ -103,9 +103,7 @@ fun MessageList(
     CompositionLocalProvider(LocalHighlights provides highlightsBuilder) {
         LazyColumn(modifier, state = listState, reverseLayout = true) {
             if (!isCruising && bottomSpacer > 0.dp) {
-                item(key = "BOTTOM_SPACER") {
-                    Spacer(modifier = Modifier.height(bottomSpacer))
-                }
+                item(key = "BOTTOM_SPACER") { Spacer(modifier = Modifier.height(bottomSpacer)) }
             }
 
             itemsIndexed(features, key = { _, item -> item.getKey() }) { _, item -> Entry(item) }
@@ -300,17 +298,27 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
                         ),
                     typography =
                         markdownTypography(
-                            text = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
-                            paragraph = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+                            text =
+                                MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Light,
+                                    fontSize = 15.sp,
+                                ),
+                            paragraph =
+                                MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Light,
+                                    fontSize = 15.sp,
+                                ),
                             quote =
                                 MaterialTheme.typography.bodyMedium.copy(
                                     color = Color.LightGray,
                                     fontWeight = FontWeight.Thin,
+                                    fontSize = 15.sp,
                                 ),
                             link =
                                 MaterialTheme.typography.bodyMedium.copy(
                                     fontWeight = FontWeight.Normal,
                                     textDecoration = TextDecoration.Underline,
+                                    fontSize = 15.sp,
                                 ),
                         ),
                 )

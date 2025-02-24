@@ -9,25 +9,20 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.platform.ClipboardManager
 import co.touchlab.kermit.Logger
 import com.arkivanov.essenty.statekeeper.SerializableContainer
-import com.hypergonial.chat.model.Mime
 import io.github.vinceglb.filekit.core.PlatformFile
+import java.awt.Toolkit
+import java.awt.datatransfer.DataFlavor
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import java.io.File
+import javax.imageio.ImageIO
+import javax.swing.SwingUtilities
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
-import javax.swing.SwingUtilities
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.json.encodeToStream
-import java.awt.Toolkit
-import java.awt.datatransfer.DataFlavor
-import java.awt.datatransfer.Transferable
-import java.awt.image.BufferedImage
-import java.awt.image.DataBufferByte
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import javax.imageio.ImageIO
-import java.net.URLConnection
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -99,27 +94,36 @@ fun File.readToSerializableContainer(): SerializableContainer? =
 
 /** Returns a sequence of files if the clipboard contains files. */
 @Suppress("TooGenericExceptionCaught")
-actual suspend fun ClipboardManager.getFiles(): List<PlatformFile>? = withContext(Dispatchers.IO) {
-    return@withContext try {
-        val systemClipboard = Toolkit.getDefaultToolkit().systemClipboard
+actual suspend fun ClipboardManager.getFiles(): List<PlatformFile>? {
+    val systemClipboard = Toolkit.getDefaultToolkit().systemClipboard
 
-        // If the clipboard has files
-        if (systemClipboard.isDataFlavorAvailable(DataFlavor.javaFileListFlavor)) {
-            @Suppress("UNCHECKED_CAST")
-            val fileList = systemClipboard.getData(DataFlavor.javaFileListFlavor) as? List<File>
-            fileList?.map { file -> PlatformFile(file) }
+    if (
+        !systemClipboard.isDataFlavorAvailable(DataFlavor.javaFileListFlavor) &&
+            !systemClipboard.isDataFlavorAvailable(DataFlavor.imageFlavor)
+    ) {
+        return null
+    }
+
+    return withContext(Dispatchers.IO) {
+        try {
+            // If the clipboard has files
+            if (systemClipboard.isDataFlavorAvailable(DataFlavor.javaFileListFlavor)) {
+                @Suppress("UNCHECKED_CAST")
+                val fileList = systemClipboard.getData(DataFlavor.javaFileListFlavor) as? List<File>
+                fileList?.map { file -> PlatformFile(file) }
+            }
+            // If the clipboard is holding an image in memory
+            else if (systemClipboard.isDataFlavorAvailable(DataFlavor.imageFlavor)) {
+                val image = systemClipboard.getData(DataFlavor.imageFlavor) as? BufferedImage ?: return@withContext null
+                val tempFile = File.createTempFile("image", ".png")
+                tempFile.writeBytes(image.toBytes())
+                tempFile.deleteOnExit()
+                listOf(PlatformFile(tempFile))
+            } else null
+        } catch (e: Exception) {
+            Logger.w { "Failed to copy file(s) from clipboard: ${e.message}" }
+            null
         }
-        // If the clipboard is holding an image in memory
-        else if (systemClipboard.isDataFlavorAvailable(DataFlavor.imageFlavor)) {
-            val image = systemClipboard.getData(DataFlavor.imageFlavor) as? BufferedImage ?: return@withContext null
-            val tempFile = File.createTempFile("image", ".png")
-            tempFile.writeBytes(image.toBytes())
-            tempFile.deleteOnExit()
-            listOf(PlatformFile(tempFile))
-        } else null
-    } catch (e: Exception) {
-        Logger.w { "Failed to copy file(s) from clipboard: ${e.message}" }
-        null
     }
 }
 

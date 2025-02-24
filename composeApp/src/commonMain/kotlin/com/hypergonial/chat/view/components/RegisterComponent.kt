@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
  * It is used to create a new account
  */
 interface RegisterComponent : Displayable {
-    val data: Value<Data>
+    val data: Value<State>
 
     /**
      * Called when the username changes
@@ -54,7 +54,7 @@ interface RegisterComponent : Displayable {
 
     @Composable override fun Display() = RegisterContent(this)
 
-    data class Data(
+    data class State(
         /** The username entered by the user */
         val username: String = "",
         /** The password entered by the user */
@@ -92,7 +92,7 @@ class DefaultRegisterComponent(
     val onRegister: () -> Unit,
     val onBack: () -> Unit,
 ) : RegisterComponent, ComponentContext by ctx {
-    override val data = MutableValue(RegisterComponent.Data())
+    override val data = MutableValue(RegisterComponent.State())
     private val scope = ctx.coroutineScope()
     private val usernameRegex = Regex("^([a-z0-9]|[a-z0-9]+(?:[._][a-z0-9]+)*)\$")
     private var checkUsernameAvailabilityJob: Job? = null

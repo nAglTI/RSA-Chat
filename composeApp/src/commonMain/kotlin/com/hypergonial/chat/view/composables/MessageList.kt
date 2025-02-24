@@ -144,7 +144,7 @@ fun Entry(component: MessageEntryComponent) {
             Row(Modifier.padding(vertical = 10.dp)) {
                 // Avatar
                 Column {
-                    UserAvatar(
+                    Avatar(
                         firstItem.data.value.message.author.avatarUrl,
                         firstItem.data.value.message.author.resolvedName,
                     )

@@ -18,7 +18,7 @@ import io.github.vinceglb.filekit.core.PickerType
 import kotlinx.coroutines.launch
 
 interface UserSettingsComponent : Displayable {
-    val data: Value<UserSettingsState>
+    val data: Value<State>
 
     @Composable override fun Display() = UserSettingsContent(this)
 
@@ -34,10 +34,13 @@ interface UserSettingsComponent : Displayable {
     /** Invoked when the user clicks on the avatar */
     fun onAvatarChangeRequested()
 
+    /** Invoked when the user clicks the remove avatar button */
+    fun onAvatarRemoveRequested()
+
     /** Invoked when the user clicks the back button */
     fun onBackClicked()
 
-    data class UserSettingsState(
+    data class State(
         val username: String = "",
         val displayName: String = "",
         val avatarUrl: String? = null,
@@ -55,7 +58,7 @@ class DefaultUserSettingsComponent(
 ) : UserSettingsComponent, ComponentContext by ctx {
     override val data =
         MutableValue(
-            UserSettingsComponent.UserSettingsState(
+            UserSettingsComponent.State(
                 client.cache.ownUser?.username ?: "",
                 client.cache.ownUser?.displayName ?: "",
                 client.cache.ownUser?.avatarUrl,
@@ -147,7 +150,10 @@ class DefaultUserSettingsComponent(
         data.value = data.value.copy(canSave = false)
         scope.launch {
             try {
-                client.updateSelf(data.value.username, data.value.displayName.ifEmpty { null })
+                client.updateSelf {
+                    username = data.value.username
+                    displayName = data.value.displayName.ifEmpty { null }
+                }
             } catch (e: ClientException) {
                 data.value =
                     data.value.copy(
@@ -164,9 +170,6 @@ class DefaultUserSettingsComponent(
     override fun onBackClicked() = onBack()
 
     override fun onAvatarChangeRequested() {
-        // Use cached data instead of state to prevent accidentally updating the display/username
-        val ownUser = client.cache.ownUser ?: return
-
         scope.launch {
             val file =
                 FileKit.pickFile(PickerType.Image, PickerMode.Single, title = "Select a new avatar") ?: return@launch
@@ -181,7 +184,7 @@ class DefaultUserSettingsComponent(
 
             // TODO: Somehow crop the image to a square? No image manipulation libs though :(
             try {
-                client.updateSelf(ownUser.username, ownUser.displayName, file)
+                client.updateSelf { avatar = file }
             } catch (e: ClientException) {
                 data.value =
                     data.value.copy(
@@ -192,6 +195,22 @@ class DefaultUserSettingsComponent(
             }
 
             data.value = data.value.copy(snackbarMessage = "Avatar updated".containAsEffect())
+        }
+    }
+
+    override fun onAvatarRemoveRequested() {
+        scope.launch {
+            try {
+                client.updateSelf { avatar = null }
+            } catch (e: ClientException) {
+                data.value =
+                    data.value.copy(
+                        snackbarMessage = "Failed to remove avatar, please try again later.".containAsEffect()
+                    )
+                logger.e { "Failed to remove avatar: ${e.message}" }
+                return@launch
+            }
+            data.value = data.value.copy(snackbarMessage = "Avatar removed".containAsEffect())
         }
     }
 }

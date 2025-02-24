@@ -22,7 +22,7 @@ import com.hypergonial.chat.LocalUsingDarkTheme
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
-fun UserAvatar(avatarUrl: String? = null, displayName: String, size: Dp = 40.dp) {
+fun Avatar(avatarUrl: String? = null, displayName: String, size: Dp = 40.dp) {
     val isDarkTheme = LocalUsingDarkTheme.current
     val imageModifier = Modifier.padding(vertical = 6.dp, horizontal = 14.dp).requiredSize(size).clip(CircleShape)
 

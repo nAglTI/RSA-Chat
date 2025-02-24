@@ -29,12 +29,12 @@ import com.hypergonial.chat.model.payloads.gateway.TypingStart
 import com.hypergonial.chat.model.payloads.rest.AuthResponse
 import com.hypergonial.chat.model.payloads.rest.ChannelCreateRequest
 import com.hypergonial.chat.model.payloads.rest.GuildCreateRequest
+import com.hypergonial.chat.model.payloads.rest.GuildUpdateRequest
 import com.hypergonial.chat.model.payloads.rest.MessageCreateRequest
 import com.hypergonial.chat.model.payloads.rest.MessageUpdateRequest
 import com.hypergonial.chat.model.payloads.rest.UserRegisterRequest
 import com.hypergonial.chat.model.payloads.rest.UserUpdateRequest
 import com.hypergonial.chat.platform
-import com.hypergonial.chat.toDataUrl
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
@@ -172,7 +172,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             json(
                 Json {
                     ignoreUnknownKeys = true
-                    encodeDefaults = true
+                    encodeDefaults = false
                 }
             )
         }
@@ -183,7 +183,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                 KotlinxWebsocketSerializationConverter(
                     Json {
                         ignoreUnknownKeys = true
-                        encodeDefaults = true
+                        encodeDefaults = false
                     }
                 )
         }
@@ -683,12 +683,12 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         cache.putOwnUser(user)
     }
 
-    override suspend fun updateSelf(username: String?, displayName: String?, avatar: PlatformFile?): User {
+    override suspend fun updateSelf(scope: (UserUpdateRequest.Builder.() -> Unit)): User {
         val user =
             http
                 .patch("users/@me") {
                     contentType(ContentType.Application.Json)
-                    setBody(UserUpdateRequest(username, displayName, avatar?.toDataUrl()))
+                    setBody(UserUpdateRequest.Builder().apply(scope).build())
                 }
                 .body<User>()
         cache.putOwnUser(user)
@@ -711,6 +711,15 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             }
             .body<Guild>()
     }
+
+    override suspend fun updateGuild(guildId: Snowflake, scope: GuildUpdateRequest.Builder.() -> Unit): Guild =
+        http
+            .patch("guilds/$guildId") {
+                contentType(ContentType.Application.Json)
+                setBody(GuildUpdateRequest.Builder().apply(scope).build())
+            }
+            .body<Guild>()
+
 
     override suspend fun deleteGuild(id: Snowflake) {
         http.delete("guilds/$id")

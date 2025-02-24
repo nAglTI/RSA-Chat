@@ -126,9 +126,9 @@ interface SidebarComponent : Displayable {
 
     val mainContent: Value<ChildSlot<*, MainContentComponent>>
 
-    val data: Value<SidebarState>
+    val data: Value<State>
 
-    data class SidebarState(
+    data class State(
         /** The currently logged in user May be null if the client is still connecting */
         val currentUser: User? = null,
         /** The guild that is currently selected */
@@ -177,16 +177,17 @@ interface SidebarComponent : Displayable {
  * @param onLogout The callback to call when the user requests to log out
  */
 class DefaultSideBarComponent(
-    val ctx: ComponentContext,
-    val client: Client,
-    val onGuildCreateRequested: () -> Unit,
-    val onChannelCreateRequested: (Snowflake) -> Unit,
-    val onUserSettingsRequested: () -> Unit,
-    val onLogout: () -> Unit,
+    private val ctx: ComponentContext,
+    private val client: Client,
+    private val onGuildCreateRequested: () -> Unit,
+    private val onChannelCreateRequested: (Snowflake) -> Unit,
+    private val onGuildEditRequested: (Snowflake) -> Unit,
+    private val onUserSettingsRequested: () -> Unit,
+    private val onLogout: () -> Unit,
 ) : SidebarComponent, ComponentContext by ctx {
     override val data =
         MutableValue(
-            SidebarComponent.SidebarState(
+            SidebarComponent.State(
                 currentUser = client.cache.ownUser,
                 guilds = client.cache.guilds.values.toList().sortedBy { it.id },
             )
@@ -377,9 +378,7 @@ class DefaultSideBarComponent(
         }
     }
 
-    override fun onGuildEditClicked(guildId: Snowflake) {
-        data.value = data.value.copy(snackbarMessage = "Not yet implemented".containAsEffect())
-    }
+    override fun onGuildEditClicked(guildId: Snowflake) = onGuildEditRequested(guildId)
 
     override fun onAssetViewerClosed() {
         data.value = data.value.copy(assetViewerActive = false)
@@ -404,7 +403,7 @@ class DefaultSideBarComponent(
 
     private fun onGuildCreate(event: GuildCreateEvent) {
         // TODO: Update when guilds have positions saved in prefs
-        if (event.guild !in data.value.guilds) {
+        if (event.guild.id !in data.value.guilds.map { it.id }) {
             data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         }
 
@@ -415,11 +414,15 @@ class DefaultSideBarComponent(
     }
 
     private fun onGuildUpdate(event: GuildUpdateEvent) {
-        if (event.guild !in data.value.guilds) {
+        if (event.guild.id !in data.value.guilds.map { it.id }) {
             data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         } else {
             data.value =
                 data.value.copy(guilds = data.value.guilds.map { if (it.id == event.guild.id) event.guild else it })
+        }
+
+        if (event.guild.id == data.value.selectedGuild?.id) {
+            data.value = data.value.copy(selectedGuild = event.guild)
         }
     }
 
@@ -440,7 +443,7 @@ class DefaultSideBarComponent(
             return
         }
 
-        if (event.channel !in data.value.channels) {
+        if (event.channel.id !in data.value.channels.map { it.id }) {
             data.value = data.value.copy(channels = (data.value.channels + event.channel).sortedBy { it.id })
 
             // Leave fallback slot if it was active
@@ -456,14 +459,19 @@ class DefaultSideBarComponent(
         }
 
         if (event.channel.id == data.value.selectedChannel?.id) {
-            data.value.selectedGuild?.id?.let { getLastOpenChannel(it) }?.let { navigateToChannel(it) }
+            val lastChannel = data.value.selectedGuild?.id?.let { getLastOpenChannel(it) }
+            if (lastChannel != null) {
+                navigateToChannel(lastChannel)
+            } else {
+                slotNavigation.activate(SlotConfig.Fallback)
+            }
         }
 
         data.value = data.value.copy(channels = data.value.channels.filter { it.id != event.channel.id })
     }
 
     private fun onChannelFocus(event: FocusChannelEvent) {
-        if (event.channel in data.value.channels) {
+        if (event.channel.id in data.value.channels.map { it.id }) {
             navigateToChannel(event.channel.id)
         } else if (event.channel.guildId == data.value.selectedGuild?.id) {
             data.value = data.value.copy(channels = (data.value.channels + event.channel).sortedBy { it.id })
@@ -476,7 +484,7 @@ class DefaultSideBarComponent(
     }
 
     private fun onGuildFocus(event: FocusGuildEvent) {
-        if (event.guild !in data.value.guilds) {
+        if (event.guild.id !in data.value.guilds.map { it.id }) {
             data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         }
         navigateToGuild(event.guild)

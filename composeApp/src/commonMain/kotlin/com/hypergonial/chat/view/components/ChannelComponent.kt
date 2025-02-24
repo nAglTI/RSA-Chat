@@ -60,7 +60,7 @@ import kotlinx.datetime.Instant
 private const val MESSAGE_BATCH_SIZE = 100u
 
 interface ChannelComponent : MainContentComponent, Displayable {
-    val data: Value<ChannelState>
+    val data: Value<State>
 
     /** Callback called when the logout button is clicked. */
     fun onLogoutClicked()
@@ -124,7 +124,7 @@ interface ChannelComponent : MainContentComponent, Displayable {
 
     @Composable override fun Display() = ChannelContent(this)
 
-    data class ChannelState(
+    data class State(
         /** The value of the chat bar */
         val chatBarValue: TextFieldValue = TextFieldValue(),
         /** Attachments awaiting upload */
@@ -173,7 +173,7 @@ class DefaultChannelComponent(
 
     override val data =
         MutableValue(
-            ChannelComponent.ChannelState(
+            ChannelComponent.State(
                 chatBarValue = initialEditorState ?: TextFieldValue(),
                 typingIndicators =
                     mutableStateMapOf<Snowflake, User>().apply {

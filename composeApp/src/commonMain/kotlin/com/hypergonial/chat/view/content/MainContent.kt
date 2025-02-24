@@ -84,7 +84,7 @@ import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 import com.hypergonial.chat.view.composables.GuildIcon
 import com.hypergonial.chat.view.composables.SidebarChannelItem
 import com.hypergonial.chat.view.composables.SidebarGuildItem
-import com.hypergonial.chat.view.composables.UserAvatar
+import com.hypergonial.chat.view.composables.Avatar
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -319,7 +319,7 @@ fun SidebarContent(component: SidebarComponent, drawerState: DrawerState) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    UserAvatar(state.currentUser?.avatarUrl, state.currentUser?.resolvedName ?: "Unknown", size = 35.dp)
+                    Avatar(state.currentUser?.avatarUrl, state.currentUser?.resolvedName ?: "Unknown", size = 35.dp)
                     Text(state.currentUser?.resolvedName ?: "Connecting...", Modifier.padding(start = 5.dp))
                 }
                 IconButton(onClick = component::onUserSettingsClicked) {

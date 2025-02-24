@@ -21,7 +21,8 @@ style:
 
     MaxLineLength:
         active: true
-        maxLineLength: 120
+        # Slightly longer due to the formatter sometimes taking liberties with how it formats around max-length
+        maxLineLength: 125
 
     MagicNumber:
         active: false

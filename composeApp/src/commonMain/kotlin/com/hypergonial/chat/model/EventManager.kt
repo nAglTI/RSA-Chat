@@ -64,7 +64,7 @@ private class EventManagerActor : Actor<Instruction>() {
 
     private fun <T : Event> unsubscribe(eventType: KClass<out T>, subscriber: EventSubscriber<out T>) {
         val eventSubscribers = subscribers[eventType]
-        eventSubscribers?.retainAll { it != subscriber }
+        eventSubscribers?.remove(subscriber)
     }
 
     private fun <T : Event> getSubscribers(eventType: KClass<T>): Set<EventSubscriber<out Event>> {

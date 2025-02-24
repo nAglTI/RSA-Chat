@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
  * This is the default screen displayed when the user is not logged in
  */
 interface LoginComponent : Displayable {
-    val data: Value<Data>
+    val data: Value<State>
 
     /**
      * Called when the username changes
@@ -49,7 +49,7 @@ interface LoginComponent : Displayable {
 
     @Composable override fun Display() = LoginContent(this)
 
-    data class Data(
+    data class State(
         /** The username entered by the user */
         val username: String = "",
         /** The password entered by the user */
@@ -83,7 +83,7 @@ class DefaultLoginComponent(
     val onRegisterRequest: () -> Unit,
     val onDebugSettingsOpen: () -> Unit,
 ) : LoginComponent, ComponentContext by ctx {
-    override val data = MutableValue(LoginComponent.Data())
+    override val data = MutableValue(LoginComponent.State())
     private val scope = ctx.coroutineScope()
     private val logger = Logger.withTag("DefaultLoginComponent")
 

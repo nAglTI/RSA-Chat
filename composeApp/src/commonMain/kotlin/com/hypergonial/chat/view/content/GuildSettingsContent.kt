@@ -47,13 +47,13 @@ import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.altClickable
 import com.hypergonial.chat.platform
-import com.hypergonial.chat.view.components.UserSettingsComponent
+import com.hypergonial.chat.view.components.GuildSettingsComponent
 import com.hypergonial.chat.view.composables.AltActionMenu
 import com.hypergonial.chat.view.composables.ChatButton
 import com.hypergonial.chat.view.composables.Avatar
 
 @Composable
-fun UserSettingsTopBar(component: UserSettingsComponent) {
+fun GuildSettingsTopBar(component: GuildSettingsComponent) {
     // Add a back button to the left of the top bar
 
     if (!platform.needsBackButton()) {
@@ -72,15 +72,14 @@ fun UserSettingsTopBar(component: UserSettingsComponent) {
 }
 
 @Composable
-fun UserSettingsContent(component: UserSettingsComponent) {
+fun GuildSettingsContent(component: GuildSettingsComponent) {
     val state by component.data.subscribeAsState()
-    val renderedName = state.displayName.ifEmpty { state.username }
     val interactionSource = remember { MutableInteractionSource() }
     val snackbarState = remember { SnackbarHostState() }
     val isHovered by interactionSource.collectIsHoveredAsState()
     var isAltActionMenuOpen by remember { mutableStateOf(false) }
 
-    Scaffold(topBar = { UserSettingsTopBar(component) }, snackbarHost = { SnackbarHost(snackbarState) }) {
+    Scaffold(topBar = { GuildSettingsTopBar(component) }, snackbarHost = { SnackbarHost(snackbarState) }) {
         Row(
             Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,
@@ -109,12 +108,12 @@ fun UserSettingsContent(component: UserSettingsComponent) {
                     IconButton(
                         onClick = component::onAvatarChangeRequested,
                         modifier =
-                            Modifier.hoverable(interactionSource)
-                                .pointerHoverIcon(PointerIcon.Hand)
-                                .altClickable { isAltActionMenuOpen = true }
-                                .requiredSize(100.dp),
+                        Modifier.hoverable(interactionSource)
+                            .pointerHoverIcon(PointerIcon.Hand)
+                            .altClickable { isAltActionMenuOpen = true }
+                            .requiredSize(100.dp),
                     ) {
-                        Avatar(state.avatarUrl, renderedName, size = 100.dp)
+                        Avatar(state.avatarUrl, state.guildName, size = 100.dp)
                     }
                 }
 
@@ -128,45 +127,24 @@ fun UserSettingsContent(component: UserSettingsComponent) {
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Icon(Icons.Filled.AddPhotoAlternate, contentDescription = "Change Avatar")
-                        Text("Change Avatar", fontSize = 10.sp, softWrap = false)
+                        Icon(Icons.Filled.AddPhotoAlternate, contentDescription = "Change Icon")
+                        Text("Change Icon", fontSize = 10.sp, softWrap = false)
                     }
                 }
             }
 
             Column {
                 OutlinedTextField(
-                    value = state.username,
-                    onValueChange = component::onUsernameChange,
-                    isError = state.usernameErrors.isNotEmpty(),
-                    label = { Text("Username") },
-                    placeholder = { Text("Enter a new username...") },
+                    value = state.guildName,
+                    onValueChange = component::onNameChange,
+                    isError = state.guildNameErrors.isNotEmpty(),
+                    label = { Text("Guild Name") },
+                    placeholder = { Text("Enter a new name...") },
                     modifier = Modifier.padding(5.dp),
                     singleLine = true,
                 )
 
-                for (error in state.usernameErrors) {
-                    Row {
-                        Text(
-                            error,
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.widthIn(max = 280.dp),
-                        )
-                    }
-                }
-
-                OutlinedTextField(
-                    value = state.displayName,
-                    onValueChange = component::onDisplayNameChange,
-                    isError = state.displayNameErrors.isNotEmpty(),
-                    label = { Text("Display Name") },
-                    placeholder = { Text(state.username) },
-                    modifier = Modifier.padding(5.dp),
-                    singleLine = true,
-                )
-
-                for (error in state.displayNameErrors) {
+                for (error in state.guildNameErrors) {
                     Row {
                         Text(
                             error,

@@ -114,7 +114,7 @@ fun SidebarGuildItem(
 
                 if (onEdit != null) {
                     item(
-                        "TODO - Edit Guild",
+                        "Edit Guild",
                         leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = "Edit Guild") },
                     ) {
                         onEdit()

@@ -11,7 +11,7 @@ import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.view.content.DebugSettingsContent
 
 interface DebugSettingsComponent : Displayable {
-    val data: Value<Data>
+    val data: Value<State>
 
     /**
      * Called when the API endpoint URL changes
@@ -49,7 +49,7 @@ interface DebugSettingsComponent : Displayable {
 
     @Composable override fun Display() = DebugSettingsContent(this)
 
-    data class Data(
+    data class State(
         /** The API endpoint URL */
         val apiEndpoint: String,
         /** The gateway endpoint URL */
@@ -69,9 +69,9 @@ interface DebugSettingsComponent : Displayable {
     ) {
         companion object {
             /** Load the API configuration from persistent storage */
-            fun load(): Data {
+            fun load(): State {
                 val config = settings.getDevSettings()
-                return Data(config.apiUrl, config.gatewayUrl, config.objectStoreUrl, config.isInDeveloperMode)
+                return State(config.apiUrl, config.gatewayUrl, config.objectStoreUrl, config.isInDeveloperMode)
             }
         }
 
@@ -98,7 +98,7 @@ interface DebugSettingsComponent : Displayable {
  */
 class DefaultDebugSettingsComponent(val ctx: ComponentContext, val client: Client, val onBack: () -> Unit) :
     DebugSettingsComponent, ComponentContext by ctx {
-    override val data = MutableValue(DebugSettingsComponent.Data.load())
+    override val data = MutableValue(DebugSettingsComponent.State.load())
 
     override fun onApiEndpointChange(url: String) {
         data.value = data.value.copy(apiEndpoint = url, hasChanged = true)

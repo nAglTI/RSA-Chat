@@ -7,6 +7,8 @@ import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
+import com.hypergonial.chat.model.payloads.rest.GuildUpdateRequest
+import com.hypergonial.chat.model.payloads.rest.UserUpdateRequest
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.CoroutineScope
 
@@ -125,12 +127,11 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     /**
      * Update the currently authenticated user
      *
-     * @param username The new username of the user If not specified, it will not be changed
-     * @param displayName The new display name of the user If not specified, it will be cleared
-     * @param avatar The new avatar of the user If not specified, it will not be changed
+     * @param scope A lambda that modifies the user update request. Any values set will be edited, even if set to null.
+     * Values not set will be unchanged.
      * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
      */
-    suspend fun updateSelf(username: String? = null, displayName: String? = null, avatar: PlatformFile? = null): User
+    suspend fun updateSelf(scope: (UserUpdateRequest.Builder.() -> Unit)): User
 
     /**
      * Connects to the gateway
@@ -304,6 +305,21 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
      */
     suspend fun createGuild(name: String): Guild
+
+    /**
+     * Update a guild by its ID
+     *
+     * Caution! If you edit the guild's owner, you will lose further permissions to edit or delete the guild.
+     *
+     * @param guildId The ID of the guild to update
+     * @param scope A lambda that modifies the guild update request. Any values set will be edited, even if set to null.
+     * Values not set will be unchanged.
+     * @return The updated guild
+     * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
+     * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the guild does not exist
+     * @throws com.hypergonial.chat.model.exceptions.ForbiddenException If the client doesn't own this guild
+     */
+    suspend fun updateGuild(guildId: Snowflake, scope: (GuildUpdateRequest.Builder.() -> Unit)): Guild
 
     /**
      * Deletes the guild with the given ID

@@ -76,6 +76,8 @@ interface RootComponent : BackHandlerOwner {
         class CreateChannelChild(override val component: CreateChannelComponent) : Child(component)
 
         class UserSettingsChild(override val component: UserSettingsComponent) : Child(component)
+
+        class GuildSettingsChild(override val component: GuildSettingsComponent) : Child(component)
     }
 }
 
@@ -181,6 +183,7 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
                         onGuildCreateRequested = { nav.pushNew(Config.NewGuild) },
                         onChannelCreateRequested = { nav.pushNew(Config.CreateChannel(it)) },
                         onUserSettingsRequested = { nav.pushNew(Config.UserSettings) },
+                        onGuildEditRequested = { nav.pushNew(Config.GuildSettings(it)) },
                         onLogout = ::onLogout,
                     )
                 )
@@ -245,6 +248,16 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
             is Config.UserSettings ->
                 RootComponent.Child.UserSettingsChild(
                     DefaultUserSettingsComponent(ctx = childCtx, client = client, onBack = { nav.pop() })
+                )
+
+            is Config.GuildSettings ->
+                RootComponent.Child.GuildSettingsChild(
+                    DefaultGuildSettingsComponent(
+                        ctx = childCtx,
+                        client = client,
+                        guildId = config.guildId,
+                        onBack = { nav.pop() },
+                    )
                 )
         }
 
@@ -312,5 +325,7 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
         @Serializable @SerialName("CREATE_CHANNEL") data class CreateChannel(val guildId: Snowflake) : Config()
 
         @Serializable @SerialName("USER_SETTINGS") data object UserSettings : Config()
+
+        @Serializable @SerialName("GUILD_SETTINGS") data class GuildSettings(val guildId: Snowflake) : Config()
     }
 }

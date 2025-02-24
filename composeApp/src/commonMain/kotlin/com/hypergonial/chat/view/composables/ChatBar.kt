@@ -43,10 +43,12 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.hypergonial.chat.getFiles
 import com.hypergonial.chat.isPasteGesture
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.editorFocusInhibitor
 import com.hypergonial.chat.view.globalKeyEventFlow
+import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.launch
 
 private val invalidCharCategories =
@@ -86,6 +88,7 @@ fun ChatBar(
     onValueChange: (TextFieldValue) -> Unit,
     onFocusGain: (() -> Unit)? = null,
     onFocusLoss: (() -> Unit)? = null,
+    onFilesPasted: ((List<PlatformFile>) -> Unit)? = null,
     onEditLastRequested: (() -> Unit)? = null,
     onLeadingIconClick: (() -> Unit)? = null,
     trailingButtonEnabled: Boolean = true,
@@ -120,7 +123,16 @@ fun ChatBar(
                         }
 
                         if (event.isPasteGesture()) {
-                            val newText = value.text + clipboardManager.getText()?.text
+                            val newText =
+                                if (clipboardManager.hasText()) {
+                                    value.text + clipboardManager.getText()?.text
+                                } else {
+                                    if (onFilesPasted != null) {
+                                        clipboardManager.getFiles()?.let { onFilesPasted(it) }
+                                    }
+                                    value.text
+                                }
+
                             focusRequester.requestFocus()
                             onValueChange(
                                 value.copy(
@@ -188,6 +200,11 @@ fun ChatBar(
 
                     if (it.type == KeyEventType.KeyDown && it.key == Key.DirectionUp) {
                         onEditLastRequested?.invoke()
+                        return@onPreviewKeyEvent true
+                    }
+
+                    if (it.isPasteGesture() && onFilesPasted != null && !clipboardManager.hasText()) {
+                        clipboardManager.getFiles()?.let { files -> onFilesPasted(files) }
                         return@onPreviewKeyEvent true
                     }
 

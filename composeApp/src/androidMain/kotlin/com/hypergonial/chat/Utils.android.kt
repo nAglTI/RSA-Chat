@@ -1,5 +1,7 @@
 package com.hypergonial.chat
 
+import android.content.ClipDescription
+import android.net.Uri
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.Composable
@@ -7,7 +9,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import io.github.vinceglb.filekit.core.PlatformFile
+import java.io.File
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -51,4 +57,33 @@ actual fun Modifier.altClickable(onClick: () -> Unit): Modifier {
             }
         }
     }
+}
+
+/** Returns a sequence of files if the clipboard contains files. */
+actual fun ClipboardManager.getFiles(): List<PlatformFile>? {
+    // Cast to Android clipboard manager to access Android-specific API
+    val clipboardManager = this as? android.content.ClipboardManager ?: return null
+    val context = ContextHelper.retrieveAppContext() ?: return null
+    val clipData = clipboardManager.primaryClip ?: return null
+
+    val files = mutableListOf<PlatformFile>()
+
+    // Iterate over clip items to check for file URIs
+    for (i in 0 until clipData.itemCount) {
+        val item = clipData.getItemAt(i)
+        val uri: Uri? = item.uri
+        if (
+            uri != null &&
+                clipboardManager.primaryClipDescription?.hasMimeType(ClipDescription.MIMETYPE_TEXT_URILIST) == true
+        ) {
+            // Only proceed if the URI uses a file scheme
+            if (uri.scheme.equals("file", ignoreCase = true)) {
+                val file = File(uri.path ?: continue)
+                if (file.exists() && file.isFile) {
+                    files.add(PlatformFile(uri, context))
+                }
+            }
+        }
+    }
+    return files.ifEmpty { null }
 }

@@ -6,11 +6,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.ClipboardManager
+import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import platform.UIKit.UIImpactFeedbackGenerator
 import platform.UIKit.UIImpactFeedbackStyle.UIImpactFeedbackStyleRigid
+import platform.UIKit.UIPasteboard
+import platform.Foundation.NSFileManager
 
 @Composable
 actual fun Modifier.altClickable(onClick: () -> Unit): Modifier {
@@ -52,4 +56,19 @@ actual fun Modifier.altClickable(onClick: () -> Unit): Modifier {
             }
         }
     }
+}
+
+/** Returns a sequence of files if the clipboard contains files. */
+actual fun ClipboardManager.getFiles(): List<PlatformFile>? {
+    val pasteboard = UIPasteboard.generalPasteboard
+    val url = pasteboard.URL ?: return null
+    // Check if the URL scheme is "file"
+    if (url.scheme?.lowercase() == "file") {
+        val path = url.path ?: return null
+        val fileManager = NSFileManager.defaultManager
+        if (fileManager.fileExistsAtPath(path)) {
+            return listOf(PlatformFile(url))
+        }
+    }
+    return null
 }

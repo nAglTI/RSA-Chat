@@ -121,6 +121,7 @@ fun ChannelContent(component: ChannelComponent) {
                             onValueChange = component::onChatBarContentChanged,
                             onEditLastRequested = component::onEditLastMessage,
                             leadingIcon = { FileUploadIcon(component) },
+                            onFilesPasted = component::onFilesDropped,
                             onLeadingIconClick = component::onFileUploadDropdownOpen,
                             trailingButtonEnabled = canSend,
                             onSubmit = component::onMessageSend,

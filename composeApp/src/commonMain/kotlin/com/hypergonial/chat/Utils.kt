@@ -29,6 +29,7 @@ import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -507,3 +508,6 @@ fun KeyEvent.isCopyGesture(): Boolean = isModifierGesture(Key.C)
 fun KeyEvent.isCutGesture(): Boolean = isModifierGesture(Key.X)
 
 fun KeyEvent.isPasteGesture(): Boolean = isModifierGesture(Key.V)
+
+/** Returns a sequence of files if the clipboard contains files. */
+expect fun ClipboardManager.getFiles(): List<PlatformFile>?

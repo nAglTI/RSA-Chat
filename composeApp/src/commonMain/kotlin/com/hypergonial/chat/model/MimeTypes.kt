@@ -15,6 +15,9 @@ data class Mime internal constructor(val type: String, val subtype: String) {
 
     internal constructor(mimeType: String) : this(mimeType.substringBefore('/'), mimeType.substringAfter('/'))
 
+    val fileExtension
+        get() = MimeTypeMap.getExtensionFromMimeType(this)
+
     companion object {
         fun fromUrl(url: String): Mime? = MimeTypeMap.getMimeTypeFromUrl(url)
 

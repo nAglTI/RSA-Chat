@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.ClipboardManager
+import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -45,4 +47,11 @@ actual fun Modifier.altClickable(onClick: () -> Unit): Modifier {
             }
         }
         .onClick(matcher = PointerMatcher.mouse(PointerButton.Secondary), onClick = { onClick() })
+}
+
+/** Returns a sequence of files if the clipboard contains files. */
+actual fun ClipboardManager.getFiles(): List<PlatformFile>? {
+    // Web Clipboard API for files is asynchronous and requires user interaction.
+    // This implementation currently returns null until file extraction is supported.
+    return null
 }

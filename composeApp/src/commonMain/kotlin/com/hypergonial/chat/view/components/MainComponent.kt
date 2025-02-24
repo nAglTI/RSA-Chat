@@ -34,13 +34,13 @@ import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.view.content.MainContent
 import com.hypergonial.chat.withFallbackValue
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import kotlinx.serialization.Serializable
 
 /**
- * The main sidebar component that is displayed on the left side of the screen. It also contains the main content in a
- * child slot.
+ * The main component.
  */
-interface SidebarComponent : Displayable {
+interface MainComponent : Displayable {
     /** Called when the user clicks the home button */
     fun onHomeSelected()
 
@@ -167,7 +167,7 @@ interface SidebarComponent : Displayable {
 }
 
 /**
- * The default implementation of the sidebar component
+ * The default implementation of the main component
  *
  * @param ctx The component context
  * @param client The client to use for API calls
@@ -176,7 +176,7 @@ interface SidebarComponent : Displayable {
  * @param onUserSettingsRequested The callback to call when the user requests to view their settings
  * @param onLogout The callback to call when the user requests to log out
  */
-class DefaultSideBarComponent(
+class DefaultMainComponent(
     private val ctx: ComponentContext,
     private val client: Client,
     private val onGuildCreateRequested: () -> Unit,
@@ -184,16 +184,18 @@ class DefaultSideBarComponent(
     private val onGuildEditRequested: (Snowflake) -> Unit,
     private val onUserSettingsRequested: () -> Unit,
     private val onLogout: () -> Unit,
-) : SidebarComponent, ComponentContext by ctx {
+) : MainComponent, ComponentContext by ctx {
     override val data =
         MutableValue(
-            SidebarComponent.State(
+            MainComponent.State(
                 currentUser = client.cache.ownUser,
                 guilds = client.cache.guilds.values.toList().sortedBy { it.id },
             )
         )
 
     private val slotNavigation = SlotNavigation<SlotConfig>()
+    private val uiReadyJob = Job()
+    private val pendingGuildIds: HashSet<Snowflake> = HashSet()
     private val scope = ctx.coroutineScope()
     private val logger = Logger.withTag("DefaultSideBarComponent")
     private val lastEditorStates = hashMapOf<Snowflake, TextFieldValue>()
@@ -239,10 +241,14 @@ class DefaultSideBarComponent(
         }
 
         scope.launch {
-            client.waitUntilReady()
+            waitUntilUIReady()
             openLastGuild()
         }
     }
+
+    private suspend fun waitUntilUIReady() = uiReadyJob.join()
+
+    private fun isUIReady() = uiReadyJob.isCompleted
 
     /**
      * Returns the default channel for a guild
@@ -351,7 +357,7 @@ class DefaultSideBarComponent(
                         settings.getLastOpenedPrefs().lastOpenChannels.apply { put(channel.guildId, channel.id) }
                 )
         )
-        data.value = data.value.copy(navDrawerCommand = SidebarComponent.NavDrawerCommand.CLOSE.containAsEffect())
+        data.value = data.value.copy(navDrawerCommand = MainComponent.NavDrawerCommand.CLOSE.containAsEffect())
     }
 
     override fun onGuildLeaveClicked(guildId: Snowflake) {
@@ -386,6 +392,7 @@ class DefaultSideBarComponent(
 
     private fun onReady(event: ReadyEvent) {
         data.value = data.value.copy(isConnecting = false, currentUser = event.user)
+        pendingGuildIds.addAll(event.guilds.map { it.id })
     }
 
     private fun onSessionInvalidated(event: SessionInvalidatedEvent) {
@@ -402,6 +409,12 @@ class DefaultSideBarComponent(
     }
 
     private fun onGuildCreate(event: GuildCreateEvent) {
+        pendingGuildIds.remove(event.guild.id)
+
+        if (pendingGuildIds.isEmpty()) {
+            uiReadyJob.complete()
+        }
+
         // TODO: Update when guilds have positions saved in prefs
         if (event.guild.id !in data.value.guilds.map { it.id }) {
             data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
@@ -479,7 +492,7 @@ class DefaultSideBarComponent(
         }
         data.value =
             data.value.copy(
-                navDrawerCommand = SidebarComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect()
+                navDrawerCommand = MainComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect()
             )
     }
 
@@ -490,7 +503,7 @@ class DefaultSideBarComponent(
         navigateToGuild(event.guild)
         data.value =
             data.value.copy(
-                navDrawerCommand = SidebarComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect()
+                navDrawerCommand = MainComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect()
             )
     }
 

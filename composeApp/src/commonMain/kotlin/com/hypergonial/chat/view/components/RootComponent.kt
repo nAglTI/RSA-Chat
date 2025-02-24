@@ -65,7 +65,7 @@ interface RootComponent : BackHandlerOwner {
 
         class DebugSettingsChild(override val component: DebugSettingsComponent) : Child(component)
 
-        class MainChild(override val component: SidebarComponent) : Child(component)
+        class MainChild(override val component: MainComponent) : Child(component)
 
         class NewGuildChild(override val component: NewGuildComponent) : Child(component)
 
@@ -177,7 +177,7 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
 
             is Config.Main ->
                 RootComponent.Child.MainChild(
-                    DefaultSideBarComponent(
+                    DefaultMainComponent(
                         ctx = childCtx,
                         client = client,
                         onGuildCreateRequested = { nav.pushNew(Config.NewGuild) },

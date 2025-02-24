@@ -76,7 +76,7 @@ import com.hypergonial.chat.view.ChatTheme
 import com.hypergonial.chat.view.components.ChannelComponent
 import com.hypergonial.chat.view.components.FallbackMainComponent
 import com.hypergonial.chat.view.components.HomeComponent
-import com.hypergonial.chat.view.components.SidebarComponent
+import com.hypergonial.chat.view.components.MainComponent
 import com.hypergonial.chat.view.composables.AdaptiveDrawer
 import com.hypergonial.chat.view.composables.AltActionMenu
 import com.hypergonial.chat.view.composables.AssetViewerDialog
@@ -89,7 +89,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainTopBar(component: SidebarComponent, drawerState: DrawerState) {
+fun MainTopBar(component: MainComponent, drawerState: DrawerState) {
     val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
     val isSmall = remember(windowSizeClass) { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT }
     val scope = rememberCoroutineScope()
@@ -186,7 +186,7 @@ fun MainTopBar(component: SidebarComponent, drawerState: DrawerState) {
 }
 
 @Composable
-fun SidebarContent(component: SidebarComponent, drawerState: DrawerState) {
+fun SidebarContent(component: MainComponent, drawerState: DrawerState) {
     val state by component.data.subscribeAsState()
     val clipboardManager = LocalClipboardManager.current
 
@@ -335,7 +335,7 @@ fun SidebarContent(component: SidebarComponent, drawerState: DrawerState) {
 }
 
 @Composable
-fun MainContent(component: SidebarComponent) {
+fun MainContent(component: MainComponent) {
     val state by component.data.subscribeAsState()
     val mainContent by component.mainContent.subscribeAsState()
     val snackbarState = remember { SnackbarHostState() }
@@ -372,11 +372,11 @@ fun MainContent(component: SidebarComponent) {
 
     LaunchedEffect(state.navDrawerCommand) {
         when (state.navDrawerCommand.value) {
-            SidebarComponent.NavDrawerCommand.OPEN -> navDrawerState.open()
-            SidebarComponent.NavDrawerCommand.CLOSE -> navDrawerState.close()
-            SidebarComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION -> navDrawerState.snapTo(DrawerValue.Closed)
-            SidebarComponent.NavDrawerCommand.OPEN_WITHOUT_ANIMATION -> navDrawerState.snapTo(DrawerValue.Open)
-            SidebarComponent.NavDrawerCommand.TOGGLE -> navDrawerState.toggle()
+            MainComponent.NavDrawerCommand.OPEN -> navDrawerState.open()
+            MainComponent.NavDrawerCommand.CLOSE -> navDrawerState.close()
+            MainComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION -> navDrawerState.snapTo(DrawerValue.Closed)
+            MainComponent.NavDrawerCommand.OPEN_WITHOUT_ANIMATION -> navDrawerState.snapTo(DrawerValue.Open)
+            MainComponent.NavDrawerCommand.TOGGLE -> navDrawerState.toggle()
         }
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -62,6 +63,7 @@ fun AdaptiveDrawer(
     val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
     val scope = rememberCoroutineScope()
     val isSmall = remember(windowSizeClass) { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT }
+    val focusManager = LocalFocusManager.current
 
     DisposableEffect(isSmall, drawerState.targetValue) {
         scope.launch {
@@ -83,6 +85,13 @@ fun AdaptiveDrawer(
         }
 
         onLayoutChange?.invoke(isSmall)
+    }
+
+    LaunchedEffect(drawerState.targetValue) {
+        // Clear focus when the drawer is opening to avoid selection cursors clipping into the drawer
+        if (drawerState.targetValue == DrawerValue.Open) {
+            focusManager.clearFocus()
+        }
     }
 
     val originalLayoutDir = LocalLayoutDirection.current

@@ -52,6 +52,8 @@ import kotlin.math.max
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
@@ -104,8 +106,8 @@ interface ChannelComponent : MainContentComponent, Displayable {
     /**
      * Set the scroll to bottom flag. This should be called before initiating a scroll to the bottom.
      *
-     * It will ensure correct message fetching behavior by overriding the logic that is triggered
-     * when the bottom loading indicator comes into view.
+     * It will ensure correct message fetching behavior by overriding the logic that is triggered when the bottom
+     * loading indicator comes into view.
      *
      * View implementations are expected to animate scroll to the bottom of the list right after this call.
      */
@@ -135,8 +137,7 @@ interface ChannelComponent : MainContentComponent, Displayable {
         val chatBarValue: TextFieldValue = TextFieldValue(),
         /** Attachments awaiting upload */
         val pendingAttachments: SnapshotStateList<PlatformFile> = mutableStateListOf(),
-        /** If true, the client is currently copying file(s) from the clipboard service */
-        val hasTransferJob: Boolean = false,
+
         /** The cumulative file size of all pending attachments */
         val cumulativeFileSize: Long = 0,
         /** The list of message entries to display */
@@ -151,6 +152,14 @@ interface ChannelComponent : MainContentComponent, Displayable {
         val isJumpingToBottom: Boolean = false,
         /** If true, the file upload dropdown is open */
         val isFileUploadDropdownOpen: Boolean = false,
+        /**
+         * If true, the client is currently copying file(s) from the clipboard service The view is expected to show a
+         * pending attachment in the attachments list
+         */
+        val hasTransferJob: Boolean = false,
+        /** If true, the client is taking a long time to refresh the message list.
+         * The view should display a progress indicator. */
+        val isRefreshTakingTooLong: Boolean = false,
         /** The message to be displayed in the snackbar */
         val snackbarMessage: EffectContainer<String> = "".containAsEffect(),
         /** The set of users currently typing in the channel */
@@ -178,6 +187,7 @@ class DefaultChannelComponent(
     private val scope = ctx.coroutineScope()
     private val logger = Logger.withTag("DefaultChannelComponent")
     private var lastSentTypingIndicator = Instant.DISTANT_PAST
+    private var refreshTakingTooLongJob: Job? = null
 
     override val data =
         MutableValue(
@@ -324,8 +334,13 @@ class DefaultChannelComponent(
                 currentEntries.first().setBottomEndIndicator(LoadMoreMessagesIndicator())
                 data.value = data.value.copy(isCruising = true)
             }
+            refreshTakingTooLongJob?.cancel()
             data.value =
-                data.value.copy(messageEntries = currentEntries, isCruising = data.value.isCruising && !replace)
+                data.value.copy(
+                    messageEntries = currentEntries,
+                    isCruising = data.value.isCruising && !replace,
+                    isRefreshTakingTooLong = false,
+                )
         }
     }
 
@@ -382,6 +397,12 @@ class DefaultChannelComponent(
      * user should not notice any changes.
      */
     private fun refreshMessageList() {
+        // Only show the refresh indicator if the request is taking too long
+        refreshTakingTooLongJob = scope.launch {
+            delay(1000)
+            data.value = data.value.copy(isRefreshTakingTooLong = true)
+        }
+
         // If the list was already at the bottom, just reset everything and start again
         if (
             data.value.listState.firstVisibleItemIndex == 0 &&
@@ -432,7 +453,13 @@ class DefaultChannelComponent(
                 entries.first().setBottomEndIndicator(LoadMoreMessagesIndicator())
             }
 
-            data.value = data.value.copy(messageEntries = entries.toMutableStateList(), isCruising = !isBottomEnd)
+            refreshTakingTooLongJob?.cancel()
+            data.value =
+                data.value.copy(
+                    messageEntries = entries.toMutableStateList(),
+                    isCruising = !isBottomEnd,
+                    isRefreshTakingTooLong = false,
+                )
         }
     }
 
@@ -658,6 +685,12 @@ class DefaultChannelComponent(
         val attachments = data.value.pendingAttachments.toList()
 
         if ((content.isBlank() && attachments.isEmpty()) || data.value.hasTransferJob) return
+
+        if (content == "/refresh") {
+            data.value = data.value.copy(chatBarValue = data.value.chatBarValue.copy(text = ""))
+            refreshMessageList()
+            return
+        }
 
         scope.launch {
             val nonce = genNonce(client.sessionId)

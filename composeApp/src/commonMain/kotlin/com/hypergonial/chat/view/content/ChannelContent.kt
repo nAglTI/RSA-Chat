@@ -206,6 +206,7 @@ fun ChatBarTopBar(component: ChannelComponent) {
                 }
             }
 
+        // Typing indicator
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier =
@@ -233,6 +234,7 @@ fun ChatBarTopBar(component: ChannelComponent) {
             }
         }
 
+        // Jump to bottom indicator
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -258,6 +260,27 @@ fun ChatBarTopBar(component: ChannelComponent) {
             }
         }
 
+        // Refresh indicator
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier =
+                Modifier.fillMaxWidth()
+                    .animateContentSize()
+                    .padding(vertical = if (state.isRefreshTakingTooLong) 6.dp else 0.dp),
+        ) {
+            if (state.isRefreshTakingTooLong) {
+                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+
+                Text(
+                    "Refreshing messages...",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 8.dp),
+                    fontSize = 12.sp,
+                )
+            }
+        }
+
+        // Attachments list
         LazyRow(Modifier.fillMaxWidth().animateContentSize()) {
             itemsIndexed(state.pendingAttachments) { i, attachment ->
                 InputChip(

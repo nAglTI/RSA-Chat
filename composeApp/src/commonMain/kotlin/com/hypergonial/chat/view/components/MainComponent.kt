@@ -250,7 +250,7 @@ class DefaultMainComponent(
         client.waitUntilReady()
     }
 
-    private fun isUIReady() = uiReadyJob.isCompleted
+    private fun isUIReady() = uiReadyJob.isCompleted && client.isReady()
 
     /**
      * Returns the default channel for a guild

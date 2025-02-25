@@ -189,7 +189,6 @@ class DefaultMainComponent(
         MutableValue(
             MainComponent.State(
                 currentUser = client.cache.ownUser,
-                guilds = client.cache.guilds.values.toList().sortedBy { it.id },
             )
         )
 
@@ -246,7 +245,10 @@ class DefaultMainComponent(
         }
     }
 
-    private suspend fun waitUntilUIReady() = uiReadyJob.join()
+    private suspend fun waitUntilUIReady() {
+        uiReadyJob.join()
+        client.waitUntilReady()
+    }
 
     private fun isUIReady() = uiReadyJob.isCompleted
 
@@ -257,14 +259,13 @@ class DefaultMainComponent(
      * @return The default channel for the guild
      */
     private fun getLastOpenChannel(guildId: Snowflake): Channel? {
-        val lastChannel = settings.getLastOpenedPrefs().lastOpenChannels[guildId]?.let { client.cache.getChannel(it) }
 
-        return if (lastChannel != null) {
-            return lastChannel
-        } else {
-            // TODO: Replace with actual logic when channels have positions
-            client.cache.getChannelsForGuild(guildId).values.minByOrNull { it.id }
-        }
+        return settings.getLastOpenedPrefs().lastOpenChannels[guildId]?.let {
+            client.cache.getChannel(
+                it
+            )
+        } ?: // TODO: Replace with actual logic when channels have positions
+        client.cache.getChannelsForGuild(guildId).values.minByOrNull { it.id }
     }
 
     private fun openLastGuild() {
@@ -315,14 +316,13 @@ class DefaultMainComponent(
         data.value =
             data.value.copy(
                 selectedGuild = guild,
-                selectedChannel = channel,
                 channels = client.cache.getChannelsForGuild(guild.id).values.toList().sortedBy { it.id },
             )
 
         settings.setLastOpenedPrefs(settings.getLastOpenedPrefs().copy(lastOpenGuild = guild.id))
 
         if (channel?.id != null) {
-            slotNavigation.activate(SlotConfig.Channel(channel.id))
+            navigateToChannel(channel)
         } else {
             slotNavigation.activate(SlotConfig.Fallback)
         }
@@ -340,8 +340,10 @@ class DefaultMainComponent(
 
         // Save the editor state of the current channel
         if (mainContent.value.child?.instance is ChannelComponent) {
-            lastEditorStates[data.value.selectedChannel?.id ?: return] =
-                (mainContent.value.child?.instance as ChannelComponent).data.value.chatBarValue
+            data.value.selectedChannel?.id?.let {
+                lastEditorStates[it] =
+                    (mainContent.value.child?.instance as ChannelComponent).data.value.chatBarValue
+            }
         }
 
         if (channel.id != data.value.selectedChannel?.id) {
@@ -411,10 +413,6 @@ class DefaultMainComponent(
     private fun onGuildCreate(event: GuildCreateEvent) {
         pendingGuildIds.remove(event.guild.id)
 
-        if (pendingGuildIds.isEmpty()) {
-            uiReadyJob.complete()
-        }
-
         // TODO: Update when guilds have positions saved in prefs
         if (event.guild.id !in data.value.guilds.map { it.id }) {
             data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
@@ -423,6 +421,10 @@ class DefaultMainComponent(
         // Refresh home component if it is active
         if (mainContent.value.child?.configuration is SlotConfig.Home) {
             navigateHome()
+        }
+
+        if (pendingGuildIds.isEmpty()) {
+            uiReadyJob.complete()
         }
     }
 

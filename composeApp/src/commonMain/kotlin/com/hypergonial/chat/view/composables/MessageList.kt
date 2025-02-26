@@ -291,8 +291,12 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
                     modifier = Modifier.fillMaxHeight().fillMaxWidth(0.9f),
                     components =
                         markdownComponents(
-                            codeBlock = { MarkdownHighlightedCodeBlock(it.content, it.node, LocalHighlights.current) },
-                            codeFence = { MarkdownHighlightedCodeFence(it.content, it.node, LocalHighlights.current) },
+                            codeBlock = {
+                                MarkdownHighlightedCodeBlock(it.content, it.node, highlights = LocalHighlights.current)
+                            },
+                            codeFence = {
+                                MarkdownHighlightedCodeFence(it.content, it.node, highlights = LocalHighlights.current)
+                            },
                             // Ignore horizontal lines
                             horizontalRule = { MarkdownText(it.content) },
                         ),

@@ -277,16 +277,12 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
                 },
             )
         } else {
+            val textColor = if (state.isFailed) MaterialTheme.colorScheme.error
+            else if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground
+
             Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Markdown(
                     state.message.content ?: "TODO: No content - HANDLEME",
-                    colors =
-                        markdownColor(
-                            text =
-                                if (state.isFailed) MaterialTheme.colorScheme.error
-                                else if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground,
-                            linkText = MaterialTheme.colorScheme.primary,
-                        ),
                     imageTransformer = ChatImageTransformer,
                     modifier = Modifier.fillMaxHeight().fillMaxWidth(0.9f),
                     components =
@@ -302,15 +298,23 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
                         ),
                     typography =
                         markdownTypography(
+                            h1 = MaterialTheme.typography.displayLarge.copy(color = textColor),
+                            h2 = MaterialTheme.typography.displayMedium.copy(color = textColor),
+                            h3 = MaterialTheme.typography.displaySmall.copy(color = textColor),
+                            h4 = MaterialTheme.typography.headlineMedium.copy(color = textColor),
+                            h5 = MaterialTheme.typography.headlineSmall.copy(color = textColor),
+                            h6 = MaterialTheme.typography.titleLarge.copy(color = textColor),
                             text =
                                 MaterialTheme.typography.bodyMedium.copy(
                                     fontWeight = FontWeight.Light,
                                     fontSize = 15.sp,
+                                    color = textColor
                                 ),
                             paragraph =
                                 MaterialTheme.typography.bodyMedium.copy(
                                     fontWeight = FontWeight.Light,
                                     fontSize = 15.sp,
+                                    color = textColor
                                 ),
                             quote =
                                 MaterialTheme.typography.bodyMedium.copy(
@@ -322,6 +326,7 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
                                 MaterialTheme.typography.bodyMedium.copy(
                                     fontWeight = FontWeight.Normal,
                                     textDecoration = TextDecoration.Underline,
+                                    color = MaterialTheme.colorScheme.primary,
                                     fontSize = 15.sp,
                                 ),
                         ),

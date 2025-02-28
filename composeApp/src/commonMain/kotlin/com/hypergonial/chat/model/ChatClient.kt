@@ -504,12 +504,6 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                 cache.putGuild(guild)
             }
 
-            if (initialGuildIds.isEmpty()) {
-                readyJob.complete()
-            }
-
-            logger.i { "Gateway session is ready" }
-
             eventManager.dispatch(
                 ReadyEvent(
                     ready.data.user,
@@ -519,18 +513,24 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                 )
             )
 
+            logger.i { "Gateway session is ready" }
+
+            if (initialGuildIds.isEmpty()) {
+                readyJob.complete()
+            }
+
             val jobs =
-                listOf(
-                    launch { receiveEvents(this@webSocket) },
-                    launch { performHeartbeating(this@webSocket) },
-                    launch { forwardInternalMessages(this@webSocket) },
-                    launch { gatewayCloseJob.join() },
+                mapOf(
+                    "RECV" to launch { receiveEvents(this@webSocket) },
+                    "HEARTBEAT" to launch { performHeartbeating(this@webSocket) },
+                    "SEND" to launch { forwardInternalMessages(this@webSocket) },
+                    "MANUAL" to launch { gatewayCloseJob.join() },
                 )
 
-            jobs.forEachIndexed { index, job ->
+            jobs.forEach { (jobName, job) ->
                 job.invokeOnCompletion {
                     if (it != null && it !is CancellationException) {
-                        logger.e { "Job $index failed: $it" }
+                        logger.e { "Job $jobName failed: $it" }
                     }
                 }
             }
@@ -539,13 +539,13 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
 
             // Wait until one of the jobs terminates
             select {
-                jobs.forEachIndexed { i, job ->
+                jobs.forEach { (jobName, job) ->
                     job.onJoin {
                         // Cancel all other jobs if one terminates
-                        jobs.forEach { it.cancel() }
+                        jobs.values.forEach { it.cancel() }
 
                         // Gateway was closed manually
-                        if (i == 3) {
+                        if (jobName == "MANUAL") {
                             willReconnect = false
                         }
                     }

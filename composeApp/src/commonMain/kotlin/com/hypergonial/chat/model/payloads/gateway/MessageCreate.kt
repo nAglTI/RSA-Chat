@@ -9,7 +9,5 @@ import kotlinx.serialization.Serializable
 @Serializable
 @SerialName("MESSAGE_CREATE")
 class MessageCreate(@SerialName("data") val message: Message) : GatewayMessage(), EventConvertible {
-    override fun toEvent(): Event {
-        return MessageCreateEvent(message)
-    }
+    override fun toEvent(): Event = MessageCreateEvent(message)
 }

@@ -510,7 +510,14 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
 
             logger.i { "Gateway session is ready" }
 
-            eventManager.dispatch(ReadyEvent(ready.data.user, ready.data.guilds, isReconnect))
+            eventManager.dispatch(
+                ReadyEvent(
+                    ready.data.user,
+                    ready.data.guilds,
+                    ready.data.readStates.associate { it.channelId to it.messageId },
+                    isReconnect,
+                )
+            )
 
             val jobs =
                 listOf(
@@ -719,7 +726,6 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                 setBody(GuildUpdateRequest.Builder().apply(scope).build())
             }
             .body<Guild>()
-
 
     override suspend fun deleteGuild(id: Snowflake) {
         http.delete("guilds/$id")

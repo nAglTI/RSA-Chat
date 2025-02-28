@@ -9,7 +9,5 @@ import kotlinx.serialization.Serializable
 @Serializable
 @SerialName("CHANNEL_CREATE")
 class ChannelCreate(@SerialName("data") val channel: Channel) : GatewayMessage(), EventConvertible {
-    override fun toEvent(): Event {
-        return ChannelCreateEvent(channel)
-    }
+    override fun toEvent() = ChannelCreateEvent(channel)
 }

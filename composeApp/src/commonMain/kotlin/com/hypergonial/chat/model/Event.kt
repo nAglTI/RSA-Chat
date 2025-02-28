@@ -37,6 +37,9 @@ class TypingStartEvent(val channelId: Snowflake, val userId: Snowflake) : Event(
  */
 class TypingEndEvent(val channelId: Snowflake, val userId: Snowflake) : InternalEvent()
 
+/** Event dispatched when messages were read until messageId by a session of the currently authenticated user. */
+class MessageAckEvent(val channelId: Snowflake, val messageId: Snowflake) : Event()
+
 /** Event dispatched when a user is updated */
 class UserUpdateEvent(val user: User) : Event()
 
@@ -62,7 +65,12 @@ class ChannelCreateEvent(val channel: Channel) : Event()
 class ChannelRemoveEvent(val channel: Channel) : Event()
 
 /** Event dispatched after the client has authenticated with the gateway */
-class ReadyEvent(val user: User, val guilds: List<Guild>, val wasReconnect: Boolean = false) : Event()
+class ReadyEvent(
+    val user: User,
+    val guilds: List<Guild>,
+    val readStates: Map<Snowflake, Snowflake>,
+    val wasReconnect: Boolean = false,
+) : Event()
 
 /** Event dispatched when a user's presence is updated */
 class PresenceUpdateEvent(val userId: Snowflake, val presence: String) : Event()

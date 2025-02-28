@@ -9,9 +9,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 @SerialName("MESSAGE_REMOVE")
 class MessageRemove(@SerialName("data") val payload: MessageRemovePayload) : GatewayMessage(), EventConvertible {
-    override fun toEvent(): Event {
-        return MessageRemoveEvent(payload.id, payload.channelId, payload.guildId)
-    }
+    override fun toEvent(): Event = MessageRemoveEvent(payload.id, payload.channelId, payload.guildId)
 }
 
 @Serializable

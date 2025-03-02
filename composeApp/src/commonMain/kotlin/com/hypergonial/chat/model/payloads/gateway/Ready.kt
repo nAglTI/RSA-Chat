@@ -30,6 +30,6 @@ data class ReadyPayload(
 @Serializable
 data class ReadStatePayload(
     @SerialName("channel_id") val channelId: Snowflake,
-    @SerialName("last_read_message_id") val lastReadMessageId: Snowflake,
-    @SerialName("last_message_id") val lastMessageId: Snowflake,
+    @SerialName("last_read_message_id") val lastReadMessageId: Snowflake?,
+    @SerialName("last_message_id") val lastMessageId: Snowflake?,
 )

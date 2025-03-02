@@ -1,5 +1,6 @@
 package com.hypergonial.chat.model
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import kotlin.reflect.KClass
@@ -10,6 +11,15 @@ import kotlinx.coroutines.launch
 interface EventManagerAware {
     val eventManager: EventManager
 }
+
+// Opt-In annotation for internal event manager API
+@RequiresOptIn(
+    level = RequiresOptIn.Level.WARNING,
+    message = "This API is for internal use only.",
+)
+@Retention(AnnotationRetention.BINARY)
+@Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
+annotation class InternalEventManagerApi
 
 /**
  * A wrapper for a suspend subscribe callback.
@@ -37,22 +47,35 @@ private sealed class Instruction {
     /** Subscribe to an event type with the provided subscriber. */
     class Subscribe(val event: KClass<out Event>, val subscriber: EventSubscriber<out Event>) : Instruction()
 
+    /** Subscribe to the internal event queue. This event queue is guaranteed to receive events before the "public" queue. */
+    class SubscribeInternal(val event: KClass<out Event>, val subscriber: EventSubscriber<out Event>) : Instruction()
+
     /** Unsubscribe from an event type with the provided subscriber. */
     class Unsubscribe(val event: KClass<out Event>, val subscriber: EventSubscriber<out Event>) : Instruction()
+
+    /** Unsubscribe from the internal event queue. */
+    class UnsubscribeInternal(val event: KClass<out Event>, val subscriber: EventSubscriber<out Event>) : Instruction()
 
     /** Dispatch a new event to all current subscribers of this event type. */
     class Dispatch(val event: Event) : Instruction()
 }
 
 /** Inner class managing the event subscriptions and dispatching. */
-private class EventManagerActor : Actor<Instruction>() {
+private class EventManagerImpl : Actor<Instruction>() {
+    /** A map of event types to their subscribers. */
+    private val internalSubscribers: MutableMap<KClass<out Event>, HashSet<EventSubscriber<out Event>>> = mutableMapOf()
+
     /** A map of event types to their subscribers. */
     private val subscribers: MutableMap<KClass<out Event>, HashSet<EventSubscriber<out Event>>> = mutableMapOf()
+
+    private val logger = Logger.withTag("EventManagerImpl")
 
     override fun onMessage(message: Instruction) {
         when (message) {
             is Instruction.Subscribe -> subscribe(message.event, message.subscriber)
             is Instruction.Unsubscribe -> unsubscribe(message.event, message.subscriber)
+            is Instruction.SubscribeInternal -> subscribeInternal(message.event, message.subscriber)
+            is Instruction.UnsubscribeInternal -> unsubscribeInternal(message.event, message.subscriber)
             is Instruction.Dispatch -> dispatch(message.event)
         }
     }
@@ -62,13 +85,27 @@ private class EventManagerActor : Actor<Instruction>() {
         eventSubscribers.add(subscriber)
     }
 
+    private fun <T : Event> subscribeInternal(eventType: KClass<out T>, subscriber: EventSubscriber<out T>) {
+        val eventSubscribers = internalSubscribers.getOrPut(eventType) { hashSetOf() }
+        eventSubscribers.add(subscriber)
+    }
+
     private fun <T : Event> unsubscribe(eventType: KClass<out T>, subscriber: EventSubscriber<out T>) {
         val eventSubscribers = subscribers[eventType]
         eventSubscribers?.remove(subscriber)
     }
 
+    private fun <T : Event> unsubscribeInternal(eventType: KClass<out T>, subscriber: EventSubscriber<out T>) {
+        val eventSubscribers = internalSubscribers[eventType]
+        eventSubscribers?.remove(subscriber)
+    }
+
     private fun <T : Event> getSubscribers(eventType: KClass<T>): Set<EventSubscriber<out Event>> {
         return this.subscribers[eventType] ?: emptySet()
+    }
+
+    private fun <T : Event> getInternalSubscribers(eventType: KClass<T>): Set<EventSubscriber<out Event>> {
+        return this.internalSubscribers[eventType] ?: emptySet()
     }
 
     @Suppress("UNCHECKED_CAST", "TooGenericExceptionThrown")
@@ -77,17 +114,25 @@ private class EventManagerActor : Actor<Instruction>() {
             throw RuntimeException("Event manager not started")
         }
 
-        val eventSubscribers = getSubscribers(event::class)
-        eventSubscribers.forEach {
+        logger.d { "Dispatching event: ${event::class.simpleName}" }
+
+        // Internal subscribers are guaranteed to receive events
+        // before the "public" queue, so we dispatch them first.
+        getInternalSubscribers(event::class).forEach {
             val subscriber = it as EventSubscriber<Event>
-            scope!!.launch { subscriber.invoke(event) }
+            scope?.launch { subscriber.invoke(event) } ?: return
+        }
+
+        getSubscribers(event::class).forEach {
+            val subscriber = it as EventSubscriber<Event>
+            scope?.launch { subscriber.invoke(event) } ?: return
         }
     }
 }
 
 /** A class for handling event subscriptions and dispatching. */
 class EventManager {
-    private val inner: EventManagerActor = EventManagerActor()
+    private val inner: EventManagerImpl = EventManagerImpl()
 
     /** Runs the event manager. This call unblocks only when the event manager is stopped. */
     suspend fun run() {
@@ -124,6 +169,25 @@ class EventManager {
      */
     fun <T : Event> subscribe(eventType: KClass<T>, callback: suspend (T) -> Unit) {
         inner.sendMessage(Instruction.Subscribe(eventType, EventSubscriber(callback)))
+    }
+
+    /** Subscribe to the internal event queue. This event queue is guaranteed to receive events before the "public" queue.
+     *
+     * @param callback The callback to call when an event of the given type is dispatched.
+     * */
+    @InternalEventManagerApi
+    internal inline fun <reified T : Event> subscribeInternal(noinline callback: suspend (T) -> Unit) {
+        subscribeInternal(T::class, callback)
+    }
+
+    /** Subscribe to the internal event queue. This event queue is guaranteed to receive events before the "public" queue.
+     *
+     * @param eventType The type of event to subscribe to.
+     * @param callback The callback to call when an event of the given type is dispatched.
+     * */
+    @InternalEventManagerApi
+    internal fun <T : Event> subscribeInternal(eventType: KClass<T>, callback: suspend (T) -> Unit) {
+        inner.sendMessage(Instruction.SubscribeInternal(eventType, EventSubscriber(callback)))
     }
 
     /**
@@ -164,6 +228,25 @@ class EventManager {
      */
     fun <T : Event> unsubscribe(eventType: KClass<T>, callback: suspend (T) -> Unit) {
         inner.sendMessage(Instruction.Unsubscribe(eventType, EventSubscriber(callback)))
+    }
+
+    /** Unsubscribe from the internal event queue.
+     *
+     * @param callback The callback to remove from the subscribers list.
+     * */
+    @InternalEventManagerApi
+    internal inline fun <reified T : Event> unsubscribeInternal(noinline callback: suspend (T) -> Unit) {
+        unsubscribeInternal(T::class, callback)
+    }
+
+    /** Unsubscribe from the internal event queue.
+     *
+     * @param eventType The type of event to unsubscribe from.
+     * @param callback The callback to remove from the subscribers list.
+     * */
+    @InternalEventManagerApi
+    internal fun <T : Event> unsubscribeInternal(eventType: KClass<T>, callback: suspend (T) -> Unit) {
+        inner.sendMessage(Instruction.UnsubscribeInternal(eventType, EventSubscriber(callback)))
     }
 
     /**

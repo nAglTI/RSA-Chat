@@ -193,7 +193,7 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
         before: Snowflake? = null,
         after: Snowflake? = null,
         around: Snowflake? = null,
-        limit: UInt = 100u,
+        limit: Int = 100,
     ): List<Message>
 
     /**
@@ -208,19 +208,18 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
     suspend fun setTypingIndicator(channelId: Snowflake)
 
     /**
-     * Acknowledge a message in the given channel. This is used to mark messages until [messageId] as read.
+     * Acknowledge all messages in the given channel. This is used to mark messages until the current last message as
+     * read.
      *
      * This function is safe to call multiple times in quick succession, as the client will only send the ack 2
      * seconds after the last call, cancelling any previous acks.
      *
-     * @param channelId The ID of the channel the message is in
-     * @param messageId The ID of the last message that is to be acked. All messages before this will be counted as
-     *   read.
+     * @param channelId The ID of the channel
      * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the channel or message does not exist
      * @throws com.hypergonial.chat.model.exceptions.ForbiddenException If the client doesn't have permission to ack
      *   messages in this channel
      */
-    suspend fun ackMessage(channelId: Snowflake, messageId: Snowflake)
+    fun ackMessages(channelId: Snowflake)
 
     /**
      * Send a message to the given channel

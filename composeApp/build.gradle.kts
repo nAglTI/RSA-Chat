@@ -13,6 +13,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.serialization)
     alias(libs.plugins.detekt)
+    id("org.jetbrains.kotlinx.atomicfu") version "0.27.0"
     id("com.ncorti.ktfmt.gradle") version "0.21.0"
 }
 
@@ -84,6 +85,8 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(kotlin("reflect"))
+            // Atomics
+            implementation(libs.atomicfu)
             // Compose
             implementation(compose.runtime)
             implementation(compose.foundation)

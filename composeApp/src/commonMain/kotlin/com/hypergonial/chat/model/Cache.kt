@@ -1,12 +1,14 @@
 package com.hypergonial.chat.model
 
+import co.touchlab.kermit.Logger
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
-import com.hypergonial.chat.subList
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 import kotlinx.datetime.Clock
 
 /** A type that has a cache. */
@@ -15,18 +17,26 @@ interface CacheAware {
 }
 
 data class MessageCache(
+    /** The ID of the channel this cache is for. */
     val channelId: Snowflake,
+    /** The messages in the cache, ordered by ID. */
     val messages: ArrayDeque<Message> = ArrayDeque(),
+    /** If true, it means the beginning of the message list is no longer in cache */
     var isCruising: Boolean = false,
+    /** If true, it means the end of the message list is cached */
+    var hasEnd: Boolean = false,
 )
 
-@RequiresOptIn(level = RequiresOptIn.Level.WARNING, message = "This API is experimental and may change in the future.")
+@RequiresOptIn(
+    level = RequiresOptIn.Level.WARNING,
+    message = "This API requires extra attention before use. Read the documentation.",
+)
 @Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
 annotation class DelicateCacheApi
 
 /** A class that represents a cache of incoming gateway data. */
-class Cache(private val cachedChannelsCount: Int = 10) {
+class Cache(private val cachedChannelsCount: Int = 10) : SynchronizedObject() {
     private var _ownUser: User? = null
 
     private val _guilds: MutableMap<Snowflake, Guild> = hashMapOf()
@@ -39,9 +49,13 @@ class Cache(private val cachedChannelsCount: Int = 10) {
     // it is a common operation to query all typing indicators in a channel.
     private val _typingIndicators: MutableMap<Snowflake, HashMap<Snowflake, TypingIndicator>> = hashMapOf()
 
-    private val _messages: MutableList<MessageCache> = mutableListOf()
+    private val _msgcaches: MutableList<MessageCache> = mutableListOf()
+
+    private val _readStates: MutableMap<Snowflake, ReadState> = hashMapOf()
 
     private val _members: MutableMap<Pair<Snowflake, Snowflake>, Member> = hashMapOf()
+
+    private val logger = Logger.withTag("Cache")
 
     /** A map of all channels in the cache, keyed by channel ID. */
     val channels: Map<Snowflake, Channel>
@@ -69,13 +83,20 @@ class Cache(private val cachedChannelsCount: Int = 10) {
 
     /** Clear the cache. Drops all values. */
     fun clear() {
-        _guilds.clear()
-        _users.clear()
-        _channels.clear()
-        _messages.clear()
-        _members.clear()
-        _ownUser = null
+        synchronized(this) {
+            _guilds.clear()
+            _users.clear()
+            _channels.clear()
+            _msgcaches.clear()
+            _members.clear()
+            _typingIndicators.clear()
+            _readStates.clear()
+            _msgcaches.clear()
+            _ownUser = null
+        }
     }
+
+    fun clearMessageCache() = synchronized(this) { _msgcaches.clear() }
 
     /**
      * Returns the guild with the given ID, if it is cached.
@@ -84,7 +105,9 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @return The guild with the given ID, if it is cached.
      */
     fun getGuild(guildId: Snowflake): Guild? {
-        return _guilds[guildId]
+        synchronized(this) {
+            return _guilds[guildId]
+        }
     }
 
     /**
@@ -94,7 +117,9 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @return The channel with the given ID, if it is cached.
      */
     fun getChannel(channelId: Snowflake): Channel? {
-        return _channels[channelId]
+        synchronized(this) {
+            return _channels[channelId]
+        }
     }
 
     /**
@@ -104,7 +129,9 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @return A map of channels for the given guild, keyed by channel ID.
      */
     fun getChannelsForGuild(guildId: Snowflake): Map<Snowflake, Channel> {
-        return _channels.filterValues { it.guildId == guildId }
+        synchronized(this) {
+            return _channels.filterValues { it.guildId == guildId }
+        }
     }
 
     /**
@@ -113,8 +140,10 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @param f The filter to apply to the typing indicators. It is passed the channel ID and the typing indicator.
      */
     internal fun retainTypingIndicators(f: (Snowflake, TypingIndicator) -> Boolean) {
-        for ((channelId, indicators) in _typingIndicators) {
-            indicators.values.retainAll { f(channelId, it) }
+        synchronized(this) {
+            for ((channelId, indicators) in _typingIndicators) {
+                indicators.values.retainAll { f(channelId, it) }
+            }
         }
     }
 
@@ -126,8 +155,10 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @return True if a new typing indicator was added, false if it was updated.
      */
     internal fun updateTypingIndicator(channelId: Snowflake, userId: Snowflake): Boolean {
-        val indicators = _typingIndicators.getOrPut(channelId) { hashMapOf() }
-        return indicators.put(userId, TypingIndicator(userId, Clock.System.now())) == null
+        synchronized(this) {
+            val indicators = _typingIndicators.getOrPut(channelId) { hashMapOf() }
+            return indicators.put(userId, TypingIndicator(userId, Clock.System.now())) == null
+        }
     }
 
     /**
@@ -138,7 +169,9 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @return True if the typing indicator was removed, false if it was not present.
      */
     internal fun removeTypingIndicator(channelId: Snowflake, userId: Snowflake): Boolean {
-        return _typingIndicators[channelId]?.remove(userId) != null
+        synchronized(this) {
+            return _typingIndicators[channelId]?.remove(userId) != null
+        }
     }
 
     /**
@@ -148,7 +181,9 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @return A set of typing indicators for the given channel.
      */
     fun getTypingIndicators(channelId: Snowflake): Collection<TypingIndicator> {
-        return _typingIndicators[channelId]?.values ?: emptySet()
+        synchronized(this) {
+            return _typingIndicators[channelId]?.values ?: emptySet()
+        }
     }
 
     /**
@@ -159,7 +194,9 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @return The typing indicator for the given channel and user.
      */
     fun getTypingIndicator(channelId: Snowflake, userId: Snowflake): TypingIndicator? {
-        return _typingIndicators[channelId]?.get(userId)
+        synchronized(this) {
+            return _typingIndicators[channelId]?.get(userId)
+        }
     }
 
     /**
@@ -181,39 +218,56 @@ class Cache(private val cachedChannelsCount: Int = 10) {
         around: Snowflake? = null,
         limit: Int = 100,
     ): List<Message> {
-        require(listOfNotNull(before, after, around).size <= 1) { "Only one of before, after, and around can be set" }
-
-        if (limit <= 0) return emptyList()
-
-        val messages = _messages.getForChannel(channelId)?.messages ?: return emptyList()
-        val anchorId =
-            before
-                ?: after
-                ?: around
-                ?: return messages.subList((messages.size - limit).coerceAtLeast(0)..<messages.size)
-
-        // If item is not found, binarySearch returns the negative insertion point - 1
-        // Don't question the magic offsets, they work
-        val anchorOffset = if (before != null) -1 else -2
-        val anchorIdx = messages.binarySearch { it.id.compareTo(anchorId) }.let { if (it < 0) -(it) + anchorOffset else it }
-
-        val (start, end) =
-            when {
-                before != null -> Pair(anchorIdx - limit, anchorIdx)
-                after != null -> Pair(anchorIdx + 1, anchorIdx + limit + 1)
-                around != null -> {
-                    val beforeCount = limit / 2
-                    val afterCount = limit - beforeCount
-
-                    Pair(anchorIdx - beforeCount, anchorIdx + afterCount)
-                }
-                else -> error("Invalid state")
+        synchronized(this) {
+            require(listOfNotNull(before, after, around).size <= 1) {
+                "Only one of before, after, and around can be set"
             }
 
-        return messages.subList(
-            start.coerceAtLeast(0).coerceAtMost(messages.size),
-            end.coerceAtLeast(0).coerceAtMost(messages.size),
-        )
+            if (limit <= 0) return emptyList()
+
+            val messages = _msgcaches.getForChannel(channelId)?.messages ?: return emptyList()
+            val anchorId =
+                before
+                    ?: after
+                    ?: around
+                    ?: return messages.slice((messages.size - limit).coerceAtLeast(0) until messages.size)
+
+            // If item is not found, binarySearch returns the negative insertion point - 1
+            // Don't question the magic offsets, they work
+            val anchorOffset = if (before != null) -1 else -2
+            val anchorIdx =
+                messages.binarySearch { it.id.compareTo(anchorId) }.let { if (it < 0) -(it) + anchorOffset else it }
+
+            val (start, end) =
+                when {
+                    before != null -> (anchorIdx - limit) to anchorIdx
+                    after != null -> (anchorIdx + 1) to (anchorIdx + limit + 1)
+                    around != null -> {
+                        val beforeCount = limit / 2
+                        val afterCount = limit - beforeCount
+
+                        (anchorIdx - beforeCount) to (anchorIdx + afterCount)
+                    }
+                    else -> error("Invalid state")
+                }
+
+            return messages.slice(
+                start.coerceAtLeast(0).coerceAtMost(messages.size) until
+                    end.coerceAtLeast(0).coerceAtMost(messages.size)
+            )
+        }
+    }
+
+    /**
+     * If true, the cache holds the beginning of the message list for the given channel.
+     *
+     * This means that fetches before the first message in the cache will always return an empty list, meaning there is
+     * no point in fetching more messages before the first message in the cache.
+     */
+    fun hasEndCached(channelId: Snowflake): Boolean {
+        synchronized(this) {
+            return _msgcaches.getForChannel(channelId)?.hasEnd != false
+        }
     }
 
     /**
@@ -223,7 +277,9 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @return The user with the given ID, if it is cached.
      */
     fun getUser(userId: Snowflake): User? {
-        return _users[userId]
+        synchronized(this) {
+            return _users[userId]
+        }
     }
 
     /**
@@ -234,7 +290,9 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @return The member with the given guild and user IDs, if it is cached.
      */
     fun getMember(guildId: Snowflake, userId: Snowflake): Member? {
-        return _members[Pair(guildId, userId)]
+        synchronized(this) {
+            return _members[Pair(guildId, userId)]
+        }
     }
 
     /**
@@ -247,7 +305,9 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      *   return value's type to determine if it is a member or user.
      */
     fun getMemberOrUser(userId: Snowflake, guildId: Snowflake? = null): User? {
-        return guildId?.let { getMember(it, userId) } ?: getUser(userId)
+        synchronized(this) {
+            return guildId?.let { getMember(it, userId) } ?: getUser(userId)
+        }
     }
 
     /**
@@ -255,67 +315,222 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      *
      * @param guild The guild to insert or update.
      */
-    internal fun putGuild(guild: Guild) {
-        _guilds[guild.id] = guild
-    }
+    internal fun putGuild(guild: Guild) = synchronized(this) { _guilds[guild.id] = guild }
 
     /**
      * Insert or update a channel in the cache.
      *
      * @param channel The channel to insert or update.
      */
-    internal fun putChannel(channel: Channel) {
-        _channels[channel.id] = channel
-    }
+    internal fun putChannel(channel: Channel) = synchronized(this) { _channels[channel.id] = channel }
 
     /**
      * Insert or update a user in the cache.
      *
      * @param user The user to insert or update.
      */
-    internal fun putUser(user: User) {
-        _users[user.id] = user
-    }
+    internal fun putUser(user: User) = synchronized(this) { _users[user.id] = user }
 
     /**
      * Insert or update a member in the cache.
      *
      * @param member The member to insert or update.
      */
-    internal fun putMember(member: Member) {
-        _members[Pair(member.guildId, member.id)] = member
-    }
+    internal fun putMember(member: Member) = synchronized(this) { _members[Pair(member.guildId, member.id)] = member }
 
     /**
      * Insert or update the current user in the cache.
      *
      * @param user The current user to insert or update.
      */
-    internal fun putOwnUser(user: User) {
-        _ownUser = user
-    }
+    internal fun putOwnUser(user: User) = synchronized(this) { _ownUser = user }
 
     /**
      * Insert a message in the cache.
      *
+     * One should call [registerMessageCacheFor] at some point before calling this method.
+     *
      * @param message The message to insert or update. If no cache was registered for the given channel, or a previously
-     *   registered cache was evicted, the message is dropped.
+     *   registered cache was evicted, this does nothing.
      */
     @DelicateCacheApi
     internal fun addMessage(message: Message) {
-        val msgcache = _messages.getForChannel(message.channelId) ?: return
+        synchronized(this) {
+            val msgcache = _msgcaches.getForChannel(message.channelId) ?: return@synchronized
 
-        if (msgcache.messages.lastOrNull()?.let { message.id > it.id } != false) {
-            println("Higher than last")
-            msgcache.messages.add(message)
-        } else if (msgcache.messages.firstOrNull()?.let { message.id < it.id } != false) {
-            println("Lower than first")
+            if (msgcache.messages.lastOrNull()?.let { message.id > it.id } != false) {
+                msgcache.messages.add(message)
+            } else if (msgcache.messages.firstOrNull()?.let { message.id < it.id } != false) {
 
-            msgcache.messages.addFirst(message)
-        } else {
-            error("Message cache is not sorted")
+                msgcache.messages.addFirst(message)
+            } else {
+                logger.w {
+                    "Message cache is not sorted or invalid input was passed during single insertion, " +
+                        "this may cause performance problems as the cache needs to be re-sorted. (This is a bug)"
+                }
+                msgcache.messages.add(message)
+                msgcache.messages.sortBy { it.id }
+            }
         }
     }
+
+    /**
+     * Add a list of messages to the cache.
+     *
+     * One should call [registerMessageCacheFor] at some point before calling this method.
+     *
+     * @param messages The messages to add. The messages must all belong to the same channel and be sorted by ID. If no
+     *   cache was registered for the given channel, or a previously registered cache was evicted, this does nothing.
+     */
+    @DelicateCacheApi
+    internal fun addMessages(channelId: Snowflake, messages: List<Message>, hasEnd: Boolean = false) {
+        synchronized(this) {
+            val msgcache = _msgcaches.getForChannel(channelId) ?: return
+
+            if (messages.isEmpty()) {
+                msgcache.hasEnd = hasEnd
+                return
+            }
+
+            if (msgcache.messages.isEmpty()) {
+                msgcache.messages.addAll(messages)
+            } else {
+                val first = messages.first()
+                val last = messages.last()
+
+                if (msgcache.messages.last().id < first.id) {
+                    msgcache.messages.addAll(messages)
+                } else if (msgcache.messages.first().id > last.id) {
+                    msgcache.messages.addAll(0, messages)
+                } else {
+                    logger.w {
+                        "Message cache is not sorted or invalid input was passed," +
+                            "this may cause performance problems as the cache needs to be re-sorted. (This is a bug)"
+                    }
+                    msgcache.messages.addAll(messages)
+                    msgcache.messages.sortBy { it.id }
+                }
+            }
+            msgcache.hasEnd = hasEnd
+        }
+    }
+
+    /**
+     * Update a message in the cache. If the message is not present, or if no cache was registered for the given
+     * channel, or a previously registered cache was evicted, this does nothing.
+     *
+     * One should call [registerMessageCacheFor] at some point before calling this method.
+     *
+     * @param message The message to update.
+     */
+    @DelicateCacheApi
+    internal fun updateMessage(message: Message) {
+        synchronized(this) {
+            val msgcache = _msgcaches.getForChannel(message.channelId) ?: return
+            val index = msgcache.messages.binarySearch { it.id.compareTo(message.id) }
+
+            if (index >= 0) {
+                msgcache.messages[index] = message
+            }
+        }
+    }
+
+    /**
+     * Drop a message from the cache. If the message is not present, does nothing.
+     *
+     * @param channelId The ID of the channel the message is in.
+     * @param messageId The ID of the message to drop.
+     */
+    internal fun dropMessage(channelId: Snowflake, messageId: Snowflake) {
+        synchronized(this) {
+            val msgcache = _msgcaches.getForChannel(channelId) ?: return
+            val index = msgcache.messages.binarySearch { it.id.compareTo(messageId) }
+
+            if (index >= 0) {
+                msgcache.messages.removeAt(index)
+            }
+        }
+    }
+
+    /**
+     * Set the last message ID for a channel.
+     *
+     * This can be used for read state tracking.
+     *
+     * @param channelId The ID of the channel to set the last message ID for.
+     * @param messageId The ID of the last message in the channel.
+     */
+    internal fun setLastMessageId(channelId: Snowflake, messageId: Snowflake?) {
+        synchronized(this) {
+            _readStates[channelId] =
+                _readStates[channelId]?.copy(lastMessageId = messageId) ?: ReadState(messageId, null)
+        }
+    }
+
+    /**
+     * Set the last read message ID for a channel.
+     *
+     * This can be used for read state tracking.
+     *
+     * @param channelId The ID of the channel to set the last read message ID for.
+     * @param messageId The ID of the last read message in the channel.
+     */
+    internal fun setLastReadMessageId(channelId: Snowflake, messageId: Snowflake?) {
+        synchronized(this) {
+            _readStates[channelId] =
+                _readStates[channelId]?.copy(lastReadMessageId = messageId) ?: ReadState(null, messageId)
+        }
+    }
+
+    internal fun setReadState(channelId: Snowflake, readState: ReadState) {
+        synchronized(this) { _readStates[channelId] = readState }
+    }
+
+    /**
+     * If true, the channel has un-acked messages.
+     *
+     * @param channelId The ID of the channel to check.
+     * @return True if the channel has un-acked messages, false otherwise.
+     */
+    fun isUnread(channelId: Snowflake): Boolean {
+        synchronized(this) {
+            val readState = _readStates[channelId] ?: return false
+            val lastReadTime =
+                if (readState.lastReadMessageId != null) readState.lastReadMessageId.createdAt
+                else {
+                    val guild = _channels[channelId]?.guildId ?: return true
+                    val member = _members[Pair(guild, _ownUser!!.id)] ?: return true
+                    member.joinedAt
+                }
+            val lastMessageTime = readState.lastMessageId?.createdAt ?: return false
+
+            return lastMessageTime > lastReadTime
+        }
+    }
+
+    /**
+     * If true, the guild has un-acked messages.
+     *
+     * @param guildId The ID of the guild to check.
+     * @return True if the guild has un-acked messages, false otherwise.
+     */
+    fun isGuildUnread(guildId: Snowflake): Boolean {
+        synchronized(this) {
+            val channels = _channels.filterValues { it.guildId == guildId }.keys
+            return channels.any { isUnread(it) }
+        }
+    }
+
+    /**
+     * Get the read state for a channel.
+     *
+     * @param channelId The ID of the channel to get the last message ID for.
+     * @return The ID of the last message in the channel, if one is present.
+     */
+    fun getReadState(channelId: Snowflake): ReadState? =
+        synchronized(this) {
+            return _readStates[channelId]
+        }
 
     /**
      * When called, it reserves a spot in the cache for messages in the given channel.
@@ -324,68 +539,8 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      *
      * @param channelId The ID of the channel to reserve a spot for.
      */
-    internal fun registerMessageCacheFor(channelId: Snowflake) {
-        _messages.getOrPutForChannel(channelId)
-    }
-
-    /**
-     * Update a message in the cache.
-     *
-     * @param message The message to update.
-     */
-    internal fun updateMessage(message: Message) {
-        val msgcache = _messages.getForChannel(message.channelId) ?: return
-        val index = msgcache.messages.binarySearch { it.id.compareTo(message.id) }
-
-        if (index >= 0) {
-            msgcache.messages[index] = message
-        }
-    }
-
-    /**
-     * Drop a message from the cache.
-     *
-     * @param channelId The ID of the channel the message is in.
-     * @param messageId The ID of the message to drop.
-     */
-    internal fun dropMessage(channelId: Snowflake, messageId: Snowflake) {
-        val msgcache = _messages.getForChannel(channelId) ?: return
-        val index = msgcache.messages.binarySearch { it.id.compareTo(messageId) }
-
-        if (index >= 0) {
-            msgcache.messages.removeAt(index)
-        }
-    }
-
-    /**
-     * Add a list of messages to the cache.
-     *
-     * @param messages The messages to add. The messages must all belong to the same channel and be sorted by ID. If the
-     *   cache does not exist for the given channel, the messages are dropped.
-     */
-    @DelicateCacheApi
-    internal fun addMessages(channelId: Snowflake, messages: List<Message>) {
-        if (messages.isEmpty()) {
-            return
-        }
-
-        val msgcache = _messages.getForChannel(channelId) ?: return
-
-        if (msgcache.messages.isEmpty()) {
-            msgcache.messages.addAll(messages)
-        } else {
-            val first = messages.first()
-            val last = messages.last()
-
-            if (msgcache.messages.last().id < first.id) {
-                msgcache.messages.addAll(messages)
-            } else if (msgcache.messages.first().id > last.id) {
-                msgcache.messages.addAll(0, messages)
-            } else {
-                error("Message cache is not sorted")
-            }
-        }
-    }
+    internal fun registerMessageCacheFor(channelId: Snowflake) =
+        synchronized(this) { _msgcaches.getOrPutForChannel(channelId) }
 
     /**
      * Drop a guild from the cache. Also drops all channels, members, and messages associated with the guild.
@@ -393,12 +548,14 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @param guildId The ID of the guild to drop.
      */
     internal fun dropGuild(guildId: Snowflake) {
-        val guildChannels = _channels.filterValues { it.guildId == guildId }.map { it.value.id }
-        val guildMembers = _members.filterKeys { it.first == guildId }.map { it.value.id }
+        synchronized(this) {
+            val guildChannels = _channels.filterValues { it.guildId == guildId }.map { it.value.id }
+            val guildMembers = _members.filterKeys { it.first == guildId }.map { it.value.id }
 
-        guildChannels.forEach { dropChannel(it) }
-        guildMembers.forEach { dropMember(guildId, it) }
-        _guilds.remove(guildId)
+            guildChannels.forEach { dropChannel(it) }
+            guildMembers.forEach { dropMember(guildId, it) }
+            _guilds.remove(guildId)
+        }
     }
 
     /**
@@ -407,8 +564,10 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @param channelId The ID of the channel to drop.
      */
     internal fun dropChannel(channelId: Snowflake) {
-        _channels.remove(channelId)
-        _messages.dropForChannel(channelId)
+        synchronized(this) {
+            _channels.remove(channelId)
+            _msgcaches.dropForChannel(channelId)
+        }
     }
 
     /**
@@ -416,9 +575,7 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      *
      * @param userId The ID of the user to drop.
      */
-    internal fun dropUser(userId: Snowflake) {
-        _users.remove(userId)
-    }
+    internal fun dropUser(userId: Snowflake) = synchronized(this) { _users.remove(userId) }
 
     /**
      * Drop a member from the cache.
@@ -427,7 +584,7 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @param userId The ID of the member to drop.
      */
     internal fun dropMember(guildId: Snowflake, userId: Snowflake) {
-        _members.remove(Pair(guildId, userId))
+        synchronized(this) { _members.remove(Pair(guildId, userId)) }
     }
 
     /**
@@ -436,7 +593,9 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @param channelId The ID of the channel to get the message cache for.
      */
     private fun MutableList<MessageCache>.getForChannel(channelId: Snowflake): MessageCache? {
-        return firstOrNull { it.channelId == channelId }
+        synchronized(this@Cache) {
+            return firstOrNull { it.channelId == channelId }
+        }
     }
 
     /**
@@ -447,32 +606,27 @@ class Cache(private val cachedChannelsCount: Int = 10) {
      * @param channelId The ID of the channel to get the message cache for.
      */
     private fun MutableList<MessageCache>.getOrPutForChannel(channelId: Snowflake): MessageCache {
-        var idx = indexOfFirst { it.channelId == channelId }
-        if (idx == -1) {
-            if (size >= cachedChannelsCount) {
-                removeFirst()
+        synchronized(this@Cache) {
+            var idx = indexOfFirst { it.channelId == channelId }
+            if (idx == -1) {
+                if (size >= cachedChannelsCount) {
+                    removeFirst()
+                }
+
+                add(MessageCache(channelId))
+                idx = size - 1
             }
 
-            add(MessageCache(channelId))
-            idx = size - 1
+            return this[idx]
         }
-
-        return this[idx]
-    }
-
-    /**
-     * Check if the cache has a message cache for the given channel ID.
-     *
-     * @param channelId The ID of the channel to check for.
-     */
-    private fun MutableList<MessageCache>.hasChannelCached(channelId: Snowflake): Boolean {
-        return indexOfFirst { it.channelId == channelId } != -1
     }
 
     private fun MutableList<MessageCache>.dropForChannel(channelId: Snowflake) {
-        val idx = indexOfFirst { it.channelId == channelId }
-        if (idx != -1) {
-            removeAt(idx)
+        synchronized(this@Cache) {
+            val idx = indexOfFirst { it.channelId == channelId }
+            if (idx != -1) {
+                removeAt(idx)
+            }
         }
     }
 }

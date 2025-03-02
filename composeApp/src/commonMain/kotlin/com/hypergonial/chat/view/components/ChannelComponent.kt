@@ -18,6 +18,7 @@ import com.hypergonial.chat.appendMessages
 import com.hypergonial.chat.containAsEffect
 import com.hypergonial.chat.genNonce
 import com.hypergonial.chat.model.Client
+import com.hypergonial.chat.model.DelicateCacheApi
 import com.hypergonial.chat.model.MessageCreateEvent
 import com.hypergonial.chat.model.MessageRemoveEvent
 import com.hypergonial.chat.model.MessageUpdateEvent
@@ -50,16 +51,15 @@ import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlin.math.max
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
 // Note: Do not raise this above 100 as the API will never return more than 100 messages at a time
 // but the client will incorrectly assume that it got less messages than it requested
-private const val MESSAGE_BATCH_SIZE = 100u
+private const val MESSAGE_BATCH_SIZE = 100
 
 interface ChannelComponent : MainContentComponent, Displayable {
     val data: Value<State>
@@ -99,6 +99,9 @@ interface ChannelComponent : MainContentComponent, Displayable {
 
     /** Should be called if an expensive clipboard operation is ending. */
     fun onFileTransferEnd()
+
+    /** Invoked when the user scrolls to the bottom of the message list. */
+    fun onBottomReached()
 
     /** Callback called when the user drops files into the attachment drop target. */
     fun onFilesDropped(files: List<PlatformFile>)
@@ -157,8 +160,10 @@ interface ChannelComponent : MainContentComponent, Displayable {
          * pending attachment in the attachments list
          */
         val hasTransferJob: Boolean = false,
-        /** If true, the client is taking a long time to refresh the message list.
-         * The view should display a progress indicator. */
+        /**
+         * If true, the client is taking a long time to refresh the message list. The view should display a progress
+         * indicator.
+         */
         val isRefreshTakingTooLong: Boolean = false,
         /** The message to be displayed in the snackbar */
         val snackbarMessage: EffectContainer<String> = "".containAsEffect(),
@@ -207,6 +212,7 @@ class DefaultChannelComponent(
         )
 
     init {
+        client.cache.registerMessageCacheFor(channelId)
         client.eventManager.apply {
             subscribeWithLifeCycle(ctx.lifecycle, ::onTypingStart)
             subscribeWithLifeCycle(ctx.lifecycle, ::onTypingEnd)
@@ -220,10 +226,10 @@ class DefaultChannelComponent(
     override fun onLogoutClicked() = onLogout()
 
     /** The number of messages currently visible in the UI. This is used to determine when to page out messages. */
-    private fun visibleMessageCount(): UInt = data.value.listState.layoutInfo.visibleItemsInfo.size.toUInt()
+    private fun visibleMessageCount(): Int = data.value.listState.layoutInfo.visibleItemsInfo.size
 
     /** The maximum number of messages to keep in memory. */
-    private fun maximumMessageCount(): UInt = max(visibleMessageCount(), MESSAGE_BATCH_SIZE * 3u)
+    private fun maximumMessageCount(): Int = max(visibleMessageCount(), MESSAGE_BATCH_SIZE * 3)
 
     /**
      * Creates a new message component from a message.
@@ -276,6 +282,40 @@ class DefaultChannelComponent(
         )
     }
 
+    @OptIn(DelicateCacheApi::class)
+    private suspend fun retrieveMessages(
+        channelId: Snowflake,
+        before: Snowflake? = null,
+        after: Snowflake? = null,
+        around: Snowflake? = null,
+        limit: Int,
+    ): List<Message> {
+        val cachedMessages = client.cache.getMessages(channelId, before, after, around, limit)
+
+        // Only fetch messages if:
+        // - We don't have enough messages cached to complete the request
+        // - We don't have an end cached and are trying to do a before fetch or parameterless fetch
+        if (cachedMessages.size < limit && (!client.cache.hasEndCached(channelId) || after != null || around != null)) {
+            val remainder = limit - cachedMessages.size
+
+            val messages = client.fetchMessages(channelId, before, after, around, remainder)
+
+            logger.i { "Fetched ${messages.size} new messages." }
+
+            if (around == null) {
+                client.cache.addMessages(
+                    channelId,
+                    messages,
+                    hasEnd = messages.size < remainder && after == null,
+                )
+            }
+
+            return (cachedMessages + messages).sortedBy { it.id }
+        } else {
+            return cachedMessages
+        }
+    }
+
     /**
      * Requests more messages from the server.
      *
@@ -289,7 +329,7 @@ class DefaultChannelComponent(
 
             val messages =
                 try {
-                    client.fetchMessages(channelId = channelId, before = lastMessage, limit = MESSAGE_BATCH_SIZE)
+                    retrieveMessages(channelId = channelId, before = lastMessage, limit = MESSAGE_BATCH_SIZE)
                 } catch (e: ClientException) {
                     data.value =
                         data.value.copy(snackbarMessage = "Failed to fetch messages: ${e.message}".containAsEffect())
@@ -303,7 +343,7 @@ class DefaultChannelComponent(
                     )
                 } else data.value.messageEntries
             val features = createMessageFeatures(messages)
-            val isEnd = messages.size.toUInt() < MESSAGE_BATCH_SIZE
+            val isEnd = messages.size < MESSAGE_BATCH_SIZE
 
             // Remove the EOF/LoadMore indicator
             currentEntries.last().setTopEndIndicator(null)
@@ -325,8 +365,8 @@ class DefaultChannelComponent(
             currentEntries.last().setTopEndIndicator(if (isEnd) EndOfMessages else LoadMoreMessagesIndicator())
 
             // Drop elements from the bottom beyond 300 messages
-            if (currentEntries.totalMessageCount().toUInt() > maximumMessageCount() * 3u) {
-                val dropCount = currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3
+            if (currentEntries.totalMessageCount() > maximumMessageCount() * 3) {
+                val dropCount = currentEntries.totalMessageCount() - maximumMessageCount() * 3
 
                 logger.i { "Dropping $dropCount messages from the bottom" }
                 currentEntries.removeFirstMessages(dropCount)
@@ -354,7 +394,7 @@ class DefaultChannelComponent(
 
             val messages =
                 try {
-                    client.fetchMessages(channelId = channelId, after = firstMessage, limit = MESSAGE_BATCH_SIZE)
+                    retrieveMessages(channelId = channelId, after = firstMessage, limit = MESSAGE_BATCH_SIZE)
                 } catch (e: ClientException) {
                     data.value =
                         data.value.copy(snackbarMessage = "Failed to fetch messages: ${e.message}".containAsEffect())
@@ -362,7 +402,7 @@ class DefaultChannelComponent(
                 }
 
             val currentEntries = data.value.messageEntries
-            val isEnd = messages.size.toUInt() < MESSAGE_BATCH_SIZE
+            val isEnd = messages.size < MESSAGE_BATCH_SIZE
             val features = createMessageFeatures(messages)
 
             // Remove the EOF/LoadMore indicator that triggered this request
@@ -379,8 +419,8 @@ class DefaultChannelComponent(
             }
 
             // Drop elements beyond from the top 300 messages to prevent memory leaks
-            if (currentEntries.totalMessageCount().toUInt() > maximumMessageCount() * 3u) {
-                val dropCount = currentEntries.totalMessageCount() - maximumMessageCount().toInt() * 3
+            if (currentEntries.totalMessageCount() > maximumMessageCount() * 3) {
+                val dropCount = currentEntries.totalMessageCount() - maximumMessageCount() * 3
 
                 logger.i { "Dropping $dropCount messages from the top" }
                 currentEntries.removeLastMessages(dropCount)
@@ -397,10 +437,11 @@ class DefaultChannelComponent(
      */
     private fun refreshMessageList() {
         // Only show the refresh indicator if the request is taking too long
-        refreshTakingTooLongJob = scope.launch {
-            delay(1000)
-            data.value = data.value.copy(isRefreshTakingTooLong = true)
-        }
+        refreshTakingTooLongJob =
+            scope.launch {
+                delay(1000)
+                data.value = data.value.copy(isRefreshTakingTooLong = true)
+            }
 
         // If the list was already at the bottom, just reset everything and start again
         if (
@@ -439,8 +480,8 @@ class DefaultChannelComponent(
             val entries = createMessageFeatures(messages).reversed()
 
             // Figure out if either end is a possible end of the channel
-            val isTopEnd = topMessages.size.toUInt() < (MESSAGE_BATCH_SIZE / 2u) - 1u
-            val isBottomEnd = bottomMessages.size.toUInt() < (MESSAGE_BATCH_SIZE / 2u) - 1u
+            val isTopEnd = topMessages.size < (MESSAGE_BATCH_SIZE / 2) - 1
+            val isBottomEnd = bottomMessages.size < (MESSAGE_BATCH_SIZE / 2) - 1
 
             if (!isTopEnd) {
                 entries.last().setTopEndIndicator(LoadMoreMessagesIndicator())
@@ -490,6 +531,10 @@ class DefaultChannelComponent(
 
     override fun onFileTransferEnd() {
         data.value = data.value.copy(hasTransferJob = false)
+    }
+
+    override fun onBottomReached() {
+        client.ackMessages(channelId)
     }
 
     override fun onFileAttachRequested(isMedia: Boolean) {
@@ -578,6 +623,9 @@ class DefaultChannelComponent(
             return
         }
 
+        val isAtBottom =
+            data.value.listState.firstVisibleItemIndex == 0 && data.value.listState.firstVisibleItemScrollOffset == 0
+
         // Group recent messages by author
         if (
             lastMessage?.author?.id == newMessage.author.id &&
@@ -594,8 +642,7 @@ class DefaultChannelComponent(
             )
         }
 
-        val isAtBottom =
-            data.value.listState.firstVisibleItemIndex == 0 && data.value.listState.firstVisibleItemScrollOffset == 0
+
 
         // If we just got a message and the UI is at the bottom, keep it there
         // Also if we just sent a message, scroll the UI down
@@ -613,6 +660,10 @@ class DefaultChannelComponent(
         }
 
         addMessage(event.message, isPending = false)
+
+        if (data.value.listState.firstVisibleItemIndex == 0 && !data.value.isCruising) {
+            client.ackMessages(channelId)
+        }
     }
 
     private fun onMessageUpdate(event: MessageUpdateEvent) {
@@ -734,10 +785,8 @@ class DefaultChannelComponent(
     override fun onChatBarContentChanged(value: TextFieldValue) {
         data.value = data.value.copy(chatBarValue = value.sanitized())
 
-        val now = Clock.System.now()
-
         if (value.text == "/type_test") {
-            data.value.typingIndicators[Snowflake(0u)] = User(Snowflake(0u), "<USERNAME>", null, null, null)
+            data.value.typingIndicators[Snowflake(0u)] = User(Snowflake(0u), "<USERNAME>")
         } else {
             data.value.typingIndicators.remove(Snowflake(0u))
         }

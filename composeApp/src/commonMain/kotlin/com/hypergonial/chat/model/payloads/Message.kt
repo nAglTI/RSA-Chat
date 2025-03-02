@@ -29,4 +29,13 @@ data class Message(
     /** The time the message was created at. */
     val createdAt: Instant
         get() = id.createdAt
+
+    /** The ID of the guild the message was sent in. This is currently only present for newly sent messages. */
+    val guildId: Snowflake?
+        get() {
+            if (author is Member) {
+                return author.guildId
+            }
+            return null
+        }
 }

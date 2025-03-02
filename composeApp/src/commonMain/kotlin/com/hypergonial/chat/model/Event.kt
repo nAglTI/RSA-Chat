@@ -73,8 +73,8 @@ class ReadyEvent(
 ) : Event()
 
 data class ReadState(
-    val lastMessageId: Snowflake,
-    val lastReadMessageId: Snowflake,
+    val lastMessageId: Snowflake?,
+    val lastReadMessageId: Snowflake?,
 )
 
 /** Event dispatched when a user's presence is updated */

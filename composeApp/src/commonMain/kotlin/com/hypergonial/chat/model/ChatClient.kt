@@ -109,6 +109,7 @@ import kotlinx.serialization.serializer
  * @param scope A coroutineScope to launch background tasks on
  * @param maxReconnectAttempts The maximum number of reconnection attempts before the client gives up
  */
+@OptIn(InternalEventManagerApi::class)
 class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int = 3) : Client {
     /** The bearer token used for authentication */
     private var token: Secret<String>? = settings.getToken()?.let { Secret(it) }
@@ -273,18 +274,19 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         typingIndicatorManageJob = scope.launch { manageTypingIndicators() }
         scope.launch { eventManager.run() }
         eventManager.apply {
-            subscribe(::onGuildCreate)
-            subscribe(::onGuildUpdate)
-            subscribe(::onGuildRemove)
-            subscribe(::onChannelCreate)
-            subscribe(::onChannelRemove)
-            subscribe(::onMessageCreate)
-            subscribe(::onMessageUpdate)
-            subscribe(::onMessageRemove)
-            subscribe(::onMemberCreate)
-            subscribe(::onMemberRemove)
-            subscribe(::onUserUpdate)
-            subscribe(::onSessionInvalidated)
+            subscribeInternal(::onGuildCreate)
+            subscribeInternal(::onGuildUpdate)
+            subscribeInternal(::onGuildRemove)
+            subscribeInternal(::onChannelCreate)
+            subscribeInternal(::onChannelRemove)
+            subscribeInternal(::onMessageCreate)
+            subscribeInternal(::onMessageUpdate)
+            subscribeInternal(::onMessageRemove)
+            subscribeInternal(::onMessageAck)
+            subscribeInternal(::onMemberCreate)
+            subscribeInternal(::onMemberRemove)
+            subscribeInternal(::onUserUpdate)
+            subscribeInternal(::onSessionInvalidated)
         }
     }
 
@@ -313,6 +315,8 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         }
 
         _isSuspended = false
+        // Clear all cached messages when resuming, since these are possibly wildly out of date
+        cache.clearMessageCache()
 
         if (isLoggedIn()) {
             withTimeout(2500) { waitUntilDisconnected() }
@@ -506,6 +510,19 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                 cache.putGuild(guild)
             }
 
+            val readyEvent = ReadyEvent(
+                ready.data.user,
+                ready.data.guilds,
+                ready.data.readStates.associate {
+                    it.channelId to ReadState(it.lastMessageId, it.lastReadMessageId)
+                },
+                isReconnect,
+            )
+
+            for ((channelId, readState) in readyEvent.readStates) {
+                cache.setReadState(channelId, readState)
+            }
+
             eventManager.dispatch(
                 ReadyEvent(
                     ready.data.user,
@@ -614,15 +631,21 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
 
     @OptIn(DelicateCacheApi::class)
     private fun onMessageCreate(event: MessageCreateEvent) {
+        cache.setLastMessageId(event.message.channelId, event.message.id)
         cache.addMessage(event.message)
     }
 
+    @OptIn(DelicateCacheApi::class)
     private fun onMessageUpdate(event: MessageUpdateEvent) {
         cache.updateMessage(event.message)
     }
 
     private fun onMessageRemove(event: MessageRemoveEvent) {
         cache.dropMessage(event.channelId, event.id)
+    }
+
+    private fun onMessageAck(event: MessageAckEvent) {
+        cache.setLastReadMessageId(event.channelId, event.messageId)
     }
 
     private fun onMemberCreate(event: MemberCreateEvent) {
@@ -765,9 +788,10 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         before: Snowflake?,
         after: Snowflake?,
         around: Snowflake?,
-        limit: UInt,
+        limit: Int,
     ): List<Message> {
         require(listOfNotNull(before, after, around).size <= 1) { "Only one of before, after, or around can be set" }
+        require(limit > 0) { "Limit must be greater than 0" }
 
         return http
             .get("channels/$channelId/messages") {
@@ -789,11 +813,21 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         sendGatewayMessage(StartTyping(channelId))
     }
 
-    override suspend fun ackMessage(channelId: Snowflake, messageId: Snowflake) {
+    override fun ackMessages(channelId: Snowflake) {
+        val readState = cache.getReadState(channelId) ?: return
+        val messageId = readState.lastMessageId ?: return
+
+        // Ignore request if channel is already all read
+        if (readState.lastReadMessageId?.let { it >= messageId } == true) {
+            return
+        }
+
         // Ignore request if a newer message is already being acked
         if (ackJobs[channelId]?.first?.let { it >= messageId } == true) {
             return
         }
+
+        logger.i { "Acking message $messageId" }
 
         // Debounce acks to prevent spamming the api
         ackJobs[channelId]?.second?.cancel()
@@ -850,6 +884,8 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                 }
 
                 onUpload { bytesSent, contentLength ->
+                    if (files.isEmpty()) return@onUpload
+
                     val completionRate = bytesSent.toDouble() / (contentLength?.toDouble() ?: return@onUpload)
                     eventManager.dispatch(UploadProgressEvent(nonce ?: return@onUpload, completionRate))
                 }

@@ -1,6 +1,8 @@
 package com.hypergonial.chat.view.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.text.input.TextFieldValue
 import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
@@ -22,6 +24,8 @@ import com.hypergonial.chat.model.FocusGuildEvent
 import com.hypergonial.chat.model.GuildCreateEvent
 import com.hypergonial.chat.model.GuildRemoveEvent
 import com.hypergonial.chat.model.GuildUpdateEvent
+import com.hypergonial.chat.model.MessageAckEvent
+import com.hypergonial.chat.model.MessageCreateEvent
 import com.hypergonial.chat.model.ReadyEvent
 import com.hypergonial.chat.model.SessionInvalidatedEvent
 import com.hypergonial.chat.model.UserUpdateEvent
@@ -33,13 +37,11 @@ import com.hypergonial.chat.model.payloads.User
 import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.view.content.MainContent
 import com.hypergonial.chat.withFallbackValue
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
-/**
- * The main component.
- */
+/** The main component. */
 interface MainComponent : Displayable {
     /** Called when the user clicks the home button */
     fun onHomeSelected()
@@ -141,6 +143,10 @@ interface MainComponent : Displayable {
         val guilds: List<Guild> = emptyList(),
         /** The list of channels to display in the sidebar */
         val channels: List<Channel> = emptyList(),
+        /** Guild read states (Mapping of guildId to isUnread) */
+        val guildReadStates: SnapshotStateMap<Snowflake, Boolean> = mutableStateMapOf(),
+        /** Channel read states (Mapping of channelId to isUnread) */
+        val channelReadStates: SnapshotStateMap<Snowflake, Boolean> = mutableStateMapOf(),
         /** If true, the app is still connecting to the server */
         val isConnecting: Boolean = true,
         /** The message to display when connecting */
@@ -185,12 +191,7 @@ class DefaultMainComponent(
     private val onUserSettingsRequested: () -> Unit,
     private val onLogout: () -> Unit,
 ) : MainComponent, ComponentContext by ctx {
-    override val data =
-        MutableValue(
-            MainComponent.State(
-                currentUser = client.cache.ownUser,
-            )
-        )
+    override val data = MutableValue(MainComponent.State(currentUser = client.cache.ownUser))
 
     private val slotNavigation = SlotNavigation<SlotConfig>()
     private val uiReadyJob = Job()
@@ -233,6 +234,8 @@ class DefaultMainComponent(
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildRemove)
             subscribeWithLifeCycle(ctx.lifecycle, ::onChannelCreate)
             subscribeWithLifeCycle(ctx.lifecycle, ::onChannelRemove)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onMessageCreate)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onMessageAck)
             subscribeWithLifeCycle(ctx.lifecycle, ::onChannelFocus)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildFocus)
             subscribeWithLifeCycle(ctx.lifecycle, ::onAssetFocus)
@@ -260,12 +263,9 @@ class DefaultMainComponent(
      */
     private fun getLastOpenChannel(guildId: Snowflake): Channel? {
 
-        return settings.getLastOpenedPrefs().lastOpenChannels[guildId]?.let {
-            client.cache.getChannel(
-                it
-            )
-        } ?: // TODO: Replace with actual logic when channels have positions
-        client.cache.getChannelsForGuild(guildId).values.minByOrNull { it.id }
+        return settings.getLastOpenedPrefs().lastOpenChannels[guildId]?.let { client.cache.getChannel(it) }
+            ?: // TODO: Replace with actual logic when channels have positions
+            client.cache.getChannelsForGuild(guildId).values.minByOrNull { it.id }
     }
 
     private fun openLastGuild() {
@@ -311,12 +311,22 @@ class DefaultMainComponent(
             return
         }
 
+        // Resolve unread state for all channels
+        val unreadStates = mutableStateMapOf<Snowflake, Boolean>()
+
+        val allChannels = client.cache.getChannelsForGuild(guild.id)
+
+        for (channel in allChannels.values) {
+            unreadStates[channel.id] = client.cache.isUnread(channel.id)
+        }
+
         val channel = getLastOpenChannel(guild.id)
 
         data.value =
             data.value.copy(
                 selectedGuild = guild,
-                channels = client.cache.getChannelsForGuild(guild.id).values.toList().sortedBy { it.id },
+                channels = allChannels.values.toList().sortedBy { it.id },
+                channelReadStates = unreadStates,
             )
 
         settings.setLastOpenedPrefs(settings.getLastOpenedPrefs().copy(lastOpenGuild = guild.id))
@@ -341,8 +351,7 @@ class DefaultMainComponent(
         // Save the editor state of the current channel
         if (mainContent.value.child?.instance is ChannelComponent) {
             data.value.selectedChannel?.id?.let {
-                lastEditorStates[it] =
-                    (mainContent.value.child?.instance as ChannelComponent).data.value.chatBarValue
+                lastEditorStates[it] = (mainContent.value.child?.instance as ChannelComponent).data.value.chatBarValue
             }
         }
 
@@ -392,9 +401,17 @@ class DefaultMainComponent(
         data.value = data.value.copy(assetViewerActive = false)
     }
 
-    private fun onReady(event: ReadyEvent) {
+    private suspend fun onReady(event: ReadyEvent) {
         data.value = data.value.copy(isConnecting = false, currentUser = event.user)
         pendingGuildIds.addAll(event.guilds.map { it.id })
+
+        // Wait until all channels & guilds are cached
+        client.waitUntilReady()
+
+        // Resolve unread state for all guilds
+        for (guild in event.guilds) {
+            data.value.guildReadStates[guild.id] = client.cache.isGuildUnread(guild.id)
+        }
     }
 
     private fun onSessionInvalidated(event: SessionInvalidatedEvent) {
@@ -415,6 +432,7 @@ class DefaultMainComponent(
 
         // TODO: Update when guilds have positions saved in prefs
         if (event.guild.id !in data.value.guilds.map { it.id }) {
+            data.value.guildReadStates[event.guild.id] = false
             data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         }
 
@@ -430,6 +448,8 @@ class DefaultMainComponent(
 
     private fun onGuildUpdate(event: GuildUpdateEvent) {
         if (event.guild.id !in data.value.guilds.map { it.id }) {
+            logger.w { "Received update for guild that is not in the guild list. (This should not happen)" }
+            data.value.guildReadStates[event.guild.id] = false
             data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         } else {
             data.value =
@@ -443,6 +463,7 @@ class DefaultMainComponent(
 
     private fun onGuildRemove(event: GuildRemoveEvent) {
         data.value = data.value.copy(guilds = data.value.guilds.filter { it.id != event.guild.id })
+        data.value.guildReadStates.remove(event.guild.id)
 
         if (event.guild.id == data.value.selectedGuild?.id) {
             navigateHome()
@@ -459,6 +480,7 @@ class DefaultMainComponent(
         }
 
         if (event.channel.id !in data.value.channels.map { it.id }) {
+            data.value.channelReadStates[event.channel.id] = false
             data.value = data.value.copy(channels = (data.value.channels + event.channel).sortedBy { it.id })
 
             // Leave fallback slot if it was active
@@ -483,19 +505,19 @@ class DefaultMainComponent(
         }
 
         data.value = data.value.copy(channels = data.value.channels.filter { it.id != event.channel.id })
+        data.value.channelReadStates.remove(event.channel.id)
     }
 
     private fun onChannelFocus(event: FocusChannelEvent) {
         if (event.channel.id in data.value.channels.map { it.id }) {
             navigateToChannel(event.channel.id)
         } else if (event.channel.guildId == data.value.selectedGuild?.id) {
+            data.value.channelReadStates[event.channel.id] = false
             data.value = data.value.copy(channels = (data.value.channels + event.channel).sortedBy { it.id })
             navigateToChannel(event.channel)
         }
         data.value =
-            data.value.copy(
-                navDrawerCommand = MainComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect()
-            )
+            data.value.copy(navDrawerCommand = MainComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect())
     }
 
     private fun onGuildFocus(event: FocusGuildEvent) {
@@ -504,9 +526,7 @@ class DefaultMainComponent(
         }
         navigateToGuild(event.guild)
         data.value =
-            data.value.copy(
-                navDrawerCommand = MainComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect()
-            )
+            data.value.copy(navDrawerCommand = MainComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect())
     }
 
     private fun onAssetFocus(event: FocusAssetEvent) {
@@ -517,6 +537,28 @@ class DefaultMainComponent(
         if (event.user.id != data.value.currentUser?.id) return
 
         data.value = data.value.copy(currentUser = event.user)
+    }
+
+    private fun onMessageCreate(event: MessageCreateEvent) {
+        if (event.message.channelId in data.value.channelReadStates) {
+            // Unread happened in channel we can currently see
+            data.value.channelReadStates[event.message.channelId] = true
+            data.value.selectedGuild?.id?.let { guildId -> data.value.guildReadStates[guildId] = true }
+        } else {
+            // Unread happened in another guild
+            val guildId = client.cache.getChannel(event.message.channelId)?.guildId ?: return
+            data.value.guildReadStates[guildId] = true
+        }
+    }
+
+    private fun onMessageAck(event: MessageAckEvent) {
+        if (event.channelId in data.value.channelReadStates) {
+            data.value.channelReadStates[event.messageId] = client.cache.isUnread(event.channelId)
+        } else {
+            val guildId = client.cache.getChannel(event.channelId)?.guildId ?: return
+            // Recalculate if guild is unread
+            data.value.guildReadStates[guildId] = client.cache.isGuildUnread(guildId)
+        }
     }
 
     override fun onGuildCreateClicked() {

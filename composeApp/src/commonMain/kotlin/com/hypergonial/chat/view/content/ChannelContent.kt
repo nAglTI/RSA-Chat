@@ -137,6 +137,12 @@ fun ChannelContent(component: ChannelComponent) {
             }
         }
 
+        LaunchedEffect(state.listState.firstVisibleItemIndex) {
+            if (state.listState.firstVisibleItemIndex == 0) {
+                component.onBottomReached()
+            }
+        }
+
         LaunchedEffect(state.snackbarMessage) {
             if (state.snackbarMessage.value.isNotEmpty()) {
                 snackbarState.showSnackbar(state.snackbarMessage.value, withDismissAction = true)

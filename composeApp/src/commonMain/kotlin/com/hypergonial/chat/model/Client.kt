@@ -128,7 +128,7 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * Update the currently authenticated user
      *
      * @param scope A lambda that modifies the user update request. Any values set will be edited, even if set to null.
-     * Values not set will be unchanged.
+     *   Values not set will be unchanged.
      * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
      */
     suspend fun updateSelf(scope: (UserUpdateRequest.Builder.() -> Unit)): User
@@ -200,9 +200,27 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * Set a typing indicator in the given channel. Implementations are expected to keep displaying this for about 6
      * seconds, then remove it.
      *
+     * This function is safe to call multiple times in quick succession, as the client will only send the typing indicator
+     * every 5 seconds.
+     *
      * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the channel does not exist
      */
     suspend fun setTypingIndicator(channelId: Snowflake)
+
+    /**
+     * Acknowledge a message in the given channel. This is used to mark messages until [messageId] as read.
+     *
+     * This function is safe to call multiple times in quick succession, as the client will only send the ack 2
+     * seconds after the last call, cancelling any previous acks.
+     *
+     * @param channelId The ID of the channel the message is in
+     * @param messageId The ID of the last message that is to be acked. All messages before this will be counted as
+     *   read.
+     * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the channel or message does not exist
+     * @throws com.hypergonial.chat.model.exceptions.ForbiddenException If the client doesn't have permission to ack
+     *   messages in this channel
+     */
+    suspend fun ackMessage(channelId: Snowflake, messageId: Snowflake)
 
     /**
      * Send a message to the given channel
@@ -313,7 +331,7 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      *
      * @param guildId The ID of the guild to update
      * @param scope A lambda that modifies the guild update request. Any values set will be edited, even if set to null.
-     * Values not set will be unchanged.
+     *   Values not set will be unchanged.
      * @return The updated guild
      * @throws com.hypergonial.chat.model.exceptions.UnauthorizedException If the client is not logged in
      * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the guild does not exist

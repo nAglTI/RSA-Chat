@@ -10,6 +10,7 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+// Epoch of 2023-01-01T00:00:00Z in milliseconds
 private const val EPOCH: ULong = 1_672_531_200_000u
 
 /**
@@ -22,9 +23,10 @@ private const val EPOCH: ULong = 1_672_531_200_000u
 @Serializable(with = SnowflakeSerializer::class)
 @JvmInline
 value class Snowflake(val inner: ULong) : Comparable<Snowflake> {
-    override fun compareTo(other: Snowflake): Int {
-        return inner.compareTo(other.inner)
-    }
+
+    constructor(value: Int) : this(value.toULong())
+
+    override fun compareTo(other: Snowflake) = inner.compareTo(other.inner)
 
     override fun toString(): String = inner.toString()
 

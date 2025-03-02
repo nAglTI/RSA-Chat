@@ -143,6 +143,10 @@ kotlin {
             api(libs.instance.keeper)
             api(libs.back.handler)
         }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
+
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             /*implementation(compose.desktop.windows_x64)

@@ -6,6 +6,7 @@ import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
+import com.hypergonial.chat.subList
 import kotlinx.datetime.Clock
 
 /** A type that has a cache. */
@@ -13,8 +14,19 @@ interface CacheAware {
     val cache: Cache
 }
 
+data class MessageCache(
+    val channelId: Snowflake,
+    val messages: ArrayDeque<Message> = ArrayDeque(),
+    var isCruising: Boolean = false,
+)
+
+@RequiresOptIn(level = RequiresOptIn.Level.WARNING, message = "This API is experimental and may change in the future.")
+@Retention(AnnotationRetention.BINARY)
+@Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
+annotation class DelicateCacheApi
+
 /** A class that represents a cache of incoming gateway data. */
-class Cache {
+class Cache(private val cachedChannelsCount: Int = 10) {
     private var _ownUser: User? = null
 
     private val _guilds: MutableMap<Snowflake, Guild> = hashMapOf()
@@ -27,7 +39,7 @@ class Cache {
     // it is a common operation to query all typing indicators in a channel.
     private val _typingIndicators: MutableMap<Snowflake, HashMap<Snowflake, TypingIndicator>> = hashMapOf()
 
-    private val _messages: MutableMap<Snowflake, ArrayDeque<Message>> = hashMapOf()
+    private val _messages: MutableList<MessageCache> = mutableListOf()
 
     private val _members: MutableMap<Pair<Snowflake, Snowflake>, Member> = hashMapOf()
 
@@ -54,10 +66,6 @@ class Cache {
     /** The current user, if cached */
     val ownUser: User?
         get() = _ownUser
-
-    /** A map of all messages in the cache, keyed by channel ID. */
-    val messages: Map<Snowflake, List<Message>>
-        get() = _messages
 
     /** Clear the cache. Drops all values. */
     fun clear() {
@@ -166,7 +174,7 @@ class Cache {
      * @param limit The maximum number of messages to return.
      * @return A list of messages matching the given criteria.
      */
-    fun getMessagesWhere(
+    fun getMessages(
         channelId: Snowflake,
         before: Snowflake? = null,
         after: Snowflake? = null,
@@ -175,27 +183,36 @@ class Cache {
     ): List<Message> {
         require(listOfNotNull(before, after, around).size <= 1) { "Only one of before, after, and around can be set" }
 
-        val messages = _messages[channelId] ?: return emptyList()
+        if (limit <= 0) return emptyList()
 
-        val start =
-            when {
-                before != null -> messages.indexOfFirst { it.id == before } + 1
-                after != null -> messages.indexOfFirst { it.id == after } - 1
-                around != null -> messages.indexOfFirst { it.id == around } - (limit / 2)
-                else -> 0
-            }
+        val messages = _messages.getForChannel(channelId)?.messages ?: return emptyList()
+        val anchorId =
+            before
+                ?: after
+                ?: around
+                ?: return messages.subList((messages.size - limit).coerceAtLeast(0)..<messages.size)
 
-        val end =
+        // If item is not found, binarySearch returns the negative insertion point - 1
+        // Since we don't need the anchor message to actually exist, we can just use this as our anchor point (Adding 1
+        // to ensure we're in bounds if it's at the edge of the list)
+        val anchorIdx = messages.binarySearch { it.id.compareTo(anchorId) }.let { if (it < 0) -(it + 1) else it }
+
+        val (start, end) =
             when {
-                before != null -> start + limit
-                after != null -> start - limit
-                around != null -> start + (limit / 2)
-                else -> start + limit
+                before != null -> Pair(anchorIdx - limit, anchorIdx)
+                after != null -> Pair(anchorIdx + 1, anchorIdx + limit + 1)
+                around != null -> {
+                    val beforeCount = limit / 2
+                    val afterCount = limit - beforeCount
+
+                    Pair(anchorIdx - beforeCount, anchorIdx + afterCount)
+                }
+                else -> Pair(messages.size - limit, messages.size)
             }
 
         return messages.subList(
-            start.coerceAtLeast(0).coerceAtMost(messages.size),
-            end.coerceAtLeast(0).coerceAtMost(messages.size),
+            start.coerceAtLeast(0).coerceAtMost(messages.size - 1),
+            end.coerceAtLeast(0).coerceAtMost(messages.size - 1),
         )
     }
 
@@ -281,17 +298,34 @@ class Cache {
     /**
      * Insert a message in the cache.
      *
-     * @param message The message to insert or update.
+     * @param message The message to insert or update. If no cache was registered for the given channel, or a previously
+     *   registered cache was evicted, the message is dropped.
      */
+    @DelicateCacheApi
     internal fun addMessage(message: Message) {
-        val messages = _messages[message.channelId] ?: ArrayDeque()
-        messages.add(message)
+        val msgcache = _messages.getForChannel(message.channelId) ?: return
 
-        if (messages.size > 1000) {
-            messages.removeFirst()
+        if (msgcache.messages.lastOrNull()?.let { message.id > it.id } != false) {
+            println("Higher than last")
+            msgcache.messages.add(message)
+        } else if (msgcache.messages.firstOrNull()?.let { message.id < it.id } != false) {
+            println("Lower than first")
+
+            msgcache.messages.addFirst(message)
+        } else {
+            error("Message cache is not sorted")
         }
+    }
 
-        _messages[message.channelId] = messages
+    /**
+     * When called, it reserves a spot in the cache for messages in the given channel.
+     *
+     * It evicts the oldest channel's messages if the cache is full.
+     *
+     * @param channelId The ID of the channel to reserve a spot for.
+     */
+    internal fun registerMessageCacheFor(channelId: Snowflake) {
+        _messages.getOrPutForChannel(channelId)
     }
 
     /**
@@ -300,11 +334,11 @@ class Cache {
      * @param message The message to update.
      */
     internal fun updateMessage(message: Message) {
-        val messages = _messages[message.channelId] ?: return
-        val index = messages.indexOfFirst { it.id == message.id }
+        val msgcache = _messages.getForChannel(message.channelId) ?: return
+        val index = msgcache.messages.binarySearch { it.id.compareTo(message.id) }
 
-        if (index != -1) {
-            messages[index] = message
+        if (index >= 0) {
+            msgcache.messages[index] = message
         }
     }
 
@@ -315,31 +349,41 @@ class Cache {
      * @param messageId The ID of the message to drop.
      */
     internal fun dropMessage(channelId: Snowflake, messageId: Snowflake) {
-        val messages = _messages[channelId] ?: return
-        val index = messages.indexOfFirst { it.id == messageId }
+        val msgcache = _messages.getForChannel(channelId) ?: return
+        val index = msgcache.messages.binarySearch { it.id.compareTo(messageId) }
 
-        if (index != -1) {
-            messages.removeAt(index)
+        if (index >= 0) {
+            msgcache.messages.removeAt(index)
         }
     }
 
     /**
      * Add a list of messages to the cache.
      *
-     * @param messages The messages to add.
+     * @param messages The messages to add. The messages must all belong to the same channel and be sorted by ID. If the
+     *   cache does not exist for the given channel, the messages are dropped.
      */
-    internal fun addMessages(messages: List<Message>) {
-        val grouped = messages.groupBy { it.channelId }
+    @DelicateCacheApi
+    internal fun addMessages(channelId: Snowflake, messages: List<Message>) {
+        if (messages.isEmpty()) {
+            return
+        }
 
-        for ((channelId, group) in grouped) {
-            val queue = _messages[channelId] ?: ArrayDeque()
-            queue.addAll(group)
+        val msgcache = _messages.getForChannel(channelId) ?: return
 
-            if (queue.size > 1000) {
-                queue.subList(0, queue.size - 1000).clear()
+        if (msgcache.messages.isEmpty()) {
+            msgcache.messages.addAll(messages)
+        } else {
+            val first = messages.first()
+            val last = messages.last()
+
+            if (msgcache.messages.last().id < first.id) {
+                msgcache.messages.addAll(messages)
+            } else if (msgcache.messages.first().id > last.id) {
+                msgcache.messages.addAll(0, messages)
+            } else {
+                error("Message cache is not sorted")
             }
-
-            _messages[channelId] = queue
         }
     }
 
@@ -364,7 +408,7 @@ class Cache {
      */
     internal fun dropChannel(channelId: Snowflake) {
         _channels.remove(channelId)
-        _messages.remove(channelId)
+        _messages.dropForChannel(channelId)
     }
 
     /**
@@ -384,5 +428,51 @@ class Cache {
      */
     internal fun dropMember(guildId: Snowflake, userId: Snowflake) {
         _members.remove(Pair(guildId, userId))
+    }
+
+    /**
+     * Retrieve the message cache for the given channel ID, if one exists.
+     *
+     * @param channelId The ID of the channel to get the message cache for.
+     */
+    private fun MutableList<MessageCache>.getForChannel(channelId: Snowflake): MessageCache? {
+        return firstOrNull { it.channelId == channelId }
+    }
+
+    /**
+     * Get the message cache for the given channel ID. If the cache does not exist, it is created.
+     *
+     * If the amount of message caches is higher than the limit, the oldest cache is removed.
+     *
+     * @param channelId The ID of the channel to get the message cache for.
+     */
+    private fun MutableList<MessageCache>.getOrPutForChannel(channelId: Snowflake): MessageCache {
+        var idx = indexOfFirst { it.channelId == channelId }
+        if (idx == -1) {
+            if (size >= cachedChannelsCount) {
+                removeFirst()
+            }
+
+            add(MessageCache(channelId))
+            idx = size - 1
+        }
+
+        return this[idx]
+    }
+
+    /**
+     * Check if the cache has a message cache for the given channel ID.
+     *
+     * @param channelId The ID of the channel to check for.
+     */
+    private fun MutableList<MessageCache>.hasChannelCached(channelId: Snowflake): Boolean {
+        return indexOfFirst { it.channelId == channelId } != -1
+    }
+
+    private fun MutableList<MessageCache>.dropForChannel(channelId: Snowflake) {
+        val idx = indexOfFirst { it.channelId == channelId }
+        if (idx != -1) {
+            removeAt(idx)
+        }
     }
 }

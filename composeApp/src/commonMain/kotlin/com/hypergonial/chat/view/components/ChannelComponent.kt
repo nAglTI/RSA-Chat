@@ -186,7 +186,6 @@ class DefaultChannelComponent(
 ) : ChannelComponent, ComponentContext by ctx {
     private val scope = ctx.coroutineScope()
     private val logger = Logger.withTag("DefaultChannelComponent")
-    private var lastSentTypingIndicator = Instant.DISTANT_PAST
     private var refreshTakingTooLongJob: Job? = null
 
     override val data =
@@ -694,7 +693,6 @@ class DefaultChannelComponent(
 
         scope.launch {
             val nonce = genNonce(client.sessionId)
-            lastSentTypingIndicator = Instant.DISTANT_PAST
             data.value.pendingAttachments.clear()
             data.value = data.value.copy(chatBarValue = data.value.chatBarValue.copy(text = ""), cumulativeFileSize = 0)
             addPendingMessage(content, nonce, attachments = attachments)
@@ -744,14 +742,11 @@ class DefaultChannelComponent(
             data.value.typingIndicators.remove(Snowflake(0u))
         }
 
-        if (now - lastSentTypingIndicator >= 5.seconds) {
-            scope.launch {
-                try {
-                    client.setTypingIndicator(channelId)
-                    lastSentTypingIndicator = now
-                } catch (e: ClientException) {
-                    logger.e { "Failed to send typing indicator: ${e.message}" }
-                }
+        scope.launch {
+            try {
+                client.setTypingIndicator(channelId)
+            } catch (e: ClientException) {
+                logger.e { "Failed to send typing indicator: ${e.message}" }
             }
         }
     }

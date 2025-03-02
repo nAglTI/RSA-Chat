@@ -139,6 +139,8 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     private val responses: QueueChannel<GatewayMessage> = QueueChannel()
     /** A channel for sending heartbeat ACKs between jobs */
     private val heartbeatAckQueue: QueueChannel<HeartbeatAckEvent> = QueueChannel(1)
+    /** A mapping of channel ID to Pair(messageId, ackJob) */
+    private val ackJobs: HashMap<Snowflake, Pair<Snowflake, Job>> = HashMap()
     /** A job that when completed, should indicate to the current gateway session to close the connection */
     private var gatewayCloseJob = Job()
     /**
@@ -508,7 +510,9 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                 ReadyEvent(
                     ready.data.user,
                     ready.data.guilds,
-                    ready.data.readStates.associate { it.channelId to it.messageId },
+                    ready.data.readStates.associate {
+                        it.channelId to ReadState(it.lastMessageId, it.lastReadMessageId)
+                    },
                     isReconnect,
                 )
             )
@@ -608,20 +612,13 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         cache.dropChannel(event.channel.id)
     }
 
+    @OptIn(DelicateCacheApi::class)
     private fun onMessageCreate(event: MessageCreateEvent) {
         cache.addMessage(event.message)
-
-        if (event.message.author is Member) {
-            cache.putMember(event.message.author)
-        }
     }
 
     private fun onMessageUpdate(event: MessageUpdateEvent) {
         cache.updateMessage(event.message)
-
-        if (event.message.author is Member) {
-            cache.putMember(event.message.author)
-        }
     }
 
     private fun onMessageRemove(event: MessageRemoveEvent) {
@@ -649,6 +646,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         while (true) {
             val now = Clock.System.now()
             cache.retainTypingIndicators { channelId, indicator ->
+                // We use 6 seconds here to allow some leeway for network latency
                 if (now - indicator.lastUpdated <= 6.seconds) true
                 else {
                     eventManager.dispatch(TypingEndEvent(channelId, indicator.userId))
@@ -783,7 +781,29 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     }
 
     override suspend fun setTypingIndicator(channelId: Snowflake) {
+        // Ignore request if a typing indicator is already active
+        if (cache.getTypingIndicator(channelId, cache.ownUser!!.id)?.isActive() == true) {
+            return
+        }
+
         sendGatewayMessage(StartTyping(channelId))
+    }
+
+    override suspend fun ackMessage(channelId: Snowflake, messageId: Snowflake) {
+        // Ignore request if a newer message is already being acked
+        if (ackJobs[channelId]?.first?.let { it >= messageId } == true) {
+            return
+        }
+
+        // Debounce acks to prevent spamming the api
+        ackJobs[channelId]?.second?.cancel()
+        val job =
+            scope.launch {
+                delay(2000)
+                http.post("channels/$channelId/messages/$messageId/ack")
+            }
+        job.invokeOnCompletion { ackJobs.remove(channelId) }
+        ackJobs[channelId] = Pair(messageId, job)
     }
 
     override suspend fun sendMessage(

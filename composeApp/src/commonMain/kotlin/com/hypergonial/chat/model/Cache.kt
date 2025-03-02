@@ -193,9 +193,9 @@ class Cache(private val cachedChannelsCount: Int = 10) {
                 ?: return messages.subList((messages.size - limit).coerceAtLeast(0)..<messages.size)
 
         // If item is not found, binarySearch returns the negative insertion point - 1
-        // Since we don't need the anchor message to actually exist, we can just use this as our anchor point (Adding 1
-        // to ensure we're in bounds if it's at the edge of the list)
-        val anchorIdx = messages.binarySearch { it.id.compareTo(anchorId) }.let { if (it < 0) -(it + 1) else it }
+        // Don't question the magic offsets, they work
+        val anchorOffset = if (before != null) -1 else -2
+        val anchorIdx = messages.binarySearch { it.id.compareTo(anchorId) }.let { if (it < 0) -(it) + anchorOffset else it }
 
         val (start, end) =
             when {
@@ -207,12 +207,12 @@ class Cache(private val cachedChannelsCount: Int = 10) {
 
                     Pair(anchorIdx - beforeCount, anchorIdx + afterCount)
                 }
-                else -> Pair(messages.size - limit, messages.size)
+                else -> error("Invalid state")
             }
 
         return messages.subList(
-            start.coerceAtLeast(0).coerceAtMost(messages.size - 1),
-            end.coerceAtLeast(0).coerceAtMost(messages.size - 1),
+            start.coerceAtLeast(0).coerceAtMost(messages.size),
+            end.coerceAtLeast(0).coerceAtMost(messages.size),
         )
     }
 

@@ -6,6 +6,7 @@ import com.arkivanov.essenty.lifecycle.doOnDestroy
 import kotlin.reflect.KClass
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 
 /** A type that has an event manager. */
 interface EventManagerAware {
@@ -116,16 +117,23 @@ private class EventManagerImpl : Actor<Instruction>() {
 
         logger.d { "Dispatching event: ${event::class.simpleName}" }
 
-        // Internal subscribers are guaranteed to receive events
-        // before the "public" queue, so we dispatch them first.
-        getInternalSubscribers(event::class).forEach {
-            val subscriber = it as EventSubscriber<Event>
-            scope?.launch { subscriber.invoke(event) } ?: return
-        }
+        scope?.launch {
+            // Internal subscribers are guaranteed to receive events
+            // before the "public" queue, so we dispatch them first.
+            val internalJobs = mutableListOf<Job>()
 
-        getSubscribers(event::class).forEach {
-            val subscriber = it as EventSubscriber<Event>
-            scope?.launch { subscriber.invoke(event) } ?: return
+            getInternalSubscribers(event::class).forEach {
+                val subscriber = it as EventSubscriber<Event>
+                internalJobs.add(scope?.launch { subscriber.invoke(event) } ?: return@launch)
+            }
+
+            // Wait until all internal listeners have finished
+            internalJobs.forEach { it.join() }
+
+            getSubscribers(event::class).forEach {
+                val subscriber = it as EventSubscriber<Event>
+                scope?.launch { subscriber.invoke(event) } ?: return@launch
+            }
         }
     }
 }
@@ -181,6 +189,9 @@ class EventManager {
     }
 
     /** Subscribe to the internal event queue. This event queue is guaranteed to receive events before the "public" queue.
+     *
+     * Caution: If an internal subscriber does not finish its work, the public subscribers will not be called.
+     *   All internal subscribers *must* return in order for the public subscribers to be called.
      *
      * @param eventType The type of event to subscribe to.
      * @param callback The callback to call when an event of the given type is dispatched.

@@ -632,6 +632,12 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     @OptIn(DelicateCacheApi::class)
     private fun onMessageCreate(event: MessageCreateEvent) {
         cache.setLastMessageId(event.message.channelId, event.message.id)
+
+        // If we sent the message then hopefully it's also the last one we read
+        if (event.message.author.id == cache.ownUser?.id) {
+            cache.setLastReadMessageId(event.message.channelId, event.message.id)
+        }
+
         cache.addMessage(event.message)
     }
 

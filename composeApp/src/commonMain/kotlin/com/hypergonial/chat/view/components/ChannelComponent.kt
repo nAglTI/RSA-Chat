@@ -303,11 +303,7 @@ class DefaultChannelComponent(
             logger.i { "Fetched ${messages.size} new messages." }
 
             if (around == null) {
-                client.cache.addMessages(
-                    channelId,
-                    messages,
-                    hasEnd = messages.size < remainder && after == null,
-                )
+                client.cache.addMessages(channelId, messages, hasEnd = messages.size < remainder && after == null)
             }
 
             return (cachedMessages + messages).sortedBy { it.id }
@@ -642,8 +638,6 @@ class DefaultChannelComponent(
             )
         }
 
-
-
         // If we just got a message and the UI is at the bottom, keep it there
         // Also if we just sent a message, scroll the UI down
         if (isAtBottom || newMessage.author.id == client.cache.ownUser?.id && !data.value.isCruising) {
@@ -661,7 +655,11 @@ class DefaultChannelComponent(
 
         addMessage(event.message, isPending = false)
 
-        if (data.value.listState.firstVisibleItemIndex == 0 && !data.value.isCruising) {
+        if (
+            data.value.listState.firstVisibleItemIndex == 0 &&
+                !data.value.isCruising &&
+                event.message.author.id != client.cache.ownUser?.id
+        ) {
             client.ackMessages(channelId)
         }
     }

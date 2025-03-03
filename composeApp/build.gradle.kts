@@ -13,6 +13,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.serialization)
     alias(libs.plugins.detekt)
+    id("com.google.gms.google-services")
     id("org.jetbrains.kotlinx.atomicfu") version "0.27.0"
     id("com.ncorti.ktfmt.gradle") version "0.21.0"
 }
@@ -27,6 +28,10 @@ kotlin {
             baseName = "ComposeApp"
             isStatic = true
 
+            // Push notifs
+            export(libs.kmpnotifier)
+
+            // Decompose
             export(libs.decompose)
             export(libs.lifecycle)
 
@@ -145,6 +150,8 @@ kotlin {
             api(libs.state.keeper)
             api(libs.instance.keeper)
             api(libs.back.handler)
+            // Notifications
+            api(libs.kmpnotifier)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

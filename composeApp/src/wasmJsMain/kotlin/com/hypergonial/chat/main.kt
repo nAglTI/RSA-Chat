@@ -20,6 +20,8 @@ import com.materialkolor.DynamicMaterialTheme
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamicColorScheme
 import com.materialkolor.rememberDynamicMaterialThemeState
+import com.mmk.kmpnotifier.notification.NotifierManager
+import com.mmk.kmpnotifier.notification.configuration.NotificationPlatformConfiguration
 import kotlinx.browser.document
 import kotlinx.browser.localStorage
 import kotlinx.browser.window
@@ -58,6 +60,13 @@ fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
 fun main() {
     val lifecycle = LifecycleRegistry()
     val stateKeeper = StateKeeperDispatcher(savedState = localStorage[KEY_SAVED_STATE]?.decodeSerializableContainer())
+
+    NotifierManager.initialize(
+        NotificationPlatformConfiguration.Web(
+            askNotificationPermissionOnStart = true,
+            notificationIconPath = null
+        )
+    )
 
     val root = DefaultRootComponent(ctx = DefaultComponentContext(lifecycle, stateKeeper))
 

@@ -2,7 +2,6 @@ package com.hypergonial.chat
 
 import androidx.compose.foundation.LocalContextMenuRepresentation
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
@@ -21,8 +20,10 @@ import com.hypergonial.chat.view.composables.Material3ContextMenuRepresentation
 import com.hypergonial.chat.view.globalKeyEventFlow
 import com.materialkolor.DynamicMaterialTheme
 import com.materialkolor.PaletteStyle
-import com.materialkolor.dynamicColorScheme
 import com.materialkolor.rememberDynamicMaterialThemeState
+import com.mmk.kmpnotifier.extensions.composeDesktopResourcesPath
+import com.mmk.kmpnotifier.notification.NotifierManager
+import com.mmk.kmpnotifier.notification.configuration.NotificationPlatformConfiguration
 import java.awt.Dimension
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
@@ -36,12 +37,13 @@ fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
 
     val seedColor = colorProvider.getAccentColorOfOS() ?: Color(117, 156, 223)
 
-    val dynamicThemeState = rememberDynamicMaterialThemeState(
-        seedColor = seedColor,
-        isDark = useDarkTheme,
-        isAmoled = false,
-        style = PaletteStyle.TonalSpot,
-    )
+    val dynamicThemeState =
+        rememberDynamicMaterialThemeState(
+            seedColor = seedColor,
+            isDark = useDarkTheme,
+            isAmoled = false,
+            style = PaletteStyle.TonalSpot,
+        )
 
     CompositionLocalProvider(LocalUsingDarkTheme provides useDarkTheme) {
         CompositionLocalProvider(LocalContextMenuRepresentation provides Material3ContextMenuRepresentation()) {
@@ -61,6 +63,14 @@ fun main() {
     application {
         val windowState = rememberWindowState(width = 1024.dp, height = 768.dp)
         LifecycleController(lifecycle, windowState)
+
+        NotifierManager.initialize(
+            NotificationPlatformConfiguration.Desktop(
+                showPushNotification = true,
+                notificationIconPath =
+                    "${composeDesktopResourcesPath()}${File.separator}drawable${File.separator}chat_icon.png",
+            )
+        )
 
         Window(
             onCloseRequest = {

@@ -19,6 +19,9 @@ import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.view.components.DefaultRootComponent
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamicColorScheme
+import com.mmk.kmpnotifier.notification.NotifierManager
+import com.mmk.kmpnotifier.notification.configuration.NotificationPlatformConfiguration
+import com.mmk.kmpnotifier.permission.permissionUtil
 import io.github.vinceglb.filekit.core.FileKit
 
 class MainActivity : ComponentActivity() {
@@ -28,6 +31,18 @@ class MainActivity : ComponentActivity() {
         FileKit.init(this)
         enableEdgeToEdge()
         initializeStorage()
+
+        NotifierManager.initialize(
+            configuration =
+                NotificationPlatformConfiguration.Android(
+                    notificationIconResId = R.drawable.ic_launcher_foreground,
+                    showPushNotification = false,
+                )
+        )
+
+        val permissionUtil by permissionUtil()
+        permissionUtil.askNotificationPermission()
+
         val root = DefaultRootComponent(defaultComponentContext())
 
         ContextHelper.retrieveAppContext = { this.applicationContext }

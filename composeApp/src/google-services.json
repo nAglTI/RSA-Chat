@@ -1,0 +1,29 @@
+{
+    "project_info": {
+        "project_number": "849623963033",
+        "project_id": "chat-hypergonial",
+        "storage_bucket": "chat-hypergonial.firebasestorage.app"
+    },
+    "client": [
+        {
+            "client_info": {
+                "mobilesdk_app_id": "1:849623963033:android:ed050bcf32062eb0e4af08",
+                "android_client_info": {
+                    "package_name": "com.hypergonial.chat"
+                }
+            },
+            "oauth_client": [],
+            "api_key": [
+                {
+                    "current_key": "AIzaSyCc2DuOsVJuFbcm-JjtqDcC5e2d_nuWO2k"
+                }
+            ],
+            "services": {
+                "appinvite_service": {
+                    "other_platform_oauth_client": []
+                }
+            }
+        }
+    ],
+    "configuration_version": "1"
+}

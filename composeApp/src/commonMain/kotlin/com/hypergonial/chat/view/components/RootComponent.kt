@@ -86,7 +86,6 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
     private val scope = ctx.coroutineScope()
     private val client: Client = retainedInstance { ChatClient(scope) }
     private val nav = StackNavigation<Config>()
-    private val logger = Logger.withTag("DefaultRootComponent")
 
     private val _stack =
         childStack(

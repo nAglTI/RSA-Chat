@@ -116,6 +116,7 @@ class DefaultGuildSettingsComponent(
         onBack()
     }
 
+    @Suppress("UnusedParameter")
     private fun onLifecyclePausedEvent(event: LifecyclePausedEvent) {
         onBack()
     }

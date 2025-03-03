@@ -226,6 +226,7 @@ fun SidebarContent(component: MainComponent, drawerState: DrawerState) {
                         guildId = guild.id,
                         icon = { modifier -> GuildIcon(guild, guild.id == state.selectedGuild?.id, modifier) },
                         isSelected = guild.id == state.selectedGuild?.id,
+                        isUnread = state.guildReadStates[guild.id] ?: false,
                         onSelect = { component.onGuildSelected(guild.id) },
                         onEdit = { component.onGuildEditClicked(guild.id) },
                         onDelete = { component.onGuildDeleteClicked(guild.id) },
@@ -236,6 +237,7 @@ fun SidebarContent(component: MainComponent, drawerState: DrawerState) {
                         tooltipText = guild.name,
                         guildId = guild.id,
                         icon = { modifier -> GuildIcon(guild, guild.id == state.selectedGuild?.id, modifier) },
+                        isUnread = state.guildReadStates[guild.id] ?: false,
                         isSelected = guild.id == state.selectedGuild?.id,
                         onSelect = { component.onGuildSelected(guild.id) },
                         onLeave = { component.onGuildLeaveClicked(guild.id) },
@@ -275,6 +277,7 @@ fun SidebarContent(component: MainComponent, drawerState: DrawerState) {
                             label = channel.name,
                             channelId = channel.id,
                             isSelected = channel.id == state.selectedChannel?.id,
+                            isUnread = state.channelReadStates[channel.id] ?: false,
                             onSelect = { component.onChannelSelected(channel.id) },
                             onEdit = { component.onChannelEditClicked(channel.id) },
                             onDelete = { component.onChannelDeleteClicked(channel.id) },
@@ -282,7 +285,9 @@ fun SidebarContent(component: MainComponent, drawerState: DrawerState) {
                     } else {
                         SidebarChannelItem(
                             label = channel.name,
+                            channelId = channel.id,
                             isSelected = channel.id == state.selectedChannel?.id,
+                            isUnread = state.channelReadStates[channel.id] ?: false,
                             onSelect = { component.onChannelSelected(channel.id) },
                         )
                     }

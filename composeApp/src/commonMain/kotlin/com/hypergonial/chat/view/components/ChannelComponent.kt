@@ -179,6 +179,8 @@ interface ChannelComponent : MainContentComponent, Displayable {
  * @param client The client to use for API operations.
  * @param channelId The ID of the channel to display.
  * @param initialEditorState The initial state of the chat bar editor.
+ * @param onReadMessages The callback to call when the user read all messages in the channel. The channel ID is passed
+ *   as a parameter. This is generally faster than listening to MessageAckEvent as it is computed client-side.
  * @param onLogout The callback to call when the user logs out. Includes the http URL of the asset.
  */
 class DefaultChannelComponent(
@@ -187,6 +189,7 @@ class DefaultChannelComponent(
     private val channelId: Snowflake,
     private val guildId: Snowflake? = null,
     initialEditorState: TextFieldValue? = null,
+    private val onReadMessages: (Snowflake) -> Unit,
     private val onLogout: () -> Unit,
 ) : ChannelComponent, ComponentContext by ctx {
     private val scope = ctx.coroutineScope()
@@ -221,6 +224,10 @@ class DefaultChannelComponent(
             subscribeWithLifeCycle(ctx.lifecycle, ::onMessageDelete)
             subscribeWithLifeCycle(ctx.lifecycle, ::onReady)
         }
+        // Ack all messages in this channel since we are now viewing it
+        // TODO: Refine this when scroll state persistence is implemented
+        client.ackMessages(channelId)
+        onReadMessages(channelId)
     }
 
     override fun onLogoutClicked() = onLogout()
@@ -531,6 +538,7 @@ class DefaultChannelComponent(
 
     override fun onBottomReached() {
         client.ackMessages(channelId)
+        onReadMessages(channelId)
     }
 
     override fun onFileAttachRequested(isMedia: Boolean) {
@@ -661,6 +669,7 @@ class DefaultChannelComponent(
                 event.message.author.id != client.cache.ownUser?.id
         ) {
             client.ackMessages(channelId)
+            onReadMessages(channelId)
         }
     }
 

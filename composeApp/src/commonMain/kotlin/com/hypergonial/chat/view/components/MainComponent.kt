@@ -220,6 +220,7 @@ class DefaultMainComponent(
                         guildId = data.value.selectedGuild?.id,
                         channelId = config.channelId,
                         initialEditorState = lastEditorStates[config.channelId],
+                        onReadMessages = ::onClientAck,
                         onLogout = onLogout,
                     )
             }
@@ -235,7 +236,7 @@ class DefaultMainComponent(
             subscribeWithLifeCycle(ctx.lifecycle, ::onChannelCreate)
             subscribeWithLifeCycle(ctx.lifecycle, ::onChannelRemove)
             subscribeWithLifeCycle(ctx.lifecycle, ::onMessageCreate)
-            subscribeWithLifeCycle(ctx.lifecycle, ::onMessageAck)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onServerAck)
             subscribeWithLifeCycle(ctx.lifecycle, ::onChannelFocus)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildFocus)
             subscribeWithLifeCycle(ctx.lifecycle, ::onAssetFocus)
@@ -540,6 +541,10 @@ class DefaultMainComponent(
     }
 
     private fun onMessageCreate(event: MessageCreateEvent) {
+        if (event.message.author.id == client.cache.ownUser?.id) {
+            return
+        }
+
         if (event.message.channelId in data.value.channelReadStates) {
             // Unread happened in channel we can currently see
             data.value.channelReadStates[event.message.channelId] = true
@@ -551,13 +556,31 @@ class DefaultMainComponent(
         }
     }
 
-    private fun onMessageAck(event: MessageAckEvent) {
+    /** Handling acks coming from the backend (possibly other sessions) */
+    private fun onServerAck(event: MessageAckEvent) {
         if (event.channelId in data.value.channelReadStates) {
-            data.value.channelReadStates[event.messageId] = client.cache.isUnread(event.channelId)
+            data.value.channelReadStates[event.channelId] = client.cache.isUnread(event.channelId)
+            data.value.selectedGuild?.id?.let { guildId ->
+                data.value.guildReadStates[guildId] = client.cache.isGuildUnread(guildId)
+            }
         } else {
             val guildId = client.cache.getChannel(event.channelId)?.guildId ?: return
             // Recalculate if guild is unread
             data.value.guildReadStates[guildId] = client.cache.isGuildUnread(guildId)
+        }
+    }
+
+    /* Handling acks coming from the client */
+    private fun onClientAck(channelId: Snowflake) {
+        if (channelId in data.value.channelReadStates) {
+            data.value.channelReadStates[channelId] = false
+            data.value.selectedGuild?.id?.let { guildId ->
+                data.value.guildReadStates[guildId] = data.value.channelReadStates.values.any { isUnread -> isUnread }
+            }
+        } else {
+            // Client acks should only happen from the currently selected channel,
+            // which is in the currently selected guild
+            logger.w { "Client tried acking inactive channel, this should not happen." }
         }
     }
 

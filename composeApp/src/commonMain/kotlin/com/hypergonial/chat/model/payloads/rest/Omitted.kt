@@ -1,29 +1,31 @@
 package com.hypergonial.chat.model.payloads.rest
 
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
 import kotlin.js.JsName
 import kotlin.jvm.JvmName
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KProperty
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
 @Serializable(with = OmittedSerializer::class)
 sealed interface OmittedOr<out T> {
     data class Present<T>(var value: T) : OmittedOr<T>
+
     data object Omitted : OmittedOr<Nothing>
 
     companion object {
         operator fun <T> invoke(value: T): OmittedOr<T> = Present(value)
     }
 
-    fun getOrNull(): T? = when (this) {
-        is Present -> value
-        Omitted -> null
-    }
+    fun getOrNull(): T? =
+        when (this) {
+            is Present -> value
+            Omitted -> null
+        }
 }
 
 fun <V : Any> KMutableProperty0<OmittedOr<V>>.delegate(): ReadWriteProperty<Any?, V?> =
@@ -37,13 +39,11 @@ fun <V : Any> KMutableProperty0<OmittedOr<V>>.delegate(): ReadWriteProperty<Any?
         }
 
         override fun setValue(thisRef: Any?, property: KProperty<*>, value: V?) {
-            val omittedOr = if (value == null) OmittedOr.Omitted
-            else OmittedOr.Present(value)
+            val omittedOr = if (value == null) OmittedOr.Omitted else OmittedOr.Present(value)
 
             this@delegate.set(omittedOr)
         }
     }
-
 
 @JsName("nullableDelegate")
 @JvmName("nullableDelegate")
@@ -63,17 +63,19 @@ typealias Present<T> = OmittedOr.Present<T>
 
 typealias Omitted = OmittedOr.Omitted
 
-inline fun <T : Any, U : Any> OmittedOr<T>.map(mapper: (T) -> U): OmittedOr<U> = when (this) {
-    is Omitted -> this
-    is Present -> Present(mapper(value))
-}
+inline fun <T : Any, U : Any> OmittedOr<T>.map(mapper: (T) -> U): OmittedOr<U> =
+    when (this) {
+        is Omitted -> this
+        is Present -> Present(mapper(value))
+    }
 
 @JsName("nullableMap")
 @JvmName("nullableMap")
-inline fun <T : Any, U : Any> OmittedOr<T?>.map(mapper: (T) -> U): OmittedOr<U?> = when (this) {
-    is Omitted -> this
-    is Present -> Present(value?.let { mapper(it) })
-}
+inline fun <T : Any, U : Any> OmittedOr<T?>.map(mapper: (T) -> U): OmittedOr<U?> =
+    when (this) {
+        is Omitted -> this
+        is Present -> Present(value?.let { mapper(it) })
+    }
 
 class OmittedSerializer<T>(private val valueSerializer: KSerializer<T>) : KSerializer<OmittedOr<T>> {
     override val descriptor = valueSerializer.descriptor

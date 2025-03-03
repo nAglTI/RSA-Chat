@@ -80,11 +80,11 @@ import com.hypergonial.chat.view.components.MainComponent
 import com.hypergonial.chat.view.composables.AdaptiveDrawer
 import com.hypergonial.chat.view.composables.AltActionMenu
 import com.hypergonial.chat.view.composables.AssetViewerDialog
+import com.hypergonial.chat.view.composables.Avatar
 import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 import com.hypergonial.chat.view.composables.GuildIcon
 import com.hypergonial.chat.view.composables.SidebarChannelItem
 import com.hypergonial.chat.view.composables.SidebarGuildItem
-import com.hypergonial.chat.view.composables.Avatar
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)

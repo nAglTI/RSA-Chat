@@ -1,13 +1,10 @@
 package com.hypergonial.chat.model
 
-import co.touchlab.kermit.Logger
 import com.hypergonial.chat.SettingsExt.getSerializable
 import com.hypergonial.chat.SettingsExt.setSerializable
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.toSnowflake
 import com.russhwolf.settings.Settings
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 /** The base class for implementing a persistent settings store for the application */
 abstract class AppSettings {
@@ -124,18 +121,20 @@ abstract class AppSettings {
         cachedDevSettings = config
     }
 
-    /** Get the last opened guilds and channels
+    /**
+     * Get the last opened guilds and channels
      *
      * @return The last opened guilds and channels by this user
-     * */
+     */
     fun getLastOpenedPrefs(): LastOpenedPrefs {
         return userPreferences.getSerializable("LAST_OPENED_PREFS") ?: LastOpenedPrefs.default()
     }
 
-    /** Set the last opened guilds and channels
+    /**
+     * Set the last opened guilds and channels
      *
      * @param prefs The last opened guilds and channels by this user
-     * */
+     */
     fun setLastOpenedPrefs(prefs: LastOpenedPrefs) {
         userPreferences.setSerializable("LAST_OPENED_PREFS", prefs)
     }

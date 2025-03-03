@@ -2,7 +2,6 @@ package com.hypergonial.chat.model.payloads.rest
 
 import com.hypergonial.chat.toDataUrl
 import io.github.vinceglb.filekit.core.PlatformFile
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

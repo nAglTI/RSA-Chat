@@ -510,14 +510,15 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                 cache.putGuild(guild)
             }
 
-            val readyEvent = ReadyEvent(
-                ready.data.user,
-                ready.data.guilds,
-                ready.data.readStates.associate {
-                    it.channelId to ReadState(it.lastMessageId, it.lastReadMessageId)
-                },
-                isReconnect,
-            )
+            val readyEvent =
+                ReadyEvent(
+                    ready.data.user,
+                    ready.data.guilds,
+                    ready.data.readStates.associate {
+                        it.channelId to ReadState(it.lastMessageId, it.lastReadMessageId)
+                    },
+                    isReconnect,
+                )
 
             for ((channelId, readState) in readyEvent.readStates) {
                 cache.setReadState(channelId, readState)

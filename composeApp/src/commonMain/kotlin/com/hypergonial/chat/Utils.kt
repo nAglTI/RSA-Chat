@@ -177,8 +177,6 @@ fun genNonce(sessionId: String): String {
     return sessionId + "." + (0..16).map { chars.random() }.joinToString("")
 }
 
-
-
 object SettingsExt {
     val json = Json {
         ignoreUnknownKeys = true
@@ -191,7 +189,7 @@ object SettingsExt {
      * @param key The key to get the object for
      * @return The object or null if it does not exist
      */
-    inline fun <reified T>Settings.getSerializable(key: String): @Serializable T? {
+    inline fun <reified T> Settings.getSerializable(key: String): @Serializable T? {
         val value = this.getStringOrNull(key)
 
         return if (value.isNullOrEmpty()) null else json.decodeFromString(value)
@@ -203,7 +201,7 @@ object SettingsExt {
      * @param key The key to set the object for
      * @param value The object to set
      */
-    inline fun <reified T>Settings.setSerializable(key: String, value: @Serializable T) {
+    inline fun <reified T> Settings.setSerializable(key: String, value: @Serializable T) {
         val serialized = json.encodeToString(value)
 
         this.putString(key, serialized)

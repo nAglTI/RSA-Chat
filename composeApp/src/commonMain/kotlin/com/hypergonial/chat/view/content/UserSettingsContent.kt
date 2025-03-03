@@ -49,8 +49,8 @@ import com.hypergonial.chat.altClickable
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.components.UserSettingsComponent
 import com.hypergonial.chat.view.composables.AltActionMenu
-import com.hypergonial.chat.view.composables.ChatButton
 import com.hypergonial.chat.view.composables.Avatar
+import com.hypergonial.chat.view.composables.ChatButton
 
 @Composable
 fun UserSettingsTopBar(component: UserSettingsComponent) {

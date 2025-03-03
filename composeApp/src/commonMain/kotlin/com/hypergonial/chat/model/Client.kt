@@ -200,8 +200,8 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * Set a typing indicator in the given channel. Implementations are expected to keep displaying this for about 6
      * seconds, then remove it.
      *
-     * This function is safe to call multiple times in quick succession, as the client will only send the typing indicator
-     * every 5 seconds.
+     * This function is safe to call multiple times in quick succession, as the client will only send the typing
+     * indicator every 5 seconds.
      *
      * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the channel does not exist
      */
@@ -211,8 +211,8 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      * Acknowledge all messages in the given channel. This is used to mark messages until the current last message as
      * read.
      *
-     * This function is safe to call multiple times in quick succession, as the client will only send the ack 2
-     * seconds after the last call, cancelling any previous acks.
+     * This function is safe to call multiple times in quick succession, as the client will only send the ack 2 seconds
+     * after the last call, cancelling any previous acks.
      *
      * @param channelId The ID of the channel
      * @throws com.hypergonial.chat.model.exceptions.NotFoundException If the channel or message does not exist

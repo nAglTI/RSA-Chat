@@ -1,7 +1,6 @@
 package com.hypergonial.chat.model.payloads.gateway
 
 import com.hypergonial.chat.model.ChannelRemoveEvent
-import com.hypergonial.chat.model.Event
 import com.hypergonial.chat.model.payloads.Channel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

@@ -72,10 +72,7 @@ class ReadyEvent(
     val wasReconnect: Boolean = false,
 ) : Event()
 
-data class ReadState(
-    val lastMessageId: Snowflake?,
-    val lastReadMessageId: Snowflake?,
-)
+data class ReadState(val lastMessageId: Snowflake?, val lastReadMessageId: Snowflake?)
 
 /** Event dispatched when a user's presence is updated */
 class PresenceUpdateEvent(val userId: Snowflake, val presence: String) : Event()

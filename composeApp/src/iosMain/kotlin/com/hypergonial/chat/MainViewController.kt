@@ -4,7 +4,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -20,7 +19,6 @@ import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
 import com.hypergonial.chat.view.components.DefaultRootComponent
 import com.materialkolor.DynamicMaterialTheme
 import com.materialkolor.PaletteStyle
-import com.materialkolor.dynamicColorScheme
 import com.materialkolor.rememberDynamicMaterialThemeState
 import platform.UIKit.UIViewController
 
@@ -28,13 +26,13 @@ import platform.UIKit.UIViewController
 @Composable
 fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
 
-
-    val dynamicThemeState = rememberDynamicMaterialThemeState(
-        seedColor = Color(104, 165, 39),
-        isDark = useDarkTheme,
-        isAmoled = false,
-        style = PaletteStyle.TonalSpot,
-    )
+    val dynamicThemeState =
+        rememberDynamicMaterialThemeState(
+            seedColor = Color(104, 165, 39),
+            isDark = useDarkTheme,
+            isAmoled = false,
+            style = PaletteStyle.TonalSpot,
+        )
 
     CompositionLocalProvider(LocalUsingDarkTheme provides useDarkTheme) {
         DynamicMaterialTheme(state = dynamicThemeState, animate = true, content = content)

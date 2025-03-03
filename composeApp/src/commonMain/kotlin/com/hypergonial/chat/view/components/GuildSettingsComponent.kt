@@ -103,14 +103,11 @@ class DefaultGuildSettingsComponent(
         updateCanSave()
     }
 
-
     private fun onGuildUpdate(event: GuildUpdateEvent) {
         if (event.guild.id != guildId) return
 
-        data.value = data.value.copy(
-            guildName = event.guild.name,
-            avatarUrl = event.guild.avatarUrl ?: data.value.avatarUrl,
-        )
+        data.value =
+            data.value.copy(guildName = event.guild.name, avatarUrl = event.guild.avatarUrl ?: data.value.avatarUrl)
     }
 
     private fun onGuildRemove(event: GuildRemoveEvent) {
@@ -127,9 +124,7 @@ class DefaultGuildSettingsComponent(
         data.value = data.value.copy(canSave = false)
         scope.launch {
             try {
-                client.updateGuild(guildId) {
-                    name = data.value.guildName
-                }
+                client.updateGuild(guildId) { name = data.value.guildName }
             } catch (e: ClientException) {
                 data.value =
                     data.value.copy(
@@ -148,7 +143,8 @@ class DefaultGuildSettingsComponent(
     override fun onAvatarChangeRequested() {
         scope.launch {
             val file =
-                FileKit.pickFile(PickerType.Image, PickerMode.Single, title = "Select a new guild icon") ?: return@launch
+                FileKit.pickFile(PickerType.Image, PickerMode.Single, title = "Select a new guild icon")
+                    ?: return@launch
 
             file.getSize()?.let {
                 if (it > 2 * 1024 * 1024) {

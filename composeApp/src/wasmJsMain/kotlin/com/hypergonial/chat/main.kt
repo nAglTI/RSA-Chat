@@ -1,9 +1,6 @@
 package com.hypergonial.chat
 
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -18,7 +15,6 @@ import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
 import com.hypergonial.chat.view.components.DefaultRootComponent
 import com.materialkolor.DynamicMaterialTheme
 import com.materialkolor.PaletteStyle
-import com.materialkolor.dynamicColorScheme
 import com.materialkolor.rememberDynamicMaterialThemeState
 import com.mmk.kmpnotifier.notification.NotifierManager
 import com.mmk.kmpnotifier.notification.configuration.NotificationPlatformConfiguration
@@ -43,13 +39,13 @@ private fun LifecycleRegistry.attachToDocument() {
 @Composable
 fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
 
-
-    val dynamicThemeState = rememberDynamicMaterialThemeState(
-        seedColor = Color(104, 165, 39),
-        isDark = useDarkTheme,
-        isAmoled = false,
-        style = PaletteStyle.TonalSpot,
-    )
+    val dynamicThemeState =
+        rememberDynamicMaterialThemeState(
+            seedColor = Color(104, 165, 39),
+            isDark = useDarkTheme,
+            isAmoled = false,
+            style = PaletteStyle.TonalSpot,
+        )
 
     CompositionLocalProvider(LocalUsingDarkTheme provides useDarkTheme) {
         DynamicMaterialTheme(state = dynamicThemeState, animate = true, content = content)
@@ -62,10 +58,7 @@ fun main() {
     val stateKeeper = StateKeeperDispatcher(savedState = localStorage[KEY_SAVED_STATE]?.decodeSerializableContainer())
 
     NotifierManager.initialize(
-        NotificationPlatformConfiguration.Web(
-            askNotificationPermissionOnStart = true,
-            notificationIconPath = null
-        )
+        NotificationPlatformConfiguration.Web(askNotificationPermissionOnStart = true, notificationIconPath = null)
     )
 
     val root = DefaultRootComponent(ctx = DefaultComponentContext(lifecycle, stateKeeper))

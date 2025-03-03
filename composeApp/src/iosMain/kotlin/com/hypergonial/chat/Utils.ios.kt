@@ -11,10 +11,10 @@ import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import platform.Foundation.NSFileManager
 import platform.UIKit.UIImpactFeedbackGenerator
 import platform.UIKit.UIImpactFeedbackStyle.UIImpactFeedbackStyleRigid
 import platform.UIKit.UIPasteboard
-import platform.Foundation.NSFileManager
 
 @Composable
 actual fun Modifier.altClickable(onClick: () -> Unit): Modifier {

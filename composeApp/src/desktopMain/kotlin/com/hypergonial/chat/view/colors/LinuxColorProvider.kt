@@ -38,7 +38,7 @@ object LinuxColorProvider : ColorProvider {
 
                 res.value
             } catch (e: Exception) {
-                logger.w {"Failed to get accent color from XDG Desktop Portal: $e" }
+                logger.w { "Failed to get accent color from XDG Desktop Portal: $e" }
                 return null
             }
 

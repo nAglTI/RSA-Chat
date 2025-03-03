@@ -131,7 +131,6 @@ fun ChatBar(
                                     if (onFilesPasted != null) {
                                         onFilePasteStart?.invoke()
                                         scope.launch { clipboardManager.getFiles()?.let { onFilesPasted(it) } }
-
                                     }
                                     value.text
                                 }

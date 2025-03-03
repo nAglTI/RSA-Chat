@@ -49,8 +49,8 @@ import com.hypergonial.chat.altClickable
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.components.GuildSettingsComponent
 import com.hypergonial.chat.view.composables.AltActionMenu
-import com.hypergonial.chat.view.composables.ChatButton
 import com.hypergonial.chat.view.composables.Avatar
+import com.hypergonial.chat.view.composables.ChatButton
 
 @Composable
 fun GuildSettingsTopBar(component: GuildSettingsComponent) {
@@ -108,10 +108,10 @@ fun GuildSettingsContent(component: GuildSettingsComponent) {
                     IconButton(
                         onClick = component::onAvatarChangeRequested,
                         modifier =
-                        Modifier.hoverable(interactionSource)
-                            .pointerHoverIcon(PointerIcon.Hand)
-                            .altClickable { isAltActionMenuOpen = true }
-                            .requiredSize(100.dp),
+                            Modifier.hoverable(interactionSource)
+                                .pointerHoverIcon(PointerIcon.Hand)
+                                .altClickable { isAltActionMenuOpen = true }
+                                .requiredSize(100.dp),
                     ) {
                         Avatar(state.avatarUrl, state.guildName, size = 100.dp)
                     }

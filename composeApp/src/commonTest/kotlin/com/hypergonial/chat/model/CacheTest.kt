@@ -44,8 +44,6 @@ class CacheTest {
         assertTrue(cache.typingIndicators.isEmpty())
     }
 
-
-
     @Test
     fun testAddingSingleMessages() {
         val cache = Cache()
@@ -129,9 +127,7 @@ class CacheTest {
             cache.registerMessageCacheFor(channelSnowflake)
 
             // Add a message to each channel
-            cache.addMessage(
-                createMessage(i).copy(channelId = channelSnowflake),
-            )
+            cache.addMessage(createMessage(i).copy(channelId = channelSnowflake))
         }
 
         // We should only have messages cached for the most recent channels

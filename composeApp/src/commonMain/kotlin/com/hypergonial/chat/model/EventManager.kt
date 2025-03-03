@@ -5,8 +5,8 @@ import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import kotlin.reflect.KClass
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 /** A type that has an event manager. */
 interface EventManagerAware {
@@ -14,10 +14,7 @@ interface EventManagerAware {
 }
 
 // Opt-In annotation for internal event manager API
-@RequiresOptIn(
-    level = RequiresOptIn.Level.WARNING,
-    message = "This API is for internal use only.",
-)
+@RequiresOptIn(level = RequiresOptIn.Level.WARNING, message = "This API is for internal use only.")
 @Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
 annotation class InternalEventManagerApi
@@ -48,7 +45,10 @@ private sealed class Instruction {
     /** Subscribe to an event type with the provided subscriber. */
     class Subscribe(val event: KClass<out Event>, val subscriber: EventSubscriber<out Event>) : Instruction()
 
-    /** Subscribe to the internal event queue. This event queue is guaranteed to receive events before the "public" queue. */
+    /**
+     * Subscribe to the internal event queue. This event queue is guaranteed to receive events before the "public"
+     * queue.
+     */
     class SubscribeInternal(val event: KClass<out Event>, val subscriber: EventSubscriber<out Event>) : Instruction()
 
     /** Unsubscribe from an event type with the provided subscriber. */
@@ -179,23 +179,27 @@ class EventManager {
         inner.sendMessage(Instruction.Subscribe(eventType, EventSubscriber(callback)))
     }
 
-    /** Subscribe to the internal event queue. This event queue is guaranteed to receive events before the "public" queue.
+    /**
+     * Subscribe to the internal event queue. This event queue is guaranteed to receive events before the "public"
+     * queue.
      *
      * @param callback The callback to call when an event of the given type is dispatched.
-     * */
+     */
     @InternalEventManagerApi
     internal inline fun <reified T : Event> subscribeInternal(noinline callback: suspend (T) -> Unit) {
         subscribeInternal(T::class, callback)
     }
 
-    /** Subscribe to the internal event queue. This event queue is guaranteed to receive events before the "public" queue.
+    /**
+     * Subscribe to the internal event queue. This event queue is guaranteed to receive events before the "public"
+     * queue.
      *
-     * Caution: If an internal subscriber does not finish its work, the public subscribers will not be called.
-     *   All internal subscribers *must* return in order for the public subscribers to be called.
+     * Caution: If an internal subscriber does not finish its work, the public subscribers will not be called. All
+     * internal subscribers *must* return in order for the public subscribers to be called.
      *
      * @param eventType The type of event to subscribe to.
      * @param callback The callback to call when an event of the given type is dispatched.
-     * */
+     */
     @InternalEventManagerApi
     internal fun <T : Event> subscribeInternal(eventType: KClass<T>, callback: suspend (T) -> Unit) {
         inner.sendMessage(Instruction.SubscribeInternal(eventType, EventSubscriber(callback)))
@@ -241,20 +245,22 @@ class EventManager {
         inner.sendMessage(Instruction.Unsubscribe(eventType, EventSubscriber(callback)))
     }
 
-    /** Unsubscribe from the internal event queue.
+    /**
+     * Unsubscribe from the internal event queue.
      *
      * @param callback The callback to remove from the subscribers list.
-     * */
+     */
     @InternalEventManagerApi
     internal inline fun <reified T : Event> unsubscribeInternal(noinline callback: suspend (T) -> Unit) {
         unsubscribeInternal(T::class, callback)
     }
 
-    /** Unsubscribe from the internal event queue.
+    /**
+     * Unsubscribe from the internal event queue.
      *
      * @param eventType The type of event to unsubscribe from.
      * @param callback The callback to remove from the subscribers list.
-     * */
+     */
     @InternalEventManagerApi
     internal fun <T : Event> unsubscribeInternal(eventType: KClass<T>, callback: suspend (T) -> Unit) {
         inner.sendMessage(Instruction.UnsubscribeInternal(eventType, EventSubscriber(callback)))

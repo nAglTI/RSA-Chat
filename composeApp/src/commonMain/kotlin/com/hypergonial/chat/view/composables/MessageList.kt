@@ -75,7 +75,6 @@ import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeBlock
 import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeFence
 import com.mikepenz.markdown.compose.elements.MarkdownText
 import com.mikepenz.markdown.m3.Markdown
-import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
 import dev.snipme.highlights.Highlights
 import dev.snipme.highlights.model.SyntaxThemes
@@ -277,8 +276,9 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
                 },
             )
         } else {
-            val textColor = if (state.isFailed) MaterialTheme.colorScheme.error
-            else if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground
+            val textColor =
+                if (state.isFailed) MaterialTheme.colorScheme.error
+                else if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground
 
             Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Markdown(
@@ -308,13 +308,13 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
                                 MaterialTheme.typography.bodyMedium.copy(
                                     fontWeight = FontWeight.Light,
                                     fontSize = 15.sp,
-                                    color = textColor
+                                    color = textColor,
                                 ),
                             paragraph =
                                 MaterialTheme.typography.bodyMedium.copy(
                                     fontWeight = FontWeight.Light,
                                     fontSize = 15.sp,
-                                    color = textColor
+                                    color = textColor,
                                 ),
                             quote =
                                 MaterialTheme.typography.bodyMedium.copy(

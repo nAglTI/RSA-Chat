@@ -4,6 +4,10 @@ import androidx.compose.foundation.LocalContextMenuRepresentation
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -66,7 +70,7 @@ fun main() {
 
         NotifierManager.initialize(
             NotificationPlatformConfiguration.Desktop(
-                showPushNotification = true,
+                showPushNotification = false,
                 notificationIconPath =
                     "${composeDesktopResourcesPath()}${File.separator}drawable${File.separator}chat_icon.png",
             )
@@ -84,15 +88,14 @@ fun main() {
                 false
             },
         ) {
-            // TODO: Handle window focus events for notifs
             window.addWindowFocusListener(
                 object : WindowFocusListener {
                     override fun windowGainedFocus(e: WindowEvent) {
-                        println("Window gained focus")
+                        root.onFocusGain()
                     }
 
                     override fun windowLostFocus(e: WindowEvent) {
-                        println("Window lost focus")
+                        root.onFocusLoss()
                     }
                 }
             )

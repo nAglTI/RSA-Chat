@@ -790,6 +790,8 @@ class DefaultChannelComponent(
     }
 
     override fun onChatBarContentChanged(value: TextFieldValue) {
+        if (value.text == data.value.chatBarValue.text) return
+
         data.value = data.value.copy(chatBarValue = value.sanitized())
 
         if (value.text == "/type_test") {

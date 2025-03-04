@@ -49,8 +49,12 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,12 +74,14 @@ import com.hypergonial.chat.view.components.subcomponents.EndOfMessages
 import com.hypergonial.chat.view.components.subcomponents.LoadMoreMessagesIndicator
 import com.hypergonial.chat.view.components.subcomponents.MessageComponent
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
+import com.mikepenz.markdown.compose.LocalMarkdownTypography
 import com.mikepenz.markdown.compose.components.markdownComponents
 import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeBlock
 import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeFence
 import com.mikepenz.markdown.compose.elements.MarkdownText
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownTypography
+import com.mikepenz.markdown.utils.getUnescapedTextInNode
 import dev.snipme.highlights.Highlights
 import dev.snipme.highlights.model.SyntaxThemes
 
@@ -280,6 +286,8 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
                 if (state.isFailed) MaterialTheme.colorScheme.error
                 else if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground
 
+            val primary = MaterialTheme.colorScheme.primary
+
             Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Markdown(
                     state.message.content ?: "TODO: No content - HANDLEME",
@@ -386,6 +394,48 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+@Composable
+fun ChatMarkdownText(
+    content: String,
+    modifier: Modifier = Modifier,
+    style: TextStyle = LocalMarkdownTypography.current.text,
+) {
+    throw Exception()
+    val mentionRegex = "<@(\\d+)>".toRegex()
+    val annotatedString = buildAnnotatedString {
+        val matches = mentionRegex.findAll(content)
+        var lastIndex = 0
+
+        withStyle(style.toSpanStyle()) {
+            if (matches.none()) {
+                append(content)
+                return@withStyle
+            }
+
+            for (match in matches) {
+                // Append text before the match
+                if (match.range.first > lastIndex) {
+                    append(content.substring(lastIndex, match.range.first))
+                }
+
+                // Append the mention with primary color
+                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)) {
+                    append("@user${match.groupValues[1]}")
+                }
+
+                lastIndex = match.range.last + 1
+            }
+
+            // Append any remaining text
+            if (lastIndex < content.length) {
+                append(content.substring(lastIndex))
+            }
+        }
+    }
+
+    MarkdownText(annotatedString, modifier, style)
 }
 
 @Composable

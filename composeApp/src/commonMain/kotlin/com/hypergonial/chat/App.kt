@@ -15,7 +15,6 @@ import com.hypergonial.chat.view.components.RootComponent
 
 val LocalUsingDarkTheme = compositionLocalOf { false }
 
-@OptIn(ExperimentalDecomposeApi::class)
 @Composable
 fun App(root: RootComponent) {
     setSingletonImageLoaderFactory { context ->

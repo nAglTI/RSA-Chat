@@ -1,5 +1,6 @@
 package com.hypergonial.chat
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -19,6 +20,7 @@ import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.view.components.DefaultRootComponent
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamicColorScheme
+import com.mmk.kmpnotifier.extensions.onCreateOrOnNewIntent
 import com.mmk.kmpnotifier.notification.NotifierManager
 import com.mmk.kmpnotifier.notification.configuration.NotificationPlatformConfiguration
 import com.mmk.kmpnotifier.permission.permissionUtil
@@ -39,6 +41,7 @@ class MainActivity : ComponentActivity() {
                     showPushNotification = false,
                 )
         )
+        NotifierManager.onCreateOrOnNewIntent(intent)
 
         val permissionUtil by permissionUtil()
         permissionUtil.askNotificationPermission()
@@ -64,6 +67,11 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         ContextHelper.retrieveAppContext = { null }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        NotifierManager.onCreateOrOnNewIntent(intent)
     }
 
     private fun initializeStorage() {

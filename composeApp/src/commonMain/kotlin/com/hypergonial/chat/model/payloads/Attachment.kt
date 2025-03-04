@@ -38,5 +38,8 @@ data class Attachment(val id: Int, val filename: String, @SerialName("content_ty
                 Mime("image", "tiff"),
                 // TODO: Add gif once https://github.com/coil-kt/coil/pull/2594 gets merged
             )
+
+        /** A list of supported formats that can be displayed in notifications. */
+        val supportedNotificationImageFormats = supportedEmbedFormats
     }
 }

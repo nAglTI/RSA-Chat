@@ -21,7 +21,9 @@ import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.FocusChannelEvent
 import com.hypergonial.chat.model.FocusGuildEvent
 import com.hypergonial.chat.model.InvalidationReason
+import com.hypergonial.chat.model.MessageCreateEvent
 import com.hypergonial.chat.model.SessionInvalidatedEvent
+import com.hypergonial.chat.model.payloads.Attachment
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.view.components.prompts.CreateChannelComponent
@@ -32,6 +34,9 @@ import com.hypergonial.chat.view.components.prompts.DefaultJoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.DefaultNewGuildComponent
 import com.hypergonial.chat.view.components.prompts.JoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.NewGuildComponent
+import com.hypergonial.chat.view.sendNotification
+import com.mmk.kmpnotifier.notification.NotificationImage
+import com.mmk.kmpnotifier.notification.NotifierManager
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
@@ -56,6 +61,12 @@ interface RootComponent : BackHandlerOwner {
      * @param toIndex The index to pop to
      */
     fun onBackClicked(toIndex: Int)
+
+    /** Invoked when the application loses focus */
+    fun onFocusLoss()
+
+    /** Invoked when the application gains focus */
+    fun onFocusGain()
 
     /** The valid child components of the root component */
     sealed class Child(open val component: Displayable) {
@@ -86,6 +97,7 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
     private val scope = ctx.coroutineScope()
     private val client: Client = retainedInstance { ChatClient(scope) }
     private val nav = StackNavigation<Config>()
+    private var isAppFocused = true
 
     private val _stack =
         childStack(
@@ -100,12 +112,19 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
 
     init {
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onSessionInvalidated)
+        client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessage)
         // If we are already logged in, connect to the gateway
         scope.launch { if (client.isLoggedIn()) client.connect() }
 
         if (platform.needsToSuspendClient()) {
             manageClientLifecycle()
         }
+
+        /*scope.launch {
+            if (platform.isMobile()) {
+                Logger.e { NotifierManager.getPushNotifier().getToken().toString() }
+            }
+        }*/
     }
 
     /**
@@ -290,6 +309,43 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
 
     override fun onBackClicked(toIndex: Int) {
         nav.popTo(index = toIndex)
+    }
+
+    override fun onFocusLoss() {
+        isAppFocused = false
+        println("App lost focus")
+    }
+
+    override fun onFocusGain() {
+        isAppFocused = true
+        println("App gained focus")
+    }
+
+    // Trigger local notifications when the app is not focused
+    private fun onMessage(event: MessageCreateEvent) {
+        if (isAppFocused || event.message.author.id == client.cache.ownUser?.id) {
+            return
+        }
+        val channel = client.cache.getChannel(event.message.channelId) ?: return
+
+        sendNotification {
+            id = event.message.id.toULong().toInt()
+
+            title = "@${event.message.author.username} in #${channel.name}:"
+            body =
+                if (event.message.content?.let { it.length > 100 } == true) {
+                    event.message.content.take(100) + "..."
+                } else {
+                    event.message.content ?: "No content provided."
+                }
+
+            val attachment =
+                event.message.attachments.firstOrNull { it.contentType in Attachment.supportedNotificationImageFormats }
+
+            if (attachment != null) {
+                image = NotificationImage.Url(attachment.makeUrl(event.message))
+            }
+        }
     }
 
     /** Handling for web paths. */

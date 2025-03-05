@@ -48,6 +48,8 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -74,16 +76,22 @@ import com.hypergonial.chat.view.components.subcomponents.EndOfMessages
 import com.hypergonial.chat.view.components.subcomponents.LoadMoreMessagesIndicator
 import com.hypergonial.chat.view.components.subcomponents.MessageComponent
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
+import com.mikepenz.markdown.annotator.annotatorSettings
+import com.mikepenz.markdown.annotator.buildMarkdownAnnotatedString
 import com.mikepenz.markdown.compose.LocalMarkdownTypography
 import com.mikepenz.markdown.compose.components.markdownComponents
+import com.mikepenz.markdown.compose.elements.MarkdownHeader
 import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeBlock
 import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeFence
 import com.mikepenz.markdown.compose.elements.MarkdownText
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownTypography
-import com.mikepenz.markdown.utils.getUnescapedTextInNode
 import dev.snipme.highlights.Highlights
 import dev.snipme.highlights.model.SyntaxThemes
+import org.intellij.markdown.IElementType
+import org.intellij.markdown.MarkdownTokenTypes
+import org.intellij.markdown.ast.ASTNode
+import org.intellij.markdown.ast.findChildOfType
 
 val LocalHighlights = compositionLocalOf { Highlights.Builder() }
 
@@ -303,6 +311,13 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
                             },
                             // Ignore horizontal lines
                             horizontalRule = { MarkdownText(it.content) },
+                            paragraph = { ChatParagraph(it.content, it.node, style = it.typography.paragraph) },
+                            heading1 = { ChatHeader(it.content, it.node, style = it.typography.h1) },
+                            heading2 = { ChatHeader(it.content, it.node, style = it.typography.h2) },
+                            heading3 = { ChatHeader(it.content, it.node, style = it.typography.h3) },
+                            heading4 = { ChatHeader(it.content, it.node, style = it.typography.h4) },
+                            heading5 = { ChatHeader(it.content, it.node, style = it.typography.h5) },
+                            heading6 = { ChatHeader(it.content, it.node, style = it.typography.h6) },
                         ),
                     typography =
                         markdownTypography(
@@ -397,45 +412,110 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ChatMarkdownText(
+fun ChatParagraph(
     content: String,
+    node: ASTNode,
     modifier: Modifier = Modifier,
-    style: TextStyle = LocalMarkdownTypography.current.text,
+    style: TextStyle = LocalMarkdownTypography.current.paragraph,
 ) {
-    throw Exception()
-    val mentionRegex = "<@(\\d+)>".toRegex()
-    val annotatedString = buildAnnotatedString {
-        val matches = mentionRegex.findAll(content)
-        var lastIndex = 0
-
-        withStyle(style.toSpanStyle()) {
-            if (matches.none()) {
-                append(content)
-                return@withStyle
-            }
-
-            for (match in matches) {
-                // Append text before the match
-                if (match.range.first > lastIndex) {
-                    append(content.substring(lastIndex, match.range.first))
-                }
-
-                // Append the mention with primary color
-                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)) {
-                    append("@user${match.groupValues[1]}")
-                }
-
-                lastIndex = match.range.last + 1
-            }
-
-            // Append any remaining text
-            if (lastIndex < content.length) {
-                append(content.substring(lastIndex))
-            }
-        }
+    val annotatorSettings = annotatorSettings()
+    val styledText = buildAnnotatedString {
+        pushStyle(style.toSpanStyle())
+        buildMarkdownAnnotatedString(content = content, node = node, annotatorSettings = annotatorSettings)
+        pop()
     }
 
-    MarkdownText(annotatedString, modifier, style)
+    MarkdownText(styledText.processChatFormatting(), modifier = modifier, style = style)
+}
+
+@Composable
+fun ChatHeader(
+    content: String,
+    node: ASTNode,
+    style: TextStyle,
+    contentChildType: IElementType = MarkdownTokenTypes.ATX_CONTENT,
+) = ChatText(
+    modifier = Modifier.semantics {
+        heading()
+    },
+    content = content,
+    node = node,
+    style = style,
+    contentChildType = contentChildType,
+)
+
+
+@Composable
+fun ChatText(
+    content: String,
+    node: ASTNode,
+    style: TextStyle,
+    modifier: Modifier = Modifier,
+    contentChildType: IElementType? = null,
+) {
+    val annotatorSettings = annotatorSettings()
+    val childNode = contentChildType?.run(node::findChildOfType) ?: node
+
+    val styledText = buildAnnotatedString {
+        pushStyle(style.toSpanStyle())
+        buildMarkdownAnnotatedString(
+            content = content,
+            node = childNode,
+            annotatorSettings = annotatorSettings
+        )
+        pop()
+    }
+
+    MarkdownText(styledText.processChatFormatting(), modifier = modifier, style = style)
+}
+
+@Composable
+fun AnnotatedString.processChatFormatting(): AnnotatedString {
+    val mentionRegex = "<@(\\d+)>".toRegex()
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    return replaceInAnnotatedString(this, mentionRegex) { matchResult ->
+        val userId = matchResult.groupValues[1].toInt()
+        println("Mention with user ID: $userId")
+        val userName = "username"
+        buildAnnotatedString { withStyle(SpanStyle(color = primaryColor)) { append("@${userName}") } }
+    }
+}
+
+fun replaceInAnnotatedString(
+    original: AnnotatedString,
+    pattern: Regex,
+    transform: (MatchResult) -> AnnotatedString,
+): AnnotatedString {
+    val matches = pattern.findAll(original.text).toList()
+    if (matches.isEmpty()) return original
+
+    return buildAnnotatedString {
+        var currentIndex = 0
+
+        matches.forEach { match ->
+            val rangeStart = match.range.first
+            val rangeEnd = match.range.last + 1
+
+            // Append text before the match with original styling
+            if (rangeStart > currentIndex) {
+                val textBefore = original.subSequence(currentIndex, rangeStart)
+                append(textBefore)
+            }
+
+            // Apply the transformed text for the match
+            val replacement = transform(match)
+            append(replacement)
+
+            currentIndex = rangeEnd
+        }
+
+        // Append any remaining text after the last match
+        if (currentIndex < original.text.length) {
+            val textAfter = original.subSequence(currentIndex, original.text.length)
+            append(textAfter)
+        }
+    }
 }
 
 @Composable

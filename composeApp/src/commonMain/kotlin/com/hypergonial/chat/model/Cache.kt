@@ -1,6 +1,7 @@
 package com.hypergonial.chat.model
 
 import co.touchlab.kermit.Logger
+import com.hypergonial.chat.levenshteinDistance
 import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Guild
 import com.hypergonial.chat.model.payloads.Member
@@ -53,7 +54,7 @@ class Cache(private val cachedChannelsCount: Int = 10) : SynchronizedObject() {
 
     private val _readStates: MutableMap<Snowflake, ReadState> = hashMapOf()
 
-    private val _members: MutableMap<Pair<Snowflake, Snowflake>, Member> = hashMapOf()
+    private val _members: MutableMap<Snowflake, MutableMap<Snowflake, Member>> = hashMapOf()
 
     private val logger = Logger.withTag("Cache")
 
@@ -70,7 +71,7 @@ class Cache(private val cachedChannelsCount: Int = 10) : SynchronizedObject() {
         get() = _users
 
     /** A map of all members in the cache, keyed by a pair of guild ID and user ID. */
-    val members: Map<Pair<Snowflake, Snowflake>, Member>
+    val members: Map<Snowflake, MutableMap<Snowflake, Member>>
         get() = _members
 
     /** A map of all typing indicators in the cache, keyed by channel ID. */
@@ -291,8 +292,50 @@ class Cache(private val cachedChannelsCount: Int = 10) : SynchronizedObject() {
      */
     fun getMember(guildId: Snowflake, userId: Snowflake): Member? {
         synchronized(this) {
-            return _members[Pair(guildId, userId)]
+            return _members[guildId]?.get(userId)
         }
+    }
+
+    /**
+     * Returns all members in the cache for the given guild.
+     *
+     * @param guildId The ID of the guild to get members for.
+     * @return A list of members in the given guild.
+     */
+    fun getGuildMembers(guildId: Snowflake): List<Member> {
+        synchronized(this) {
+            return _members[guildId]?.values?.toList() ?: emptyList()
+        }
+    }
+
+    /**
+     * Returns members that match the input string the closest.
+     *
+     * @param guildId The ID of the guild to get members for.
+     * @param input The input string to match against.
+     * @param count The maximum number of members to return.
+     * @return A list of members in the given guild that match the input string the closest.
+     */
+    fun getClosestMemberMatches(guildId: Snowflake, input: String, count: Int = 10): List<Member> {
+        val members = getGuildMembers(guildId)
+
+        if (input == "") {
+            // Always try to include ourselves in the list first
+            val ownMember = getMember(guildId, ownUser?.id ?: return members.take(count)) ?: return members.take(count)
+
+            return listOf(ownMember) + members.take(count - 1)
+        }
+
+        return members
+            .sortedBy { member ->
+                // Calculate minimum distance among all possible names
+                minOf(
+                    member.username.levenshteinDistance(input),
+                    member.displayName?.levenshteinDistance(input) ?: Int.MAX_VALUE,
+                    member.nickname?.levenshteinDistance(input) ?: Int.MAX_VALUE,
+                )
+            }
+            .take(count)
     }
 
     /**
@@ -336,7 +379,8 @@ class Cache(private val cachedChannelsCount: Int = 10) : SynchronizedObject() {
      *
      * @param member The member to insert or update.
      */
-    internal fun putMember(member: Member) = synchronized(this) { _members[Pair(member.guildId, member.id)] = member }
+    internal fun putMember(member: Member) =
+        synchronized(this) { _members.getOrPut(member.guildId) { HashMap() }[member.id] = member }
 
     /**
      * Insert or update the current user in the cache.
@@ -499,7 +543,7 @@ class Cache(private val cachedChannelsCount: Int = 10) : SynchronizedObject() {
                 if (readState.lastReadMessageId != null) readState.lastReadMessageId.createdAt
                 else {
                     val guild = _channels[channelId]?.guildId ?: return true
-                    val member = _members[Pair(guild, _ownUser!!.id)] ?: return true
+                    val member = _members[guild]?.get(ownUser!!.id) ?: return true
                     member.joinedAt
                 }
             val lastMessageTime = readState.lastMessageId?.createdAt ?: return false
@@ -550,10 +594,9 @@ class Cache(private val cachedChannelsCount: Int = 10) : SynchronizedObject() {
     internal fun dropGuild(guildId: Snowflake) {
         synchronized(this) {
             val guildChannels = _channels.filterValues { it.guildId == guildId }.map { it.value.id }
-            val guildMembers = _members.filterKeys { it.first == guildId }.map { it.value.id }
 
             guildChannels.forEach { dropChannel(it) }
-            guildMembers.forEach { dropMember(guildId, it) }
+            _members.remove(guildId)
             _guilds.remove(guildId)
         }
     }
@@ -584,7 +627,7 @@ class Cache(private val cachedChannelsCount: Int = 10) : SynchronizedObject() {
      * @param userId The ID of the member to drop.
      */
     internal fun dropMember(guildId: Snowflake, userId: Snowflake) {
-        synchronized(this) { _members.remove(Pair(guildId, userId)) }
+        synchronized(this) { _members[guildId]?.remove(userId) }
     }
 
     /**

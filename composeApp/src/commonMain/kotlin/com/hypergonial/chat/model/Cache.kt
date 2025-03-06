@@ -653,7 +653,7 @@ class Cache(private val cachedChannelsCount: Int = 10) : SynchronizedObject() {
             var idx = indexOfFirst { it.channelId == channelId }
             if (idx == -1) {
                 if (size >= cachedChannelsCount) {
-                    removeFirst()
+                    removeAt(0)
                 }
 
                 add(MessageCache(channelId))

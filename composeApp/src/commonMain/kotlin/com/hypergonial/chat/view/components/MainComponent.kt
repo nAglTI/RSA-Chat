@@ -368,8 +368,7 @@ class DefaultMainComponent(
                 )
         )
         if (closeSidebar) {
-            data.value =
-                data.value.copy(navDrawerCommand = MainComponent.NavDrawerCommand.CLOSE.containAsEffect())
+            data.value = data.value.copy(navDrawerCommand = MainComponent.NavDrawerCommand.CLOSE.containAsEffect())
         }
     }
 

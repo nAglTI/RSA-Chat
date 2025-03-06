@@ -37,6 +37,7 @@ interface Notification : DBusInterface {
 
     @DBusMemberName("RemoveNotification") fun removeNotification(id: String)
 
+    @Suppress("ConstructorParameterNaming")
     class ActionInvoked(_path: String, val id: String, val action: String, val parameter: List<Variant<*>>) :
         DBusSignal(_path, id, action, parameter)
 

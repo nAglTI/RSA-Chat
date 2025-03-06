@@ -1,6 +1,5 @@
 package com.hypergonial.chat.view.components
 
-import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
@@ -36,7 +35,6 @@ import com.hypergonial.chat.view.components.prompts.JoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.NewGuildComponent
 import com.hypergonial.chat.view.sendNotification
 import com.mmk.kmpnotifier.notification.NotificationImage
-import com.mmk.kmpnotifier.notification.NotifierManager
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName

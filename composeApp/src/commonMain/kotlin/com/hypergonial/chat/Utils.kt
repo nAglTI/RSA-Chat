@@ -511,12 +511,12 @@ fun KeyEvent.isPasteGesture(): Boolean = isModifierGesture(Key.V)
 expect suspend fun ClipboardManager.getFiles(): List<PlatformFile>?
 
 // See: https://en.wikipedia.org/wiki/Levenshtein_distance#Iterative_with_full_matrix
-/** Calculate the Levenshtein distance between two strings.
+/**
+ * Calculate the Levenshtein distance between two strings.
  *
  * @param other The other string to compare to
- *
  * @return The Levenshtein distance between the two strings
- * */
+ */
 fun String.levenshteinDistance(other: String): Int {
     val m = this.length
     val n = other.length
@@ -540,11 +540,12 @@ fun String.levenshteinDistance(other: String): Int {
             val cost = if (this[i - 1] == other[j - 1]) 0 else 1
 
             // Minimum of deletion, insertion, or substitution
-            dp[i][j] = minOf(
-                dp[i - 1][j] + 1,      // deletion
-                dp[i][j - 1] + 1,      // insertion
-                dp[i - 1][j - 1] + cost // substitution
-            )
+            dp[i][j] =
+                minOf(
+                    dp[i - 1][j] + 1, // deletion
+                    dp[i][j - 1] + 1, // insertion
+                    dp[i - 1][j - 1] + cost, // substitution
+                )
         }
     }
 

@@ -45,9 +45,6 @@ import com.hypergonial.chat.view.composables.ChatButton
 import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 import com.hypergonial.chat.view.composables.PasswordTextField
 import com.hypergonial.chat.view.sendNotification
-import com.mmk.kmpnotifier.notification.NotificationImage
-import com.mmk.kmpnotifier.notification.Notifier
-import com.mmk.kmpnotifier.notification.NotifierManager
 import kotlin.random.Random
 import org.jetbrains.compose.resources.painterResource
 

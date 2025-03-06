@@ -80,7 +80,6 @@ import com.mikepenz.markdown.annotator.annotatorSettings
 import com.mikepenz.markdown.annotator.buildMarkdownAnnotatedString
 import com.mikepenz.markdown.compose.LocalMarkdownTypography
 import com.mikepenz.markdown.compose.components.markdownComponents
-import com.mikepenz.markdown.compose.elements.MarkdownHeader
 import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeBlock
 import com.mikepenz.markdown.compose.elements.MarkdownHighlightedCodeFence
 import com.mikepenz.markdown.compose.elements.MarkdownText
@@ -434,16 +433,14 @@ fun ChatHeader(
     node: ASTNode,
     style: TextStyle,
     contentChildType: IElementType = MarkdownTokenTypes.ATX_CONTENT,
-) = ChatText(
-    modifier = Modifier.semantics {
-        heading()
-    },
-    content = content,
-    node = node,
-    style = style,
-    contentChildType = contentChildType,
-)
-
+) =
+    ChatText(
+        modifier = Modifier.semantics { heading() },
+        content = content,
+        node = node,
+        style = style,
+        contentChildType = contentChildType,
+    )
 
 @Composable
 fun ChatText(
@@ -458,11 +455,7 @@ fun ChatText(
 
     val styledText = buildAnnotatedString {
         pushStyle(style.toSpanStyle())
-        buildMarkdownAnnotatedString(
-            content = content,
-            node = childNode,
-            annotatorSettings = annotatorSettings
-        )
+        buildMarkdownAnnotatedString(content = content, node = childNode, annotatorSettings = annotatorSettings)
         pop()
     }
 
@@ -475,7 +468,7 @@ fun AnnotatedString.processChatFormatting(): AnnotatedString {
     val primaryColor = MaterialTheme.colorScheme.primary
 
     return replaceInAnnotatedString(this, mentionRegex) { matchResult ->
-        val userId = matchResult.groupValues[1].toInt()
+        // val userId = matchResult.groupValues[1].toInt()
         val userName = "username"
         buildAnnotatedString { withStyle(SpanStyle(color = primaryColor)) { append("@${userName}") } }
     }

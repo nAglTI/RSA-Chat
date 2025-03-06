@@ -386,7 +386,6 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             // Abstract away raw typing events, do not dispatch TYPING_START on indicator updates
             if (msg is TypingStart) {
                 if (cache.updateTypingIndicator(msg.data.channelId, msg.data.userId)) {
-                    logger.d { "Dispatching event: 'TypingStartEvent'" }
                     eventManager.dispatch(TypingStartEvent(msg.data.channelId, msg.data.userId))
                 }
                 continue
@@ -395,14 +394,12 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             // Remove typing indicators when a message is created by that user
             if (msg is MessageCreate) {
                 if (cache.removeTypingIndicator(msg.message.channelId, msg.message.author.id)) {
-                    logger.d { "Dispatching event: 'TypingEndEvent'" }
                     eventManager.dispatch(TypingEndEvent(msg.message.channelId, msg.message.author.id))
                 }
             }
 
             if (msg is EventConvertible) {
                 val event = msg.toEvent()
-                logger.d { "Dispatching event: '${event::class.simpleName}'" }
                 eventManager.dispatch(event)
             }
         }

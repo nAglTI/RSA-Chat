@@ -1,7 +1,6 @@
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
@@ -19,9 +18,7 @@ plugins {
 }
 
 kotlin {
-    androidTarget {
-        compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
-    }
+    androidTarget { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
 
     listOf(iosX64(), iosArm64(), iosSimulatorArm64()).forEach { iosTarget ->
         iosTarget.binaries.framework {
@@ -153,9 +150,7 @@ kotlin {
             // Notifications
             api(libs.kmpnotifier)
         }
-        commonTest.dependencies {
-            implementation(kotlin("test"))
-        }
+        commonTest.dependencies { implementation(kotlin("test")) }
 
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
@@ -229,7 +224,7 @@ compose.desktop {
             packageVersion = "1.0.0"
 
             // Needed by filekit
-            modules("jdk.security.auth")
+            linux { modules("jdk.security.auth") }
         }
 
         buildTypes.release.proguard {
@@ -280,6 +275,4 @@ tasks.withType<Detekt>().configureEach {
 
 tasks.withType<Detekt>().configureEach { jvmTarget = "17" }
 
-tasks.withType<DetektCreateBaselineTask>().configureEach {
-    jvmTarget = "17"
-}
+tasks.withType<DetektCreateBaselineTask>().configureEach { jvmTarget = "17" }

@@ -476,7 +476,6 @@ fun AnnotatedString.processChatFormatting(): AnnotatedString {
 
     return replaceInAnnotatedString(this, mentionRegex) { matchResult ->
         val userId = matchResult.groupValues[1].toInt()
-        println("Mention with user ID: $userId")
         val userName = "username"
         buildAnnotatedString { withStyle(SpanStyle(color = primaryColor)) { append("@${userName}") } }
     }

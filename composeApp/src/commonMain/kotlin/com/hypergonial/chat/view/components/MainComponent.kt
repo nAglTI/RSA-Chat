@@ -331,18 +331,18 @@ class DefaultMainComponent(
         settings.setLastOpenedPrefs(settings.getLastOpenedPrefs().copy(lastOpenGuild = guild.id))
 
         if (channel?.id != null) {
-            navigateToChannel(channel)
+            navigateToChannel(channel, closeSidebar = false)
         } else {
             slotNavigation.activate(SlotConfig.Fallback)
         }
     }
 
-    private fun navigateToChannel(channelId: Snowflake) {
+    private fun navigateToChannel(channelId: Snowflake, closeSidebar: Boolean = true) {
         val channel = client.cache.getChannel(channelId) ?: return
-        navigateToChannel(channel)
+        navigateToChannel(channel, closeSidebar)
     }
 
-    private fun navigateToChannel(channel: Channel) {
+    private fun navigateToChannel(channel: Channel, closeSidebar: Boolean = true) {
         if (channel.id !in data.value.channels.map { it.id }) {
             return
         }
@@ -367,7 +367,10 @@ class DefaultMainComponent(
                         settings.getLastOpenedPrefs().lastOpenChannels.apply { put(channel.guildId, channel.id) }
                 )
         )
-        data.value = data.value.copy(navDrawerCommand = MainComponent.NavDrawerCommand.CLOSE.containAsEffect())
+        if (closeSidebar) {
+            data.value =
+                data.value.copy(navDrawerCommand = MainComponent.NavDrawerCommand.CLOSE.containAsEffect())
+        }
     }
 
     override fun onGuildLeaveClicked(guildId: Snowflake) {

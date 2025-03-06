@@ -129,7 +129,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
 
     override val sessionId: String = genSessionId()
 
-    private val readyJob = Job()
+    private var readyJob = Job()
     /** The logger used for this class */
     private val logger = Logger.withTag("ChatClient")
     /** The JSON deserializer used for error messages */
@@ -452,7 +452,9 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     override suspend fun waitUntilDisconnected() = gatewaySession?.join() ?: Unit
 
     private suspend fun runGatewaySession(isReconnect: Boolean) {
-        check(token != null) { "Cannot connect without a token" }
+        // Ensure the token cannot be yoinked by another thread after check
+        val wsToken = token
+        check(wsToken != null) { "Cannot connect without a token" }
 
         logger.i { "Starting new gateway session to ${config.gatewayUrl}" }
 
@@ -471,7 +473,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             gatewayConnectedJob.complete()
             logger.i { "Heartbeat interval is set to $heartbeatInterval ms" }
 
-            sendSerialized<GatewayMessage>(Identify(token!!))
+            sendSerialized<GatewayMessage>(Identify(wsToken))
 
             val ready =
                 try {
@@ -577,6 +579,9 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             logger.i { "Closing gateway session" }
 
             outgoing.trySend(Frame.Close(CloseReason(CloseReason.Codes.NORMAL, "Gateway session terminated")))
+
+            readyJob = Job()
+            gatewayConnectedJob = Job()
 
             eventManager.dispatch(SessionInvalidatedEvent(InvalidationReason.Normal, willReconnect))
         }

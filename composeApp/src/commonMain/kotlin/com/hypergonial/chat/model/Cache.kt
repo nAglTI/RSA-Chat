@@ -26,7 +26,13 @@ data class MessageCache(
     var isCruising: Boolean = false,
     /** If true, it means the end of the message list is cached */
     var hasEnd: Boolean = false,
-)
+) {
+    fun reset() {
+        messages.clear()
+        isCruising = false
+        hasEnd = false
+    }
+}
 
 @RequiresOptIn(
     level = RequiresOptIn.Level.WARNING,
@@ -92,12 +98,17 @@ class Cache(private val cachedChannelsCount: Int = 10) : SynchronizedObject() {
             _members.clear()
             _typingIndicators.clear()
             _readStates.clear()
-            _msgcaches.clear()
+            _msgcaches.forEach { it.reset() }
             _ownUser = null
         }
     }
 
-    fun clearMessageCache() = synchronized(this) { _msgcaches.clear() }
+    fun clearMessageCache() {
+        // It's important to not delete the cache objects as that will
+        // invalidate registrations and potentially break app logic
+        // Caches will be pushed out as new ones come in anyway
+        synchronized(this) { _msgcaches.forEach { it.reset() } }
+    }
 
     /**
      * Returns the guild with the given ID, if it is cached.
@@ -267,7 +278,7 @@ class Cache(private val cachedChannelsCount: Int = 10) : SynchronizedObject() {
      */
     fun hasEndCached(channelId: Snowflake): Boolean {
         synchronized(this) {
-            return _msgcaches.getForChannel(channelId)?.hasEnd != false
+            return _msgcaches.getForChannel(channelId)?.hasEnd == true
         }
     }
 

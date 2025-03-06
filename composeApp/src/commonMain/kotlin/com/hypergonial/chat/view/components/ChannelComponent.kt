@@ -19,6 +19,7 @@ import com.hypergonial.chat.containAsEffect
 import com.hypergonial.chat.genNonce
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.DelicateCacheApi
+import com.hypergonial.chat.model.LifecycleResumedEvent
 import com.hypergonial.chat.model.MessageCreateEvent
 import com.hypergonial.chat.model.MessageRemoveEvent
 import com.hypergonial.chat.model.MessageUpdateEvent
@@ -223,6 +224,7 @@ class DefaultChannelComponent(
             subscribeWithLifeCycle(ctx.lifecycle, ::onMessageUpdate)
             subscribeWithLifeCycle(ctx.lifecycle, ::onMessageDelete)
             subscribeWithLifeCycle(ctx.lifecycle, ::onReady)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onLifecycleResume)
         }
         // Ack all messages in this channel since we are now viewing it
         // TODO: Refine this when scroll state persistence is implemented
@@ -297,13 +299,17 @@ class DefaultChannelComponent(
         around: Snowflake? = null,
         limit: Int,
     ): List<Message> {
+        logger.d { "Message retrieve start" }
         val cachedMessages = client.cache.getMessages(channelId, before, after, around, limit)
+        logger.d { "Cache has ${cachedMessages.size} messages" }
+        logger.d { "cachedMessages.size < limit: ${cachedMessages.size < limit}" }
 
         // Only fetch messages if:
         // - We don't have enough messages cached to complete the request
         // - We don't have an end cached and are trying to do a before fetch or parameterless fetch
-        if (cachedMessages.size < limit && (!client.cache.hasEndCached(channelId) || after != null || around != null)) {
+        if (cachedMessages.size < limit && (after != null || around != null || !client.cache.hasEndCached(channelId))) {
             val remainder = limit - cachedMessages.size
+            logger.d { "$remainder messages wanted, fetching..." }
 
             val messages = client.fetchMessages(channelId, before, after, around, remainder)
 
@@ -315,6 +321,7 @@ class DefaultChannelComponent(
 
             return (cachedMessages + messages).sortedBy { it.id }
         } else {
+            logger.d { "Returning all messages from cache" }
             return cachedMessages
         }
     }
@@ -446,6 +453,8 @@ class DefaultChannelComponent(
                 data.value = data.value.copy(isRefreshTakingTooLong = true)
             }
 
+        logger.i { "Refreshing message list..." }
+
         // If the list was already at the bottom, just reset everything and start again
         if (
             data.value.listState.firstVisibleItemIndex == 0 &&
@@ -458,7 +467,6 @@ class DefaultChannelComponent(
 
         // Otherwise try to refresh the messages around the current scroll position
         scope.launch {
-            logger.i { "Refreshing message list..." }
             // Determine message at the center of the screen
             val visibleItems = data.value.listState.layoutInfo.visibleItemsInfo
             val centerIndex = visibleItems.getOrNull(visibleItems.size / 2)?.index
@@ -715,6 +723,17 @@ class DefaultChannelComponent(
         if (event.wasReconnect) {
             refreshMessageList()
         }
+    }
+
+    /** Callback called when the client has resumed after being paused.
+     *
+     * This is notably not identical to the onReady listener,
+     * as that only handles reconnects that were caused because of connection loss.
+     * */
+    @Suppress("UNUSED_PARAMETER")
+    private suspend fun onLifecycleResume(event: LifecycleResumedEvent) {
+        client.waitUntilReady()
+        refreshMessageList()
     }
 
     /**

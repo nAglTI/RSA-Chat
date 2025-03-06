@@ -229,14 +229,15 @@ compose.desktop {
             packageVersion = "1.0.0"
 
             // Needed by filekit
-            linux { modules("jdk.security.auth") }
+            modules("jdk.security.auth")
         }
 
         buildTypes.release.proguard {
             configurationFiles.from("proguard-desktop-rules.pro")
             joinOutputJars = true
             optimize = true
-            obfuscate = true
+            // Causes issues with dbus if enabled
+            obfuscate = false
         }
     }
 }

@@ -123,6 +123,14 @@
 -keep class okio.** { *; }
 -keep class coil3.** { *; }
 
+# Markdown also causes issues when optimized
+-keep class com.mikepenz.markdown.compose.** { *; }
+
+# Keep dbus & JNA
+-keep class org.freedesktop.dbus.** { *; }
+-keep class com.sun.jna.** { *; }
+
+
 # OkHttp likes to spam warns
 -dontwarn okhttp3.internal.platform.**
 -dontwarn org.conscrypt.**

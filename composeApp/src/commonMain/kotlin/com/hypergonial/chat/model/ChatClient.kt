@@ -303,6 +303,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         _isSuspended = true
         closeGateway()
         eventManager.dispatch(LifecyclePausedEvent())
+        cache.clearMessageCache()
     }
 
     override suspend fun resume() {
@@ -315,8 +316,6 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         }
 
         _isSuspended = false
-        // Clear all cached messages when resuming, since these are possibly wildly out of date
-        cache.clearMessageCache()
 
         if (isLoggedIn()) {
             withTimeout(2500) { waitUntilDisconnected() }
@@ -452,6 +451,8 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         // Ensure the token cannot be yoinked by another thread after check
         val wsToken = token
         check(wsToken != null) { "Cannot connect without a token" }
+        // Invalidate the message cache when reconnecting
+        cache.clearMessageCache()
 
         logger.i { "Starting new gateway session to ${config.gatewayUrl}" }
 

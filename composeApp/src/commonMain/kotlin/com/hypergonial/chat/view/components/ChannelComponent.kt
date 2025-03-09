@@ -206,7 +206,7 @@ class DefaultChannelComponent(
                         client.cache
                             .getTypingIndicators(channelId)
                             .mapNotNull { client.cache.getMemberOrUser(it.userId, guildId) }
-                            .forEach { put(it.id, it) }
+                            .forEach { if (it.id != client.cache.ownUser?.id) put(it.id, it) }
                     },
                 messageEntries =
                     mutableStateListOf(
@@ -728,7 +728,7 @@ class DefaultChannelComponent(
     /** Callback called when the client has resumed after being paused.
      *
      * This is notably not identical to the onReady listener,
-     * as that only handles reconnects that were caused because of connection loss.
+     * as that only handles reconnects that were caused due to connection loss.
      * */
     @Suppress("UNUSED_PARAMETER")
     private suspend fun onLifecycleResume(event: LifecycleResumedEvent) {

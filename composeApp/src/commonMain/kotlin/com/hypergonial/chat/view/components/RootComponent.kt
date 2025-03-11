@@ -35,6 +35,7 @@ import com.hypergonial.chat.view.components.prompts.JoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.NewGuildComponent
 import com.hypergonial.chat.view.sendNotification
 import com.mmk.kmpnotifier.notification.NotificationImage
+import com.mmk.kmpnotifier.notification.NotifierManager
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
@@ -117,12 +118,6 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
         if (platform.needsToSuspendClient()) {
             manageClientLifecycle()
         }
-
-        /*scope.launch {
-            if (platform.isMobile()) {
-                Logger.e { NotifierManager.getPushNotifier().getToken().toString() }
-            }
-        }*/
     }
 
     /**

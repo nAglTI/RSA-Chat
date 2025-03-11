@@ -5,6 +5,7 @@ import com.hypergonial.chat.SettingsExt.setSerializable
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.toSnowflake
 import com.russhwolf.settings.Settings
+import kotlinx.datetime.Instant
 
 /** The base class for implementing a persistent settings store for the application */
 abstract class AppSettings {
@@ -84,6 +85,21 @@ abstract class AppSettings {
 
     /** Remove the current user's token, effectively logging them out */
     fun removeToken() = setSecret("TOKEN", "")
+
+    /** Get the last time the token was refreshed */
+    fun getLastTokenRefresh(): Instant = userPreferences.getSerializable("TOKEN_REFRESH") ?: Instant.DISTANT_PAST
+
+    /** Set the last time the token was refreshed */
+    fun setLastTokenRefresh(time: Instant) = userPreferences.setSerializable("TOKEN_REFRESH", time)
+
+    /** Get the current user's FCM token */
+    fun getFCMSettings(): FCMSettings? = userPreferences.getSerializable("FCM_SETTINGS")
+
+    /** Set the current user's FCM token */
+    fun setFCMSettings(settings: FCMSettings) = userPreferences.setSerializable("FCM_SETTINGS", settings)
+
+    /** Remove the current user's FCM token */
+    fun clearFCMSettings() = userPreferences.remove("FCM_SETTINGS")
 
     /** Get the last user's ID we logged in as */
     fun getLastLoggedInAs(): Snowflake? {

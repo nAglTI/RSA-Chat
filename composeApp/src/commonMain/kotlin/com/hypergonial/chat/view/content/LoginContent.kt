@@ -137,7 +137,7 @@ fun LoginContent(component: LoginComponent) {
                 Text("Login")
             }
 
-            ChatButton(
+/*            ChatButton(
                 onClick = {
                     sendNotification {
                         id = Random.nextInt(0, Int.MAX_VALUE)
@@ -147,7 +147,7 @@ fun LoginContent(component: LoginComponent) {
                 }
             ) {
                 Text("TEST - Notification")
-            }
+            }*/
         }
     }
 

@@ -37,16 +37,18 @@ class MainActivity : ComponentActivity() {
         NotifierManager.initialize(
             configuration =
                 NotificationPlatformConfiguration.Android(
-                    notificationIconResId = R.drawable.chat_icon,
+                    notificationIconResId = R.drawable.ic_stat_chat_icon,
                     showPushNotification = false,
                 )
         )
-        NotifierManager.onCreateOrOnNewIntent(intent)
 
         val permissionUtil by permissionUtil()
         permissionUtil.askNotificationPermission()
 
         val root = DefaultRootComponent(defaultComponentContext())
+
+        // Only resolve push notif data after the root component exists
+        NotifierManager.onCreateOrOnNewIntent(intent)
 
         ContextHelper.retrieveAppContext = { this.applicationContext }
 

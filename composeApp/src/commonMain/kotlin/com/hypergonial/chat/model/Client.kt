@@ -133,6 +133,14 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      */
     suspend fun updateSelf(scope: (UserUpdateRequest.Builder.() -> Unit)): User
 
+    /** Update the Firebase Cloud Messaging token for the currently authenticated user
+     *
+     * @param fcmToken The new FCM token
+     * @param previousToken The previous FCM token, if any
+     *  This will be used to remove the previous token from the user's account
+     * */
+    suspend fun updateFcmToken(fcmToken: String, previousToken: String? = null)
+
     /**
      * Connects to the gateway
      *

@@ -390,6 +390,10 @@ class DefaultChannelComponent(
                     isCruising = data.value.isCruising && !replace,
                     isRefreshTakingTooLong = false,
                 )
+
+            if (replace) {
+                client.ackMessages(channelId)
+            }
         }
     }
 
@@ -809,23 +813,24 @@ class DefaultChannelComponent(
     }
 
     override fun onChatBarContentChanged(value: TextFieldValue) {
-        if (value.text == data.value.chatBarValue.text) return
+        if (value.text != data.value.chatBarValue.text) {
+            scope.launch {
+                try {
+                    client.setTypingIndicator(channelId)
+                } catch (e: ClientException) {
+                    logger.e { "Failed to send typing indicator: ${e.message}" }
+                }
+            }
 
-        data.value = data.value.copy(chatBarValue = value.sanitized())
-
-        if (value.text == "/type_test") {
-            data.value.typingIndicators[Snowflake(0u)] = User(Snowflake(0u), "<USERNAME>")
-        } else {
-            data.value.typingIndicators.remove(Snowflake(0u))
-        }
-
-        scope.launch {
-            try {
-                client.setTypingIndicator(channelId)
-            } catch (e: ClientException) {
-                logger.e { "Failed to send typing indicator: ${e.message}" }
+            // Debugging stuff
+            if (value.text == "/type_test") {
+                data.value.typingIndicators[Snowflake(0u)] = User(Snowflake(0u), "<USERNAME>")
+            } else {
+                data.value.typingIndicators.remove(Snowflake(0u))
             }
         }
+
+        data.value = data.value.copy(chatBarValue = value.sanitized())
     }
 
     /**

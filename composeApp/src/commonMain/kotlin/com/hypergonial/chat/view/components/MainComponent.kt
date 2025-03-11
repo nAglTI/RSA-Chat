@@ -26,6 +26,7 @@ import com.hypergonial.chat.model.GuildRemoveEvent
 import com.hypergonial.chat.model.GuildUpdateEvent
 import com.hypergonial.chat.model.MessageAckEvent
 import com.hypergonial.chat.model.MessageCreateEvent
+import com.hypergonial.chat.model.NotificationClickedEvent
 import com.hypergonial.chat.model.ReadyEvent
 import com.hypergonial.chat.model.SessionInvalidatedEvent
 import com.hypergonial.chat.model.UserUpdateEvent
@@ -193,6 +194,7 @@ class DefaultMainComponent(
 ) : MainComponent, ComponentContext by ctx {
     override val data = MutableValue(MainComponent.State(currentUser = client.cache.ownUser))
 
+    private var wasOpenedWithNotification = false
     private val slotNavigation = SlotNavigation<SlotConfig>()
     private val uiReadyJob = Job()
     private val pendingGuildIds: HashSet<Snowflake> = HashSet()
@@ -239,13 +241,16 @@ class DefaultMainComponent(
             subscribeWithLifeCycle(ctx.lifecycle, ::onServerAck)
             subscribeWithLifeCycle(ctx.lifecycle, ::onChannelFocus)
             subscribeWithLifeCycle(ctx.lifecycle, ::onGuildFocus)
+            subscribeWithLifeCycle(ctx.lifecycle, ::onNotificationClicked)
             subscribeWithLifeCycle(ctx.lifecycle, ::onAssetFocus)
             subscribeWithLifeCycle(ctx.lifecycle, ::onUserUpdate)
         }
 
         scope.launch {
             waitUntilUIReady()
-            openLastGuild()
+            if (!wasOpenedWithNotification) {
+                openLastGuild()
+            }
         }
     }
 
@@ -344,6 +349,7 @@ class DefaultMainComponent(
 
     private fun navigateToChannel(channel: Channel, closeSidebar: Boolean = true) {
         if (channel.id !in data.value.channels.map { it.id }) {
+            logger.e { "Channel not in values" }
             return
         }
 
@@ -526,6 +532,25 @@ class DefaultMainComponent(
             data.value = data.value.copy(guilds = (data.value.guilds + event.guild).sortedBy { it.id })
         }
         navigateToGuild(event.guild)
+        data.value =
+            data.value.copy(navDrawerCommand = MainComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect())
+    }
+
+    private suspend fun onNotificationClicked(event: NotificationClickedEvent) {
+        // Override regular initialization
+        wasOpenedWithNotification = true
+
+        // App may not be initialized yet
+        waitUntilUIReady()
+
+        if (event.guildId == data.value.selectedGuild?.id) {
+            data.value.channelReadStates[event.channelId] = false
+            navigateToChannel(event.channelId)
+        } else {
+            navigateToGuild(event.guildId)
+            data.value.channelReadStates[event.channelId] = false
+            navigateToChannel(event.channelId)
+        }
         data.value =
             data.value.copy(navDrawerCommand = MainComponent.NavDrawerCommand.CLOSE_WITHOUT_ANIMATION.containAsEffect())
     }

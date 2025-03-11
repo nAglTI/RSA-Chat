@@ -16,6 +16,7 @@ import com.hypergonial.chat.model.payloads.Member
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
+import com.hypergonial.chat.model.payloads.fcm.PushNotificationData
 import com.hypergonial.chat.model.payloads.gateway.EventConvertible
 import com.hypergonial.chat.model.payloads.gateway.GatewayMessage
 import com.hypergonial.chat.model.payloads.gateway.Heartbeat
@@ -32,9 +33,12 @@ import com.hypergonial.chat.model.payloads.rest.GuildCreateRequest
 import com.hypergonial.chat.model.payloads.rest.GuildUpdateRequest
 import com.hypergonial.chat.model.payloads.rest.MessageCreateRequest
 import com.hypergonial.chat.model.payloads.rest.MessageUpdateRequest
+import com.hypergonial.chat.model.payloads.rest.UpdateFCMTokenRequest
 import com.hypergonial.chat.model.payloads.rest.UserRegisterRequest
 import com.hypergonial.chat.model.payloads.rest.UserUpdateRequest
 import com.hypergonial.chat.platform
+import com.mmk.kmpnotifier.notification.NotifierManager
+import com.mmk.kmpnotifier.notification.PayloadData
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
@@ -66,6 +70,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.client.statement.bodyAsText
@@ -81,6 +86,7 @@ import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -94,6 +100,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.io.IOException
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -113,6 +120,7 @@ import kotlinx.serialization.serializer
 class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int = 3) : Client {
     /** The bearer token used for authentication */
     private var token: Secret<String>? = settings.getToken()?.let { Secret(it) }
+    private var lastTokenRefresh: Instant = settings.getLastTokenRefresh()
 
     private var _scope = scope
     private var _isSuspended = false
@@ -288,6 +296,55 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             subscribeInternal(::onUserUpdate)
             subscribeInternal(::onSessionInvalidated)
         }
+
+        // Try to keep the token up to date
+        if (isLoggedIn() && Clock.System.now() - lastTokenRefresh >= 14.days) {
+            scope.launch { refreshToken() }
+        }
+
+        val fcmSettings = settings.getFCMSettings()
+
+        // FCM setup
+        if (platform.isMobile()) {
+            // Prevent FCM token from becoming stale
+            if (fcmSettings != null && isLoggedIn() && Clock.System.now() - fcmSettings.lastUpdated >= 14.days) {
+                scope.launch { updateFcmToken(fcmSettings.token) }
+            } else if (fcmSettings == null && isLoggedIn()) {
+                // This should theoretically only happen if the app was migrated from a non-FCM version
+                scope.launch {
+                    val fcmToken = NotifierManager.getPushNotifier().getToken()
+                    if (fcmToken != null) {
+                        updateFcmToken(fcmToken)
+                    } else {
+                        logger.w {
+                            "No FCM token could be retrieved, skipping update. Push notifications may be unavailable."
+                        }
+                    }
+                }
+            }
+
+            NotifierManager.addListener(
+                object : NotifierManager.Listener {
+                    override fun onNewToken(token: String) {
+                        logger.i { "Received new FCM token from Firebase." }
+
+                        scope.launch {
+                            // Only sync FCM token to backend if the user is logged in, otherwise just store it
+                            if (isLoggedIn()) {
+                                updateFcmToken(token, settings.getFCMSettings()?.token)
+                            } else {
+                                settings.setFCMSettings(FCMSettings(token, lastUpdated = Clock.System.now()))
+                            }
+                        }
+                    }
+
+                    override fun onNotificationClicked(data: PayloadData) {
+                        val notif = PushNotificationData.fromPayload(data)
+                        eventManager.dispatch(NotificationClickedEvent(notif.guildId, notif.channelId))
+                    }
+                }
+            )
+        }
     }
 
     override fun replaceScope(scope: CoroutineScope) {
@@ -421,13 +478,16 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
 
     override fun connect() = connect(isReconnect = false)
 
+    @Suppress("SwallowedException")
     private fun connect(isReconnect: Boolean) {
         gatewayCloseJob = Job()
         gatewayConnectedJob = Job()
         gatewaySession = scope.launch { runGatewaySession(isReconnect) }
         scope.launch {
-            delay(5000)
-            if (!gatewayConnectedJob.isCompleted) {
+            try {
+                withTimeout(5000) { gatewayConnectedJob.join() }
+            }
+            catch(e: TimeoutCancellationException) {
                 gatewaySession?.cancel()
                 gatewayConnectedJob = Job()
                 _reconnectAttempts++
@@ -574,7 +634,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                 }
             }
 
-            logger.i { "Closing gateway session" }
+            logger.i { "Closing gateway session, will ${if (willReconnect) "" else "not"} reconnect" }
 
             outgoing.trySend(Frame.Close(CloseReason(CloseReason.Codes.NORMAL, "Gateway session terminated")))
 
@@ -694,9 +754,31 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         readyJob.join()
     }
 
+    private suspend fun refreshToken() {
+        check(token != null) { "Cannot refresh token without a token" }
+
+        val resp = http.post("users/auth/refresh").body<AuthResponse>()
+        handleAuthResponse(resp)
+    }
+
     override suspend fun login(username: String, password: Secret<String>) {
         val resp = http.get("users/auth") { basicAuth(username, password.expose()) }.body<AuthResponse>()
+        handleAuthResponse(resp)
+
+        if (platform.isMobile()) {
+            val fcmToken = settings.getFCMSettings()?.token ?: NotifierManager.getPushNotifier().getToken()
+
+            if (fcmToken != null) {
+                updateFcmToken(fcmToken)
+            } else {
+                logger.w { "No FCM token could be retrieved, skipping update. Push notifications may be unavailable." }
+            }
+        }
+    }
+
+    private fun handleAuthResponse(resp: AuthResponse) {
         token = resp.token
+        lastTokenRefresh = Clock.System.now()
 
         // Wipe all settings if the user has changed
         if (settings.getLastLoggedInAs() != resp.userId) {
@@ -704,7 +786,8 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             settings.clearUserPreferences()
         }
 
-        settings.setToken(token!!.expose())
+        settings.setToken(resp.token.expose())
+        settings.setLastTokenRefresh(lastTokenRefresh)
         settings.setLastLoggedInAs(resp.userId)
 
         eventManager.dispatch(LoginEvent())
@@ -731,6 +814,16 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
                 .body<User>()
         cache.putOwnUser(user)
         return user
+    }
+
+    override suspend fun updateFcmToken(fcmToken: String, previousToken: String?) {
+        logger.d { "Refreshing FCM token with backend..." }
+        http.put("users/@me/fcm") {
+            contentType(ContentType.Application.Json)
+            setBody(UpdateFCMTokenRequest(fcmToken, previousToken))
+        }
+        settings.setFCMSettings(FCMSettings(fcmToken, lastUpdated = Clock.System.now()))
+        logger.e { "Token on backend is now: $fcmToken" }
     }
 
     override suspend fun fetchGuild(guildId: Snowflake): Guild {
@@ -922,21 +1015,24 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     }
 
     override fun logout() {
+        closeGateway()
         token = null
-        settings.removeToken()
         cache.clear()
+        settings.removeToken()
+
+        scope.launch {
+            if (platform.isMobile()) {
+                NotifierManager.getPushNotifier().deleteMyToken()
+                settings.clearFCMSettings()
+            }
+        }
+
         eventManager.dispatch(LogoutEvent())
     }
 
     override fun onDestroy() {
-        closeGateway()
+        typingIndicatorManageJob?.cancel()
         eventManager.stop()
-
-        // If we never managed to connect, wipe login credentials
-        if (!readyJob.isCompleted) {
-            logout()
-        }
-
         http.close()
     }
 }

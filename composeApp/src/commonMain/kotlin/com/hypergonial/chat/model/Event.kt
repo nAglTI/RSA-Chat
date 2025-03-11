@@ -107,6 +107,9 @@ class FocusChannelEvent(val channel: Channel) : InternalEvent()
 /** Internal event dispatched when the application should bring a guild into focus */
 class FocusGuildEvent(val guild: Guild) : InternalEvent()
 
+/** Internal event dispatched when a push notification belonging to the given guild & channel was clicked */
+class NotificationClickedEvent(val guildId: Snowflake, val channelId: Snowflake) : InternalEvent()
+
 /** Internal event dispatched when the application should bring an asset into focus */
 class FocusAssetEvent(val url: String) : InternalEvent()
 

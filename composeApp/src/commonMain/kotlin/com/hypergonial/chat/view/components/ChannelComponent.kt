@@ -794,8 +794,7 @@ class DefaultChannelComponent(
     override fun onEditLastMessage() {
         val lastMessage =
             data.value.messageEntries
-                .flatMap { it.data.value.messages }
-                .lastOrNull { it.data.value.message.author.id == client.cache.ownUser?.id } ?: return
+                .firstOrNull { it.author?.id == client.cache.ownUser?.id }?.lastMessage() ?: return
 
         lastMessage.onEditStart()
     }

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import com.hypergonial.chat.view.editorFocusInhibitor
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
@@ -12,13 +13,13 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun EditorFocusInhibitor(key: String, isEnabled: Boolean = true) {
-    val scope = rememberCoroutineScope()
-
     DisposableEffect(isEnabled) {
         if (isEnabled) {
-            scope.launch { editorFocusInhibitor.acquire(key) }
+            editorFocusInhibitor.acquire(key)
         }
 
-        onDispose { scope.launch { editorFocusInhibitor.release(key) } }
+        onDispose {
+            editorFocusInhibitor.release(key)
+        }
     }
 }

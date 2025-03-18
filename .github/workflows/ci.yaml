@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [ 'main' ]
+
+permissions:
+  contents: write
+
+jobs:
+  # Run all unit tests
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v4
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'jetbrains'
+        java-version: 17
+        cache: 'gradle'
+
+    - name: "Setup | Gradle"
+      uses: gradle/actions/setup-gradle@v4
+
+    - name: Run tests
+      run: ./gradlew :composeApp:test
+
+  # Run detekt to check for code smells
+  detekt:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v4
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'jetbrains'
+        java-version: 17
+        cache: 'gradle'
+
+    - name: "Setup | Gradle"
+      uses: gradle/actions/setup-gradle@v4
+
+    - name: Run detekt
+      run: ./gradlew :composeApp:detekt
+
+  # Submit dependency list to GitHub so it can warn about vulnerabilities
+  dependency-submission:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v4
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'jetbrains'
+        java-version: 17
+        cache: 'gradle'
+    - name: Generate and submit dependency graph
+      uses: gradle/actions/dependency-submission@v4

@@ -56,7 +56,7 @@ jobs:
         run: |
           cd composeApp/build/compose/binaries/main-release/app
           mkdir -p ../artifacts
-          7z a ../artifacts/${{ env.PROJECT_NAME }}-${{ steps.extract_tag.outputs.tag }}-${{ matrix.name }}.zip .
+          7z a ../artifacts/${{ env.PROJECT_NAME }}-${{ steps.extract_tag.outputs.tag }}-${{ matrix.name }} .
           cd -
 
       - name: "Package | Desktop Application (-nix)"
@@ -65,7 +65,7 @@ jobs:
         run: |
           cd composeApp/build/compose/binaries/main-release/app
           mkdir -p ../artifacts
-          tar czvf ../artifacts/${{ env.PROJECT_NAME }}-${{ steps.extract_tag.outputs.tag }}-${{ matrix.name }}.tar.gz .
+          tar czvf ../artifacts/${{ env.PROJECT_NAME }}-${{ steps.extract_tag.outputs.tag }}-${{ matrix.name }} .
           cd -
 
       - name: Post Setup | Upload artifacts

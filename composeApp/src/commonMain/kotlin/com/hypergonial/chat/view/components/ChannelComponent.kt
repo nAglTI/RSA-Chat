@@ -360,7 +360,7 @@ class DefaultChannelComponent(
 
             if (lastMessage == null) {
                 // Remove the placeholder feature that is added when opening a channel
-                currentEntries.removeLast()
+                currentEntries.removeAt(currentEntries.lastIndex)
             }
 
             // Append messages to the list

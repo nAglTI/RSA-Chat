@@ -229,7 +229,7 @@ fun MutableList<MessageEntryComponent>.removeFirstMessages(n: Int) {
         val toRemove = minOf(count, messages.size)
         messages.removeRange(0 until toRemove)
         if (messages.isEmpty()) {
-            this.removeFirst()
+            this.removeAt(0)
         }
         count -= toRemove
     }
@@ -249,7 +249,7 @@ fun MutableList<MessageEntryComponent>.removeLastMessages(n: Int) {
         val toRemove = minOf(count, messages.size)
         messages.removeRange(messages.size - toRemove until messages.size)
         if (messages.isEmpty()) {
-            this.removeLast()
+            this.removeAt(this.lastIndex)
         }
         count -= toRemove
     }

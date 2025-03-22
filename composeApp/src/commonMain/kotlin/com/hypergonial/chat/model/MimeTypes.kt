@@ -94,7 +94,7 @@ object MimeTypeMap {
  */
 fun String.getMimeType(): Mime? = MimeTypeMap.getMimeTypeFromUrl(this)
 
-// Sourced from: https://github.com/patrickmccallum/mimetype-io/blob/master/package.json
+// Sourced from: https://github.com/patrickmccallum/mimetype-io/blob/master/src/mimeData.json
 // Retrieved on: 2025-02-07
 private val mimeTypeData = buildMap {
     put("123", Mime("application", "vnd.lotus-1-2-3"))

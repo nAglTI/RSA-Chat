@@ -58,8 +58,11 @@ import com.hypergonial.chat.model.Mime
 import com.hypergonial.chat.trimFilename
 import com.hypergonial.chat.view.components.ChannelComponent
 import com.hypergonial.chat.view.composables.ChatBar
+import com.hypergonial.chat.view.composables.DangerConfirmDialog
 import com.hypergonial.chat.view.composables.FileDropTarget
 import com.hypergonial.chat.view.composables.MessageList
+import com.hypergonial.chat.view.composables.MessagePreview
+import com.hypergonial.chat.view.composables.MessageWithHeader
 import com.hypergonial.chat.view.composables.TypingIndicator
 import kotlinx.coroutines.launch
 
@@ -76,11 +79,23 @@ fun ChannelContent(component: ChannelComponent) {
             }
         }
 
+    DangerConfirmDialog(
+        state.pendingDeleteMessage?.data?.value?.message?.id,
+        title = AnnotatedString("Delete Message"),
+        prompt = AnnotatedString("Are you sure you want to delete this message?"),
+        confirm = AnnotatedString("Delete"),
+        cancel = AnnotatedString("Cancel"),
+        content = state.pendingDeleteMessage?.let { { MessagePreview(it) } },
+        onConfirm = { component.onMessageDeleteConfirmed(it) },
+        onCancel = { component.onMessageDeleteCancelled() },
+    )
+
     FileDropTarget(onFilesDropped = component::onFilesDropped) {
         Scaffold(Modifier.fillMaxSize(), snackbarHost = { SnackbarHost(snackbarState) }) {
             Box(Modifier.fillMaxSize()) {
                 // Is a LazyColumn wrapped in a custom composable
                 MessageList(
+                    state.channel,
                     state.messageEntries,
                     Modifier.fillMaxWidth().align(Alignment.BottomCenter),
                     listState = state.listState,

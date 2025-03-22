@@ -65,6 +65,10 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -81,10 +85,12 @@ import com.hypergonial.chat.view.composables.AdaptiveDrawer
 import com.hypergonial.chat.view.composables.AltActionMenu
 import com.hypergonial.chat.view.composables.AssetViewerDialog
 import com.hypergonial.chat.view.composables.Avatar
+import com.hypergonial.chat.view.composables.DangerConfirmDialog
 import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 import com.hypergonial.chat.view.composables.GuildIcon
 import com.hypergonial.chat.view.composables.SidebarChannelItem
 import com.hypergonial.chat.view.composables.SidebarGuildItem
+import com.hypergonial.chat.view.composables.SuperDangerConfirmDialog
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -129,7 +135,7 @@ fun MainTopBar(component: MainComponent, drawerState: DrawerState) {
                                 "Delete",
                                 leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete Icon") },
                             ) {
-                                component.onChannelDeleteClicked(state.selectedChannel!!.id)
+                                component.onChannelDeleteRequested(state.selectedChannel!!.id)
                             }
                         }
 
@@ -229,7 +235,7 @@ fun SidebarContent(component: MainComponent, drawerState: DrawerState) {
                         isUnread = state.guildReadStates[guild.id] ?: false,
                         onSelect = { component.onGuildSelected(guild.id) },
                         onEdit = { component.onGuildEditClicked(guild.id) },
-                        onDelete = { component.onGuildDeleteClicked(guild.id) },
+                        onDelete = { component.onGuildDeleteRequested(guild.id) },
                         onInviteCodeCopy = { clipboardManager.setText(AnnotatedString(guild.id.toString())) },
                     )
                 } else {
@@ -240,7 +246,7 @@ fun SidebarContent(component: MainComponent, drawerState: DrawerState) {
                         isUnread = state.guildReadStates[guild.id] ?: false,
                         isSelected = guild.id == state.selectedGuild?.id,
                         onSelect = { component.onGuildSelected(guild.id) },
-                        onLeave = { component.onGuildLeaveClicked(guild.id) },
+                        onLeave = { component.onGuildLeaveRequested(guild.id) },
                     )
                 }
             }
@@ -280,7 +286,7 @@ fun SidebarContent(component: MainComponent, drawerState: DrawerState) {
                             isUnread = state.channelReadStates[channel.id] ?: false,
                             onSelect = { component.onChannelSelected(channel.id) },
                             onEdit = { component.onChannelEditClicked(channel.id) },
-                            onDelete = { component.onChannelDeleteClicked(channel.id) },
+                            onDelete = { component.onChannelDeleteRequested(channel.id) },
                         )
                     } else {
                         SidebarChannelItem(
@@ -348,6 +354,53 @@ fun MainContent(component: MainComponent) {
 
     FullScreenProgressIndicator(state.isConnecting, state.connectingMessage)
     AssetViewerDialog(state.assetViewerActive, state.assetViewerUrl, component::onAssetViewerClosed)
+    SuperDangerConfirmDialog(
+        state.pendingDeleteGuild?.id,
+        title = AnnotatedString("Delete Guild"),
+        prompt = buildAnnotatedString {
+            append("Are you sure you want to delete ")
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                append(state.pendingDeleteGuild?.name ?: "")
+            }
+            append("? This cannot be undone.")
+        },
+        challengeTarget = state.pendingDeleteGuild?.name ?: "",
+        challengeLabel = "Enter Guild name to confirm",
+        confirm = AnnotatedString("Delete"),
+        cancel = AnnotatedString("Cancel"),
+        onConfirm = { component.onGuildDeleteConfirmed(it) },
+        onCancel = { component.onGuildDeleteCancelled() },
+    )
+    DangerConfirmDialog(
+        state.pendingLeaveGuild?.id,
+        title = AnnotatedString("Leave Guild"),
+        prompt = buildAnnotatedString {
+            append("Are you sure you want to leave ")
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                append(state.pendingDeleteGuild?.name ?: "")
+            }
+            append("? You won't be able to rejoin without an invite code.")
+        },
+        confirm = AnnotatedString("Leave"),
+        cancel = AnnotatedString("Cancel"),
+        onConfirm = { component.onGuildLeaveConfirmed(it) },
+        onCancel = { component.onGuildLeaveCancelled() },
+    )
+    DangerConfirmDialog(
+        state.pendingDeleteChannel?.id,
+        title = AnnotatedString("Delete Channel"),
+        prompt = buildAnnotatedString {
+            append("Are you sure you want to delete ")
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                append("#${state.pendingDeleteChannel?.name}")
+            }
+            append("? This cannot be undone.")
+        },
+        confirm = AnnotatedString("Delete"),
+        cancel = AnnotatedString("Cancel"),
+        onConfirm = { component.onChannelDeleteConfirmed(it) },
+        onCancel = { component.onChannelDeleteCancelled() },
+    )
 
     AdaptiveDrawer(
         drawerState = navDrawerState,

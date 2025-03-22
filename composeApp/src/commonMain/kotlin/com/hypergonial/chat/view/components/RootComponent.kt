@@ -306,12 +306,10 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
 
     override fun onFocusLoss() {
         isAppFocused = false
-        println("App lost focus")
     }
 
     override fun onFocusGain() {
         isAppFocused = true
-        println("App gained focus")
     }
 
     // Trigger local notifications when the app is not focused

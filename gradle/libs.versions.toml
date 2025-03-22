@@ -37,6 +37,7 @@ detekt = "1.23.7"
 slf4j = "2.0.16"
 multiplatform-settings = "1.2.0"
 zoomableVersion = "2.0.0"
+foundationAndroid = "1.7.8"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
@@ -97,6 +98,7 @@ multiplatform-settings-coroutines = { module = "com.russhwolf:multiplatform-sett
 state-keeper = { module = "com.arkivanov.essenty:state-keeper", version.ref = "essenty" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref= "slf4j" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref= "slf4j" }
+androidx-foundation-android = { group = "androidx.compose.foundation", name = "foundation-android", version.ref = "foundationAndroid" }
 
 
 [plugins]

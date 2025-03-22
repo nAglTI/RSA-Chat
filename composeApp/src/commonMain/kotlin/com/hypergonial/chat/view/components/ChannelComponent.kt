@@ -30,6 +30,7 @@ import com.hypergonial.chat.model.TypingStartEvent
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.getMimeType
 import com.hypergonial.chat.model.payloads.Attachment
+import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.payloads.Message
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.User
@@ -46,6 +47,7 @@ import com.hypergonial.chat.view.components.subcomponents.LoadMoreMessagesIndica
 import com.hypergonial.chat.view.components.subcomponents.MessageComponent
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import com.hypergonial.chat.view.content.ChannelContent
+import com.hypergonial.chat.view.modifierStates
 import io.github.vinceglb.filekit.core.FileKit
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
@@ -134,9 +136,21 @@ interface ChannelComponent : MainContentComponent, Displayable {
      */
     fun onMessageDeleteRequested(messageId: Snowflake)
 
+    /**
+     * Callback called when the user confirms the deletion of a message.
+     *
+     * @param messageId The ID of the message to delete.
+     */
+    fun onMessageDeleteConfirmed(messageId: Snowflake)
+
+    /** Callback called when the user cancels the deletion of a message. */
+    fun onMessageDeleteCancelled()
+
     @Composable override fun Display() = ChannelContent(this)
 
     data class State(
+        /** The channel to display */
+        val channel: Channel,
         /** The value of the chat bar */
         val chatBarValue: TextFieldValue = TextFieldValue(),
         /** Attachments awaiting upload */
@@ -156,6 +170,8 @@ interface ChannelComponent : MainContentComponent, Displayable {
         val isJumpingToBottom: Boolean = false,
         /** If true, the file upload dropdown is open */
         val isFileUploadDropdownOpen: Boolean = false,
+        /** The message to be deleted */
+        val pendingDeleteMessage: MessageComponent? = null,
         /**
          * If true, the client is currently copying file(s) from the clipboard service The view is expected to show a
          * pending attachment in the attachments list
@@ -187,7 +203,7 @@ interface ChannelComponent : MainContentComponent, Displayable {
 class DefaultChannelComponent(
     private val ctx: ComponentContext,
     private val client: Client,
-    private val channelId: Snowflake,
+    channel: Channel,
     private val guildId: Snowflake? = null,
     initialEditorState: TextFieldValue? = null,
     private val onReadMessages: (Snowflake) -> Unit,
@@ -196,10 +212,12 @@ class DefaultChannelComponent(
     private val scope = ctx.coroutineScope()
     private val logger = Logger.withTag("DefaultChannelComponent")
     private var refreshTakingTooLongJob: Job? = null
+    private val channelId: Snowflake = channel.id
 
     override val data =
         MutableValue(
             ChannelComponent.State(
+                channel = channel,
                 chatBarValue = initialEditorState ?: TextFieldValue(),
                 typingIndicators =
                     mutableStateMapOf<Snowflake, User>().apply {
@@ -253,7 +271,14 @@ class DefaultChannelComponent(
         isPending: Boolean = false,
         hasUploadingAttachments: Boolean = false,
     ): MessageComponent {
-        return DefaultMessageComponent(ctx, client, message, isPending, hasUploadingAttachments)
+        return DefaultMessageComponent(
+            ctx,
+            client,
+            message,
+            isPending,
+            hasUploadingAttachments,
+            onDeleteRequest = { id -> onMessageDeleteRequested(id) },
+        )
     }
 
     /**
@@ -701,6 +726,36 @@ class DefaultChannelComponent(
         entry.removeMessage(event.id)
 
         if (entry.isEmpty()) {
+            // Ensure the end indicators are not lost
+            if (entry.data.value.topEndIndicator != null) {
+                val index = data.value.messageEntries.indexOf(entry)
+
+                // Try the top first, then bottom, or create new entry if needed
+                val nextEntry = data.value.messageEntries.getOrNull(index + 1)
+                    ?: data.value.messageEntries.getOrNull(index - 1)
+                    ?: run {
+                        messageEntryComponent(mutableStateListOf()).also { newEntry ->
+                            data.value.messageEntries.add(index, newEntry)
+                        }
+                    }
+
+                nextEntry.setTopEndIndicator(entry.data.value.topEndIndicator)
+            }
+            if (entry.data.value.bottomEndIndicator != null) {
+                val index = data.value.messageEntries.indexOf(entry)
+
+                // Try the bottom first, then top, or create new entry if needed
+                val nextEntry = data.value.messageEntries.getOrNull(index - 1)
+                    ?: data.value.messageEntries.getOrNull(index + 1)
+                    ?: run {
+                        messageEntryComponent(mutableStateListOf()).also { newEntry ->
+                            data.value.messageEntries.add(index, newEntry)
+                        }
+                    }
+
+                nextEntry.setBottomEndIndicator(entry.data.value.bottomEndIndicator)
+            }
+
             data.value.messageEntries.remove(entry)
         }
     }
@@ -729,11 +784,12 @@ class DefaultChannelComponent(
         }
     }
 
-    /** Callback called when the client has resumed after being paused.
+    /**
+     * Callback called when the client has resumed after being paused.
      *
-     * This is notably not identical to the onReady listener,
-     * as that only handles reconnects that were caused due to connection loss.
-     * */
+     * This is notably not identical to the onReady listener, as that only handles reconnects that were caused due to
+     * connection loss.
+     */
     @Suppress("UNUSED_PARAMETER")
     private suspend fun onLifecycleResume(event: LifecycleResumedEvent) {
         client.waitUntilReady()
@@ -793,13 +849,27 @@ class DefaultChannelComponent(
 
     override fun onEditLastMessage() {
         val lastMessage =
-            data.value.messageEntries
-                .firstOrNull { it.author?.id == client.cache.ownUser?.id }?.lastMessage() ?: return
+            data.value.messageEntries.firstOrNull { it.author?.id == client.cache.ownUser?.id }?.lastMessage() ?: return
 
         lastMessage.onEditStart()
     }
 
     override fun onMessageDeleteRequested(messageId: Snowflake) {
+        if (modifierStates.isShiftHeld) {
+            onMessageDeleteConfirmed(messageId)
+            return
+        }
+
+        data.value =
+            data.value.copy(
+                pendingDeleteMessage =
+                    data.value.messageEntries.firstOrNull { it.containsMessage(messageId) }?.getMessage(messageId)
+            )
+    }
+
+    override fun onMessageDeleteConfirmed(messageId: Snowflake) {
+        data.value = data.value.copy(pendingDeleteMessage = null)
+
         scope.launch {
             try {
                 client.deleteMessage(channelId, messageId)
@@ -809,6 +879,10 @@ class DefaultChannelComponent(
                 logger.e { "Failed to delete message: ${e.message}" }
             }
         }
+    }
+
+    override fun onMessageDeleteCancelled() {
+        data.value = data.value.copy(pendingDeleteMessage = null)
     }
 
     override fun onChatBarContentChanged(value: TextFieldValue) {

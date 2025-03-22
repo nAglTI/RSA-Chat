@@ -13,6 +13,7 @@ import com.hypergonial.chat.model.MessageUpdateEvent
 import com.hypergonial.chat.model.UploadProgressEvent
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Message
+import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.sanitized
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -123,6 +124,9 @@ interface MessageComponent {
  * @param message The message that this component represents
  * @param isPending Whether the message is pending or not
  * @param hasUploadingAttachments Whether the message has uploading attachments or not
+ * @param isFailed Whether the message sending failed or not
+ * @param onDeleteRequest The callback to invoke when a deletion is requested. The current ID of the message is passed
+ *   as a parameter.
  */
 class DefaultMessageComponent(
     private val ctx: ComponentContext,
@@ -131,6 +135,7 @@ class DefaultMessageComponent(
     isPending: Boolean = false,
     hasUploadingAttachments: Boolean = false,
     isFailed: Boolean = false,
+    private val onDeleteRequest: (Snowflake) -> Unit,
 ) : MessageComponent {
     override val data =
         MutableValue(
@@ -243,13 +248,7 @@ class DefaultMessageComponent(
             return
         }
 
-        ctx.coroutineScope().launch {
-            try {
-                client.deleteMessage(data.value.message.channelId, data.value.message.id)
-            } catch (e: ClientException) {
-                logger.e { "Failed to delete message: ${e.message}" }
-            }
-        }
+        onDeleteRequest(data.value.message.id)
     }
 
     /** Called when the upload status of the attachments attached to this message changes */

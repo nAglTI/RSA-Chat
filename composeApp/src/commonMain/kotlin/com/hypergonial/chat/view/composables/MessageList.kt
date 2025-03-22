@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
@@ -68,6 +69,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.hypergonial.chat.LocalUsingDarkTheme
 import com.hypergonial.chat.altClickable
 import com.hypergonial.chat.model.payloads.Attachment
+import com.hypergonial.chat.model.payloads.Channel
 import com.hypergonial.chat.model.settings
 import com.hypergonial.chat.platform
 import com.hypergonial.chat.toHumanReadable
@@ -97,11 +99,13 @@ val LocalHighlights = compositionLocalOf { Highlights.Builder() }
 /**
  * Composable that lazily displays a list of chat messages, requesting more as the user scrolls up.
  *
+ * @param channel The channel the messages are from.
  * @param features The list of messages to display.
  * @param isCruising Whether the user currently has the bottom of the list loaded.
  */
 @Composable
 fun MessageList(
+    channel: Channel,
     features: List<MessageEntryComponent>,
     modifier: Modifier = Modifier,
     isCruising: Boolean,
@@ -118,7 +122,7 @@ fun MessageList(
                 item(key = "BOTTOM_SPACER") { Spacer(modifier = Modifier.height(bottomSpacer)) }
             }
 
-            itemsIndexed(features, key = { _, item -> item.getKey() }) { _, item -> Entry(item) }
+            itemsIndexed(features, key = { _, item -> item.getKey() }) { _, item -> Entry(channel, item) }
         }
     }
 }
@@ -129,7 +133,7 @@ fun MessageList(
  * @param component The message entry to display.
  */
 @Composable
-fun Entry(component: MessageEntryComponent) {
+fun Entry(channel: Channel, component: MessageEntryComponent) {
     val state by component.data.subscribeAsState()
     LocalUsingDarkTheme.current
 
@@ -139,9 +143,17 @@ fun Entry(component: MessageEntryComponent) {
 
     Column {
         if (state.topEndIndicator is EndOfMessages) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                Text("End of messages", color = Color.Red)
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.Start) {
+                Text(
+                    buildAnnotatedString {
+                        append("This is the beginning of ")
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("#${channel.name}") }
+                        append(". ")
+                    },
+                    modifier = Modifier.padding(vertical = 5.dp),
+                )
             }
+            HorizontalDivider()
         }
 
         if (topEndIndicator is LoadMoreMessagesIndicator) {
@@ -227,6 +239,25 @@ fun MessageContextMenu(component: MessageComponent, content: @Composable () -> U
     }
 }
 
+/** A standalone preview of a message. */
+@Composable
+fun MessagePreview(component: MessageComponent) {
+    val state by component.data.subscribeAsState()
+
+    Row(Modifier.padding(vertical = 10.dp)) {
+        // Avatar
+        Column { Avatar(state.message.author.avatarUrl, state.message.author.resolvedName) }
+
+        Column {
+            Row(Modifier.fillMaxWidth()) {
+                Text(state.message.author.displayName ?: state.message.author.username, Modifier.padding(end = 8.dp))
+                Text(state.createdAt.toHumanReadable(), fontSize = 10.sp, color = Color.Gray)
+            }
+            MessageContent(component, Modifier.padding(end = 40.dp), isInteractive = false)
+        }
+    }
+}
+
 /** A message with a username and timestamp attached to it. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -262,16 +293,22 @@ fun MessageWithoutHeader(component: MessageComponent) {
     }
 }
 
-/** The content of a message in markdown. */
+/** The content of a message in markdown.
+ *
+ * @param component The message to display the content of.
+ * @param modifier The modifier to apply to the content.
+ * @param isInteractive Whether the message content should be interactive. If false, the message content will not be
+ *  clickable or editable.
+ * */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
+private fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier, isInteractive: Boolean = true) {
     val state by component.data.subscribeAsState()
 
-    BackHandler(isEnabled = state.isBeingEdited, onBack = { component.onEditCancel() })
+    BackHandler(isEnabled = isInteractive && state.isBeingEdited, onBack = { component.onEditCancel() })
 
-    Column(Modifier.altClickable { component.onAltMenuStateChange(isOpen = true) }) {
-        if (state.isBeingEdited) {
+    Column(Modifier.altClickable { if (isInteractive) component.onAltMenuStateChange(isOpen = true) }) {
+        if (isInteractive && state.isBeingEdited) {
             ChatBar(
                 value = state.editorState,
                 editorKey = "EDITOR_${component.getKey()}",
@@ -292,8 +329,6 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
             val textColor =
                 if (state.isFailed) MaterialTheme.colorScheme.error
                 else if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground
-
-            val primary = MaterialTheme.colorScheme.primary
 
             Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Markdown(
@@ -400,8 +435,14 @@ fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier) {
                                 .widthIn(Dp.Unspecified, 500.dp)
                                 .heightIn(Dp.Unspecified, 500.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .clickable(null, indication = null) { component.onAttachmentClicked(attachment.id) }
-                                .pointerHoverIcon(PointerIcon.Hand),
+                                .let {
+                                    if (isInteractive) {
+                                        it.clickable(null, indication = null) {
+                                                if (isInteractive) component.onAttachmentClicked(attachment.id)
+                                            }
+                                            .pointerHoverIcon(PointerIcon.Hand)
+                                    } else it
+                                },
                         contentScale = ContentScale.Fit,
                     )
                 }

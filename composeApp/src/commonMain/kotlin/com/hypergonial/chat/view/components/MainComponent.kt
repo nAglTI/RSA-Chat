@@ -80,14 +80,34 @@ interface MainComponent : Displayable {
      *
      * @param guildId The ID of the guild to leave
      */
-    fun onGuildLeaveClicked(guildId: Snowflake)
+    fun onGuildLeaveRequested(guildId: Snowflake)
 
     /**
-     * Called when the user clicks the delete guild button
+     * Called when the user confirms the leaving of a guild
+     *
+     * @param guildId The ID of the guild to leave
+     */
+    fun onGuildLeaveConfirmed(guildId: Snowflake)
+
+    /** Called when the user cancels the leaving of a guild */
+    fun onGuildLeaveCancelled()
+
+    /**
+     * Called when the user clicks the delete guild context action
      *
      * @param guildId The ID of the guild to delete
      */
-    fun onGuildDeleteClicked(guildId: Snowflake)
+    fun onGuildDeleteRequested(guildId: Snowflake)
+
+    /**
+     * Called when the user confirms the deletion of a guild
+     *
+     * @param guildId The ID of the guild to delete
+     */
+    fun onGuildDeleteConfirmed(guildId: Snowflake)
+
+    /** Called when the user cancels the deletion of a guild */
+    fun onGuildDeleteCancelled()
 
     /**
      * Called when the user clicks the edit guild button
@@ -110,11 +130,21 @@ interface MainComponent : Displayable {
     fun onChannelEditClicked(channelId: Snowflake)
 
     /**
-     * Called when the user clicks the delete channel button
+     * Called when the user clicks the delete channel context action
      *
      * @param channelId The ID of the channel to delete
      */
-    fun onChannelDeleteClicked(channelId: Snowflake)
+    fun onChannelDeleteRequested(channelId: Snowflake)
+
+    /**
+     * Called when the user confirms the deletion of a channel
+     *
+     * @param channelId The ID of the channel to delete
+     */
+    fun onChannelDeleteConfirmed(channelId: Snowflake)
+
+    /** Called when the user cancels the deletion of a channel */
+    fun onChannelDeleteCancelled()
 
     /** Called when the user clicks the logout button */
     fun onLogoutClicked()
@@ -152,6 +182,12 @@ interface MainComponent : Displayable {
         val isConnecting: Boolean = true,
         /** The message to display when connecting */
         val connectingMessage: String = "Connecting...",
+        /** The ID of the guild pending deletion by the user */
+        val pendingDeleteGuild: Guild? = null,
+        /** The ID of the guild pending leave by the user */
+        val pendingLeaveGuild: Guild? = null,
+        /** The ID of the channel pending deletion by the user */
+        val pendingDeleteChannel: Channel? = null,
         /** The URL of the asset to display in the asset viewer */
         val assetViewerUrl: String? = null,
         /** If true, the asset viewer is active */
@@ -214,17 +250,24 @@ class DefaultMainComponent(
         ) { config, childCtx ->
             when (config) {
                 is SlotConfig.Home -> DefaultHomeComponent(childCtx, client, hasGuilds = config.hasGuilds)
+                is SlotConfig.Channel -> {
+                    val selectedChannel = data.value.selectedChannel
+                    if (selectedChannel == null) {
+                        logger.w { "Main slot activated with channel config, but no channel is selected. (This is a bug)" }
+                        DefaultFallbackMainComponent(childCtx, ::onChannelCreateClicked)
+                    } else {
+                        DefaultChannelComponent(
+                            childCtx,
+                            client,
+                            guildId = data.value.selectedGuild?.id,
+                            channel = selectedChannel,
+                            initialEditorState = lastEditorStates[config.channelId],
+                            onReadMessages = ::onClientAck,
+                            onLogout = onLogout,
+                        )
+                    }
+                }
                 is SlotConfig.Fallback -> DefaultFallbackMainComponent(childCtx, ::onChannelCreateClicked)
-                is SlotConfig.Channel ->
-                    DefaultChannelComponent(
-                        childCtx,
-                        client,
-                        guildId = data.value.selectedGuild?.id,
-                        channelId = config.channelId,
-                        initialEditorState = lastEditorStates[config.channelId],
-                        onReadMessages = ::onClientAck,
-                        onLogout = onLogout,
-                    )
             }
         }
 
@@ -378,7 +421,13 @@ class DefaultMainComponent(
         }
     }
 
-    override fun onGuildLeaveClicked(guildId: Snowflake) {
+    override fun onGuildLeaveRequested(guildId: Snowflake) {
+        data.value = data.value.copy(pendingLeaveGuild = client.cache.getGuild(guildId))
+    }
+
+    override fun onGuildLeaveConfirmed(guildId: Snowflake) {
+        data.value = data.value.copy(pendingLeaveGuild = null)
+
         scope.launch {
             try {
                 client.leaveGuild(guildId)
@@ -390,7 +439,24 @@ class DefaultMainComponent(
         }
     }
 
-    override fun onGuildDeleteClicked(guildId: Snowflake) {
+    override fun onGuildLeaveCancelled() {
+        data.value = data.value.copy(pendingLeaveGuild = null)
+    }
+
+    override fun onGuildEditClicked(guildId: Snowflake) = onGuildEditRequested(guildId)
+
+    override fun onGuildDeleteRequested(guildId: Snowflake) {
+        val guild = client.cache.getGuild(guildId) ?: return
+        data.value = data.value.copy(pendingDeleteGuild = guild)
+    }
+
+    override fun onGuildDeleteCancelled() {
+        data.value = data.value.copy(pendingDeleteGuild = null)
+    }
+
+    override fun onGuildDeleteConfirmed(guildId: Snowflake) {
+        data.value = data.value.copy(pendingDeleteGuild = null)
+
         scope.launch {
             try {
                 client.deleteGuild(guildId)
@@ -401,8 +467,6 @@ class DefaultMainComponent(
             }
         }
     }
-
-    override fun onGuildEditClicked(guildId: Snowflake) = onGuildEditRequested(guildId)
 
     override fun onAssetViewerClosed() {
         data.value = data.value.copy(assetViewerActive = false)
@@ -621,7 +685,17 @@ class DefaultMainComponent(
         data.value = data.value.copy(snackbarMessage = "Not yet implemented".containAsEffect())
     }
 
-    override fun onChannelDeleteClicked(channelId: Snowflake) {
+    override fun onChannelDeleteRequested(channelId: Snowflake) {
+        val channel = client.cache.getChannel(channelId) ?: return
+        data.value = data.value.copy(pendingDeleteChannel = channel)
+    }
+
+    override fun onChannelDeleteCancelled() {
+        data.value = data.value.copy(pendingDeleteChannel = null)
+    }
+
+    override fun onChannelDeleteConfirmed(channelId: Snowflake) {
+        data.value = data.value.copy(pendingDeleteChannel = null)
         scope.launch {
             try {
                 client.deleteChannel(channelId)

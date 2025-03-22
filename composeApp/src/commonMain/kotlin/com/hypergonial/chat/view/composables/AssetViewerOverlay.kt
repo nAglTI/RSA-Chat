@@ -3,11 +3,12 @@ package com.hypergonial.chat.view.composables
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -67,58 +68,56 @@ fun AssetViewerDialog(isActive: Boolean = false, url: String? = null, onClose: (
 
     AnimatedDialog(
         onDismissRequest = onClose,
-        enter = scaleIn(spring(stiffness = Spring.StiffnessMedium)),
-        exit = scaleOut(spring(stiffness = Spring.StiffnessMedium)),
+        properties = AnimatedDialogProperties(dismissOnClickOutside = true),
+        enter = fadeIn() + scaleIn(spring(stiffness = Spring.StiffnessMedium)),
+        exit = fadeOut() + scaleOut(spring(stiffness = Spring.StiffnessMedium)),
     ) {
-        Box(Modifier.fillMaxSize().clickable(null, indication = null) { dismissWithAnimation() }, Alignment.Center) {
-            Box(modifier = Modifier.padding(horizontal = imagePadding, vertical = imagePadding * 2)) {
-                ZoomableAsyncImage(
-                    model = ImageRequest.Builder(LocalPlatformContext.current).data(url).crossfade(true).build(),
-                    contentDescription = "Asset being observed",
-                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(null, null) { /* Eat click events */ },
-                    contentScale = ContentScale.Fit,
-                    clipToBounds = false,
-                )
+        Box(modifier = Modifier.padding(horizontal = imagePadding, vertical = imagePadding * 2)) {
+            ZoomableAsyncImage(
+                model = ImageRequest.Builder(LocalPlatformContext.current).data(url).crossfade(true).build(),
+                contentDescription = "Asset being observed",
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(null, null) { /* Eat click events */ },
+                contentScale = ContentScale.Fit,
+                clipToBounds = false,
+            )
 
-                IconButton(
-                    onClick = { uriHandler.openUri(url) },
-                    modifier =
-                        Modifier.align(Alignment.BottomStart).offset(y = 50.dp).pointerHoverIcon(PointerIcon.Hand),
+            IconButton(
+                onClick = { uriHandler.openUri(url) },
+                modifier = Modifier.align(Alignment.BottomStart).offset(y = 50.dp).pointerHoverIcon(PointerIcon.Hand),
+            ) {
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = {
+                        PlainTooltip(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ) {
+                            Text("Open in Browser")
+                        }
+                    },
+                    state = rememberTooltipState(isPersistent = true),
                 ) {
-                    TooltipBox(
-                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                        tooltip = {
-                            PlainTooltip(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            ) {
-                                Text("Open in Browser")
-                            }
-                        },
-                        state = rememberTooltipState(isPersistent = true),
-                    ) {
-                        Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = "Open in browser")
-                    }
+                    Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = "Open in browser")
                 }
+            }
 
-                IconButton(
-                    onClick = { downloader.downloadFile(url, uriHandler) },
-                    modifier = Modifier.align(Alignment.BottomEnd).offset(y = 50.dp).pointerHoverIcon(PointerIcon.Hand),
+            IconButton(
+                onClick = { downloader.downloadFile(url, uriHandler) },
+                modifier = Modifier.align(Alignment.BottomEnd).offset(y = 50.dp).pointerHoverIcon(PointerIcon.Hand),
+            ) {
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = {
+                        PlainTooltip(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ) {
+                            Text("Download")
+                        }
+                    },
+                    state = rememberTooltipState(isPersistent = true),
                 ) {
-                    TooltipBox(
-                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                        tooltip = {
-                            PlainTooltip(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            ) {
-                                Text("Download")
-                            }
-                        },
-                        state = rememberTooltipState(isPersistent = true),
-                    ) {
-                        Icon(Icons.Outlined.Download, contentDescription = "Download")
-                    }
+                    Icon(Icons.Outlined.Download, contentDescription = "Download")
                 }
             }
         }

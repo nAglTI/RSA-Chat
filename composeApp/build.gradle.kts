@@ -212,7 +212,8 @@ android {
     }
 }
 
-dependencies { debugImplementation(compose.uiTooling) }
+dependencies { implementation(libs.androidx.foundation.android)
+    debugImplementation(compose.uiTooling) }
 
 compose.desktop {
     application {

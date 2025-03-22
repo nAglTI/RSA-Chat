@@ -6,7 +6,7 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.focusable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -31,6 +31,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import co.touchlab.kermit.Logger
 
 class AnimatedDialogScope(
     private val coroutineScope: CoroutineScope,
@@ -146,9 +147,23 @@ private fun DialogImpl(
         // Indicate that the popup has been inflated
         LaunchedEffect(Unit) { dialogInflated = true }
 
-        Box(contentAlignment = contentAlignment, modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize()) { // This outer box is needed otherwise the open anim is very wonky
             AnimatedVisibility(visible = isVisible, enter = enter, exit = exit, modifier = Modifier.fillMaxSize()) {
-                content(AnimatedDialogScope(scope, onDismissFlow))
+                val dialogScope = AnimatedDialogScope(scope, onDismissFlow)
+
+                Box(
+                    contentAlignment = contentAlignment,
+                    modifier =
+                        Modifier.fillMaxSize().let {
+                            if (properties.dismissOnClickOutside) {
+                                it.clickable(null, null) { dialogScope.dismissWithAnimation() }
+                            } else it
+                        },
+                ) {
+                    Box(Modifier.clickable(null, null) { /* Ignore clicks on the content */}) {
+                        content(dialogScope)
+                    }
+                }
             }
         }
     }
@@ -190,7 +205,7 @@ private fun PopupImpl(
         // Indicate that the popup has been inflated
         LaunchedEffect(Unit) { popupInflated = true }
 
-        Box(contentAlignment = contentAlignment, modifier = Modifier.fillMaxSize().focusable()) {
+        Box(modifier = Modifier.fillMaxSize()) {
             if (needsScrim) {
                 AnimatedVisibility(
                     visible = isVisible,
@@ -203,7 +218,21 @@ private fun PopupImpl(
             }
 
             AnimatedVisibility(visible = isVisible, enter = enter, exit = exit, modifier = Modifier.fillMaxSize()) {
-                content(AnimatedDialogScope(scope, onDismissFlow))
+                val dialogScope = AnimatedDialogScope(scope, onDismissFlow)
+
+                Box(
+                    contentAlignment = contentAlignment,
+                    modifier =
+                        Modifier.fillMaxSize().let {
+                            if (properties.dismissOnClickOutside) {
+                                it.clickable(null, null) { dialogScope.dismissWithAnimation() }
+                            } else it
+                        },
+                ) {
+                    Box(Modifier.clickable(null, null) { /* Ignore clicks on the content */}) {
+                        content(dialogScope)
+                    }
+                }
             }
         }
     }

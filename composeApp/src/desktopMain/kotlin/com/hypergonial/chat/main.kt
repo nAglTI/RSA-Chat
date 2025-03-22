@@ -7,6 +7,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -16,6 +20,7 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
+import com.hypergonial.chat.view.DesktopModifierStates
 import com.hypergonial.chat.view.colors.colorProvider
 import com.hypergonial.chat.view.components.DefaultRootComponent
 import com.hypergonial.chat.view.composables.Material3ContextMenuRepresentation
@@ -83,6 +88,19 @@ fun main() {
             state = windowState,
             onKeyEvent = { event ->
                 globalKeyEventFlow.send(event)
+
+                when (event.key) {
+                    Key.ShiftLeft -> DesktopModifierStates.isShiftHeld = event.type == KeyEventType.KeyDown
+                    Key.ShiftRight -> DesktopModifierStates.isShiftHeld = event.type == KeyEventType.KeyDown
+                    Key.CtrlLeft -> DesktopModifierStates.isCtrlHeld = event.type == KeyEventType.KeyDown
+                    Key.CtrlRight -> DesktopModifierStates.isCtrlHeld = event.type == KeyEventType.KeyDown
+                    Key.AltLeft -> DesktopModifierStates.isAltHeld = event.type == KeyEventType.KeyDown
+                    Key.AltRight -> DesktopModifierStates.isAltHeld = event.type == KeyEventType.KeyDown
+                    Key.MetaLeft -> DesktopModifierStates.isMetaHeld = event.type == KeyEventType.KeyDown
+                    Key.MetaRight -> DesktopModifierStates.isMetaHeld = event.type == KeyEventType.KeyDown
+                    else -> Unit
+                }
+
                 false
             },
         ) {

@@ -194,24 +194,17 @@ fun ChatBar(
             modifier
                 .onPreviewKeyEvent {
                     if (!enabled) return@onPreviewKeyEvent false
-
-                    if (it.type == KeyEventType.KeyDown && it.key == Key.Escape) {
+                    else if (it.type == KeyEventType.KeyDown && it.key == Key.Escape) {
                         focusManager.clearFocus()
                         return@onPreviewKeyEvent true
-                    }
-
-                    if (it.type == KeyEventType.KeyDown && it.key == Key.DirectionUp) {
+                    } else if (it.type == KeyEventType.KeyDown && it.key == Key.DirectionUp && value.text.isEmpty()) {
                         onEditLastRequested?.invoke()
                         return@onPreviewKeyEvent true
-                    }
-
-                    if (it.isPasteGesture() && onFilesPasted != null && !clipboardManager.hasText()) {
+                    } else if (it.isPasteGesture() && onFilesPasted != null && !clipboardManager.hasText()) {
                         onFilePasteStart?.invoke()
                         scope.launch { clipboardManager.getFiles()?.let { files -> onFilesPasted(files) } }
                         return@onPreviewKeyEvent true
-                    }
-
-                    if (it.type == KeyEventType.KeyDown && (it.key == Key.Enter || it.key == Key.NumPadEnter)) {
+                    } else if (it.type == KeyEventType.KeyDown && (it.key == Key.Enter || it.key == Key.NumPadEnter)) {
                         if (it.isShiftPressed) {
                             // Insert a newline at cursor position
                             val cursorPosition = value.selection.start

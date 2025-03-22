@@ -6,7 +6,7 @@ It runs natively on Android and iOS, desktop via the JVM, and experimentally in 
 
 ## Building
 
-The recommended JDK version for this project is **OpenJDK 17**. Higher versions may not work, especially in release builds due to lacking Proguard support.
+The recommended JDK version for this project is **OpenJDK 21**. Higher versions may not work, especially in release builds due to lacking Proguard support.
 
 ### Desktop
 

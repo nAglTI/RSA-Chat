@@ -491,7 +491,7 @@ class DefaultMainComponent(
             data.value = data.value.copy(channels = (data.value.channels + event.channel).sortedBy { it.id })
 
             // Leave fallback slot if it was active
-            if (data.value.selectedChannel == null || data.value.selectedGuild != null) {
+            if (data.value.selectedChannel == null && data.value.selectedGuild != null) {
                 navigateToChannel(event.channel.id)
             }
         }

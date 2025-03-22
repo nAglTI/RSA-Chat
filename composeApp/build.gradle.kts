@@ -18,7 +18,7 @@ plugins {
 }
 
 kotlin {
-    androidTarget { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
+    androidTarget { compilerOptions { jvmTarget.set(JvmTarget.JVM_21) } }
 
     listOf(iosX64(), iosArm64(), iosSimulatorArm64()).forEach { iosTarget ->
         iosTarget.binaries.framework {
@@ -207,8 +207,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 
@@ -228,6 +228,7 @@ compose.desktop {
         }
 
         buildTypes.release.proguard {
+            version.set("7.6.1")
             configurationFiles.from("proguard-desktop-rules.pro")
             joinOutputJars = true
             optimize = true
@@ -256,6 +257,7 @@ detekt {
     config.setFrom("$projectDir/detekt.yml")
     source.setFrom(
         "src/commonMain/kotlin",
+        "src/commonTest/kotlin",
         "src/androidMain/kotlin",
         "src/desktopMain/kotlin",
         "src/iosMain/kotlin",
@@ -273,6 +275,6 @@ tasks.withType<Detekt>().configureEach {
     }
 }
 
-tasks.withType<Detekt>().configureEach { jvmTarget = "17" }
+tasks.withType<Detekt>().configureEach { jvmTarget = "21" }
 
-tasks.withType<DetektCreateBaselineTask>().configureEach { jvmTarget = "17" }
+tasks.withType<DetektCreateBaselineTask>().configureEach { jvmTarget = "21" }

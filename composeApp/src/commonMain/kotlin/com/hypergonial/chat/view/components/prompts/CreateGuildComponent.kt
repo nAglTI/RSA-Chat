@@ -71,7 +71,7 @@ class DefaultCreateGuildComponent(
         data.value =
             data.value.copy(
                 guildName = guildName.replace(Regex("\\s+"), " ").take(32),
-                isCreateButtonEnabled = guildName.isNotBlank(),
+                isCreateButtonEnabled = guildName.length >= 3 && guildName.isNotBlank(),
             )
     }
 

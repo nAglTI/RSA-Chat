@@ -73,7 +73,7 @@ class DefaultCreateChannelComponent(
         data.value =
             data.value.copy(
                 channelName = channelName.replace(Regex("\\s+"), "_").lowercase().trim().take(32),
-                isCreateButtonEnabled = channelName.isNotBlank(),
+                isCreateButtonEnabled = channelName.length >= 3 && channelName.isNotBlank(),
             )
     }
 

@@ -13,7 +13,7 @@
 -keep class org.freedesktop.dbus.** { *; }
 -keep class * implements org.freedesktop.dbus.** { *; }
 
--keepclasseswithmembers public class com.hypergonial.chat.Mainkt {
+-keepclasseswithmembers public class com.hypergonial.chat.MainKt {
     public static void main(java.lang.String[]);
 }
 -keep class kotlin.** { *; }
@@ -27,6 +27,20 @@
     void sourceInformation(androidx.compose.runtime.Composer,java.lang.String);
     void sourceInformationMarkerStart(androidx.compose.runtime.Composer,int,java.lang.String);
     void sourceInformationMarkerEnd(androidx.compose.runtime.Composer);
+}
+
+# Fix for VerifyError in androidx.compose.runtime
+-keep class androidx.compose.runtime.State { *; }
+-keep class androidx.compose.runtime.DerivedSnapshotState { *; }
+-keep class androidx.compose.runtime.SnapshotStateKt { *; }
+-keep class androidx.compose.runtime.SnapshotStateKt__DerivedStateKt { *; }
+
+# Keep all implementations of State
+-keep class * implements androidx.compose.runtime.State { *; }
+
+# Keep derivedStateOf function and related classes
+-keepclassmembers class androidx.compose.runtime.** {
+    ** derivedStateOf(...);
 }
 
 # Keep all implementations of TextRangeScopeMeasurePolicy (including lambdas)

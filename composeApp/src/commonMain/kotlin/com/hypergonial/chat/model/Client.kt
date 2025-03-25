@@ -241,7 +241,7 @@ interface Client : InstanceKeeper.Instance, EventManagerAware, CacheAware {
      */
     suspend fun sendMessage(
         channelId: Snowflake,
-        content: String,
+        content: String?,
         nonce: String? = null,
         attachments: List<PlatformFile> = emptyList(),
     ): Message

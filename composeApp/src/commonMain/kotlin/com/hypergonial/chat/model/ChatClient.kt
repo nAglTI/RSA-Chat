@@ -486,8 +486,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         scope.launch {
             try {
                 withTimeout(5000) { gatewayConnectedJob.join() }
-            }
-            catch(e: TimeoutCancellationException) {
+            } catch (e: TimeoutCancellationException) {
                 gatewaySession?.cancel()
                 gatewayConnectedJob = Job()
                 _reconnectAttempts++
@@ -945,15 +944,19 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
 
     override suspend fun sendMessage(
         channelId: Snowflake,
-        content: String,
+        content: String?,
         nonce: String?,
         attachments: List<PlatformFile>,
     ): Message {
+        require(!content.isNullOrBlank() || attachments.isNotEmpty()) { "One of content or attachments must be set" }
+
         // See https://stackoverflow.com/questions/69830965/ktor-client-post-multipart-form-data
         val json =
             FormPart(
                 "json",
-                Json.encodeToString<MessageCreateRequest>(MessageCreateRequest(content, nonce)),
+                Json.encodeToString<MessageCreateRequest>(
+                    MessageCreateRequest(content.let { if (it.isNullOrBlank()) null else it }, nonce)
+                ),
                 Headers.build { append(HttpHeaders.ContentType, ContentType.Application.Json.toString()) },
             )
 
@@ -1000,7 +1003,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
         return http
             .patch("channels/$channelId/messages/$messageId") {
                 contentType(ContentType.Application.Json)
-                setBody(MessageUpdateRequest(content))
+                setBody(MessageUpdateRequest(content.let { if (it.isNullOrBlank()) null else it }))
             }
             .body<Message>()
     }

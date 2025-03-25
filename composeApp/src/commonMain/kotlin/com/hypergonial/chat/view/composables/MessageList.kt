@@ -331,8 +331,12 @@ private fun MessageContent(component: MessageComponent, modifier: Modifier = Mod
                 else if (state.isPending) Color.Gray else MaterialTheme.colorScheme.onBackground
 
             Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                if (state.message.content.isNullOrBlank()) {
+                    return@Row
+                }
+
                 Markdown(
-                    state.message.content ?: "TODO: No content - HANDLEME",
+                    state.message.content ?: "",
                     imageTransformer = ChatImageTransformer,
                     modifier = Modifier.fillMaxHeight().fillMaxWidth(0.9f),
                     components =

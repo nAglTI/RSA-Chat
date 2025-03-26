@@ -28,7 +28,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.AutofillType
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
@@ -44,8 +46,7 @@ import com.hypergonial.chat.view.composables.ActionText
 import com.hypergonial.chat.view.composables.ChatButton
 import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 import com.hypergonial.chat.view.composables.PasswordTextField
-import com.hypergonial.chat.view.sendNotification
-import kotlin.random.Random
+import com.hypergonial.chat.view.composables.autofill
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -63,6 +64,7 @@ fun LoginBottomBar(component: LoginComponent) {
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun LoginContent(component: LoginComponent) {
     val state by component.data.subscribeAsState()
@@ -92,7 +94,10 @@ fun LoginContent(component: LoginComponent) {
             OutlinedTextField(
                 value = state.username,
                 isError = state.loginFailed,
-                modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
+                modifier =
+                    Modifier.width(300.dp)
+                        .padding(0.dp, 5.dp)
+                        .autofill(listOf(AutofillType.Username), onFill = { component.onUsernameChange(it) }),
                 singleLine = true,
                 enabled = !state.isLoggingIn,
                 onValueChange = { component.onUsernameChange(username = it) },
@@ -113,6 +118,10 @@ fun LoginContent(component: LoginComponent) {
                 value = state.password.expose(),
                 isError = state.loginFailed,
                 enabled = !state.isLoggingIn,
+                modifier =
+                    Modifier.width(300.dp)
+                        .padding(0.dp, 5.dp)
+                        .autofill(listOf(AutofillType.Password), onFill = { component.onPasswordChange(it) }),
                 label = { Text("Password") },
                 placeholder = { Text("Enter your password...") },
                 onValueChange = { component.onPasswordChange(password = it) },
@@ -123,7 +132,6 @@ fun LoginContent(component: LoginComponent) {
                             if (state.canLogin) component.onLoginAttempt()
                         }
                     ),
-                modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
             )
 
             ChatButton(
@@ -137,7 +145,7 @@ fun LoginContent(component: LoginComponent) {
                 Text("Login")
             }
 
-/*            ChatButton(
+            /*            ChatButton(
                 onClick = {
                     sendNotification {
                         id = Random.nextInt(0, Int.MAX_VALUE)

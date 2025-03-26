@@ -32,7 +32,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.AutofillType
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
@@ -46,6 +48,7 @@ import com.hypergonial.chat.view.components.RegisterComponent
 import com.hypergonial.chat.view.composables.ChatButton
 import com.hypergonial.chat.view.composables.FullScreenProgressIndicator
 import com.hypergonial.chat.view.composables.PasswordTextField
+import com.hypergonial.chat.view.composables.autofill
 
 @Composable
 fun RegisterTopBar(component: RegisterComponent) {
@@ -66,6 +69,7 @@ fun RegisterTopBar(component: RegisterComponent) {
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun RegisterContent(component: RegisterComponent) {
     val state by component.data.subscribeAsState()
@@ -89,7 +93,10 @@ fun RegisterContent(component: RegisterComponent) {
 
             OutlinedTextField(
                 value = state.username,
-                modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
+                modifier =
+                    Modifier.width(300.dp)
+                        .padding(0.dp, 5.dp)
+                        .autofill(listOf(AutofillType.NewUsername), onFill = { component.onPasswordChange(it) }),
                 singleLine = true,
                 isError = state.usernameErrors.isNotEmpty(),
                 onValueChange = { component.onUsernameChange(it) },
@@ -135,7 +142,10 @@ fun RegisterContent(component: RegisterComponent) {
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Next,
                     ),
-                modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
+                modifier =
+                    Modifier.width(300.dp)
+                        .padding(0.dp, 5.dp)
+                        .autofill(listOf(AutofillType.NewPassword), onFill = { component.onPasswordChange(it) }),
             )
 
             for (error in state.passwordErrors) {
@@ -162,7 +172,10 @@ fun RegisterContent(component: RegisterComponent) {
                             }
                         }
                     ),
-                modifier = Modifier.width(300.dp).padding(0.dp, 5.dp),
+                modifier =
+                    Modifier.width(300.dp)
+                        .padding(0.dp, 5.dp)
+                        .autofill(listOf(AutofillType.NewPassword), onFill = { component.onPasswordChange(it) }),
             )
 
             ChatButton(

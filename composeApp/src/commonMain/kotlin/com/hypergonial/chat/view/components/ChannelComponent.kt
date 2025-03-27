@@ -236,6 +236,7 @@ class DefaultChannelComponent(
     init {
         client.cache.registerMessageCacheFor(channelId)
         client.eventManager.apply {
+            subscribeWithLifeCycle(ctx.lifecycle, ::onResume)
             subscribeWithLifeCycle(ctx.lifecycle, ::onTypingStart)
             subscribeWithLifeCycle(ctx.lifecycle, ::onTypingEnd)
             subscribeWithLifeCycle(ctx.lifecycle, ::onMessageCreate)
@@ -248,6 +249,10 @@ class DefaultChannelComponent(
         // TODO: Refine this when scroll state persistence is implemented
         client.ackMessages(channelId)
         onReadMessages(channelId)
+    }
+
+    private fun onResume(event: LifecycleResumedEvent) {
+        client.cache.registerMessageCacheFor(channelId)
     }
 
     override fun onLogoutClicked() = onLogout()

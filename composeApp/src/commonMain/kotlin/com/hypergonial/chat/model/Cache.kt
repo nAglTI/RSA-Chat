@@ -98,16 +98,13 @@ class Cache(private val cachedChannelsCount: Int = 10) : SynchronizedObject() {
             _members.clear()
             _typingIndicators.clear()
             _readStates.clear()
-            _msgcaches.forEach { it.reset() }
+            _msgcaches.clear()
             _ownUser = null
         }
     }
 
     fun clearMessageCache() {
-        // It's important to not delete the cache objects as that will
-        // invalidate registrations and potentially break app logic
-        // Caches will be pushed out as new ones come in anyway
-        synchronized(this) { _msgcaches.forEach { it.reset() } }
+        synchronized(this) { _msgcaches.clear() }
     }
 
     /**

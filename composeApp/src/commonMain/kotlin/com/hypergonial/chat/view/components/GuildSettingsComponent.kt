@@ -11,7 +11,7 @@ import com.hypergonial.chat.containAsEffect
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.GuildRemoveEvent
 import com.hypergonial.chat.model.GuildUpdateEvent
-import com.hypergonial.chat.model.LifecyclePausedEvent
+import com.hypergonial.chat.model.ClientPausedEvent
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.view.content.GuildSettingsContent
@@ -117,7 +117,7 @@ class DefaultGuildSettingsComponent(
     }
 
     @Suppress("UnusedParameter")
-    private fun onLifecyclePausedEvent(event: LifecyclePausedEvent) {
+    private fun onLifecyclePausedEvent(event: ClientPausedEvent) {
         onBack()
     }
 

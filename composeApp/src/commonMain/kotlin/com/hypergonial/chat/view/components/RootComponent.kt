@@ -13,13 +13,19 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.instancekeeper.retainedInstance
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.essenty.lifecycle.doOnPause
 import com.arkivanov.essenty.lifecycle.doOnResume
+import com.arkivanov.essenty.lifecycle.doOnStop
 import com.hypergonial.chat.model.ChatClient
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.FocusChannelEvent
 import com.hypergonial.chat.model.FocusGuildEvent
 import com.hypergonial.chat.model.InvalidationReason
+import com.hypergonial.chat.model.LifecycleDestroyedEvent
+import com.hypergonial.chat.model.LifecyclePausedEvent
+import com.hypergonial.chat.model.LifecycleResumedEvent
+import com.hypergonial.chat.model.LifecycleStoppedEvent
 import com.hypergonial.chat.model.MessageCreateEvent
 import com.hypergonial.chat.model.SessionInvalidatedEvent
 import com.hypergonial.chat.model.payloads.Attachment
@@ -33,9 +39,8 @@ import com.hypergonial.chat.view.components.prompts.DefaultJoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.DefaultNewGuildComponent
 import com.hypergonial.chat.view.components.prompts.JoinGuildComponent
 import com.hypergonial.chat.view.components.prompts.NewGuildComponent
-import com.hypergonial.chat.view.sendNotification
+import com.hypergonial.chat.view.notificationProvider
 import com.mmk.kmpnotifier.notification.NotificationImage
-import com.mmk.kmpnotifier.notification.NotifierManager
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
@@ -114,6 +119,22 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
         client.eventManager.subscribeWithLifeCycle(ctx.lifecycle, ::onMessage)
         // If we are already logged in, connect to the gateway
         scope.launch { if (client.isLoggedIn()) client.connect() }
+
+        ctx.lifecycle.doOnResume {
+            client.eventManager.dispatch(LifecycleResumedEvent())
+        }
+
+        ctx.lifecycle.doOnPause {
+            client.eventManager.dispatch(LifecyclePausedEvent())
+        }
+
+        ctx.lifecycle.doOnDestroy {
+            client.eventManager.dispatch(LifecycleDestroyedEvent())
+        }
+
+        ctx.lifecycle.doOnStop {
+            client.eventManager.dispatch(LifecycleStoppedEvent())
+        }
 
         if (platform.needsToSuspendClient()) {
             manageClientLifecycle()
@@ -319,7 +340,8 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
         }
         val channel = client.cache.getChannel(event.message.channelId) ?: return
 
-        sendNotification {
+        notificationProvider.sendNotification {
+            channelId = event.message.channelId
             id = event.message.id.toULong().toInt()
 
             title = "@${event.message.author.username} in #${channel.name}:"

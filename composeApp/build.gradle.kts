@@ -84,6 +84,8 @@ kotlin {
             implementation(libs.androidx.startup.runtime)
             // Pinch to zoom
             implementation(libs.lib.zoomable)
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.messaging)
         }
         commonMain.dependencies {
             implementation(kotlin("reflect"))

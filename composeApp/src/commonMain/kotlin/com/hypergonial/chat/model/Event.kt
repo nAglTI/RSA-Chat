@@ -114,7 +114,19 @@ class NotificationClickedEvent(val guildId: Snowflake, val channelId: Snowflake)
 class FocusAssetEvent(val url: String) : InternalEvent()
 
 /** Internal event dispatched when the client was resumed */
-class LifecycleResumedEvent : InternalEvent()
+class ClientResumedEvent : InternalEvent()
 
 /** Internal event dispatched when the client was paused */
+class ClientPausedEvent : InternalEvent()
+
+/** Internal event dispatched when the app's global lifecycle is stopped */
+class LifecycleStoppedEvent : InternalEvent()
+
+/** Internal event dispatched when the app's global lifecycle is paused */
 class LifecyclePausedEvent : InternalEvent()
+
+/** Internal event dispatched when the app's global lifecycle is resumed */
+class LifecycleResumedEvent : InternalEvent()
+
+/** Internal event dispatched when the app's global lifecycle is destroyed */
+class LifecycleDestroyedEvent : InternalEvent()

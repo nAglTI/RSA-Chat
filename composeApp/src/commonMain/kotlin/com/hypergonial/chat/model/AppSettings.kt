@@ -5,10 +5,12 @@ import com.hypergonial.chat.SettingsExt.setSerializable
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.toSnowflake
 import com.russhwolf.settings.Settings
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 import kotlinx.datetime.Instant
 
 /** The base class for implementing a persistent settings store for the application */
-abstract class AppSettings {
+abstract class AppSettings : SynchronizedObject() {
     /**
      * The user preferences store
      *
@@ -24,8 +26,12 @@ abstract class AppSettings {
      */
     protected abstract val secrets: Settings?
 
+    private var _cachedDevSettings: DevSettings? = null
+
     /** The cached developer settings for faster access */
-    private var cachedDevSettings: DevSettings? = null
+    private var cachedDevSettings: DevSettings?
+        get() = synchronized(this) { _cachedDevSettings }
+        set(value) = synchronized(this) { _cachedDevSettings = value }
 
     /**
      * Get a secret from the settings, uses the secrets store if one is available on the platform.
@@ -100,6 +106,54 @@ abstract class AppSettings {
 
     /** Remove the current user's FCM token */
     fun clearFCMSettings() = userPreferences.remove("FCM_SETTINGS")
+
+    /** Get all currently active notifications */
+    private fun getNotifications(): HashMap<Snowflake, HashSet<Int>> {
+        synchronized(this) {
+            val notifs = userPreferences.getSerializable<HashMap<Snowflake, HashSet<Int>>>("NOTIFICATIONS")
+            return notifs ?: HashMap()
+        }
+    }
+
+    /** Set all currently active notifications */
+    private fun setNotifications(notifs: HashMap<Snowflake, HashSet<Int>>) {
+        synchronized(this) { userPreferences.setSerializable("NOTIFICATIONS", notifs) }
+    }
+
+    /** Add a new notification to the list of active notifications. */
+    fun pushNotification(channelId: Snowflake, notificationId: Int) {
+        synchronized(this) {
+            val notifs = getNotifications()
+            notifs.getOrPut(channelId) { HashSet() }.add(notificationId)
+            setNotifications(notifs)
+        }
+    }
+
+    /** Remove a notification from the list of active notifications. */
+    fun popNotification(channelId: Snowflake, notificationId: Int) {
+        synchronized(this) {
+            val notifs = getNotifications()
+            notifs[channelId]?.remove(notificationId)
+            setNotifications(notifs)
+        }
+    }
+
+    /** Get all notifications for a specific channel */
+    fun getNotificationsIn(channelId: Snowflake): Set<Int>? {
+        synchronized(this) {
+            val notifs = getNotifications()
+            return notifs[channelId]
+        }
+    }
+
+    /** Clear all notifications for a specific channel */
+    fun clearNotificationsIn(channelId: Snowflake) {
+        synchronized(this) {
+            val notifs = getNotifications()
+            notifs.remove(channelId)
+            setNotifications(notifs)
+        }
+    }
 
     /** Get the last user's ID we logged in as */
     fun getLastLoggedInAs(): Snowflake? {

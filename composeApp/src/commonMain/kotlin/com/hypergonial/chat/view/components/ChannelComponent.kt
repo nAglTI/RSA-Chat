@@ -19,6 +19,7 @@ import com.hypergonial.chat.containAsEffect
 import com.hypergonial.chat.genNonce
 import com.hypergonial.chat.model.Client
 import com.hypergonial.chat.model.DelicateCacheApi
+import com.hypergonial.chat.model.ClientResumedEvent
 import com.hypergonial.chat.model.LifecycleResumedEvent
 import com.hypergonial.chat.model.MessageCreateEvent
 import com.hypergonial.chat.model.MessageRemoveEvent
@@ -48,6 +49,7 @@ import com.hypergonial.chat.view.components.subcomponents.MessageComponent
 import com.hypergonial.chat.view.components.subcomponents.MessageEntryComponent
 import com.hypergonial.chat.view.content.ChannelContent
 import com.hypergonial.chat.view.modifierStates
+import com.hypergonial.chat.view.notificationProvider
 import io.github.vinceglb.filekit.core.FileKit
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
@@ -249,11 +251,19 @@ class DefaultChannelComponent(
         // TODO: Refine this when scroll state persistence is implemented
         client.ackMessages(channelId)
         onReadMessages(channelId)
+        notificationProvider.dismissAllForChannel(channelId)
     }
 
     @Suppress("UnusedParameter")
-    private fun onResume(event: LifecycleResumedEvent) {
+    private suspend fun onResume(event: ClientResumedEvent) {
+        client.waitUntilReady()
         client.cache.registerMessageCacheFor(channelId)
+        refreshMessageList()
+    }
+
+    @Suppress("UnusedParameter")
+    private fun onLifecycleResume(event: LifecycleResumedEvent) {
+        notificationProvider.dismissAllForChannel(channelId)
     }
 
     override fun onLogoutClicked() = onLogout()
@@ -788,18 +798,6 @@ class DefaultChannelComponent(
         if (event.wasReconnect) {
             refreshMessageList()
         }
-    }
-
-    /**
-     * Callback called when the client has resumed after being paused.
-     *
-     * This is notably not identical to the onReady listener, as that only handles reconnects that were caused due to
-     * connection loss.
-     */
-    @Suppress("UNUSED_PARAMETER")
-    private suspend fun onLifecycleResume(event: LifecycleResumedEvent) {
-        client.waitUntilReady()
-        refreshMessageList()
     }
 
     /**

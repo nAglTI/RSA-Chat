@@ -2,6 +2,7 @@ package com.hypergonial.chat
 
 import androidx.compose.foundation.LocalContextMenuRepresentation
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -11,6 +12,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -69,7 +71,6 @@ fun main() {
 
     application {
         val windowState = rememberWindowState(width = 1024.dp, height = 768.dp)
-        LifecycleController(lifecycle, windowState)
 
         NotifierManager.initialize(
             NotificationPlatformConfiguration.Desktop(
@@ -89,6 +90,7 @@ fun main() {
             onKeyEvent = { event ->
                 globalKeyEventFlow.send(event)
 
+
                 when (event.key) {
                     Key.ShiftLeft -> DesktopModifierStates.isShiftHeld = event.type == KeyEventType.KeyDown
                     Key.ShiftRight -> DesktopModifierStates.isShiftHeld = event.type == KeyEventType.KeyDown
@@ -104,6 +106,8 @@ fun main() {
                 false
             },
         ) {
+            LifecycleController(lifecycle, windowState, LocalWindowInfo.current)
+
             window.addWindowFocusListener(
                 object : WindowFocusListener {
                     override fun windowGainedFocus(e: WindowEvent) {

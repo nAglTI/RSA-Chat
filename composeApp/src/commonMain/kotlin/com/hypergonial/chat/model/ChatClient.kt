@@ -359,7 +359,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     override fun pause() {
         _isSuspended = true
         closeGateway()
-        eventManager.dispatch(LifecyclePausedEvent())
+        eventManager.dispatch(ClientPausedEvent())
         cache.clearMessageCache()
     }
 
@@ -383,7 +383,7 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             }
         }
 
-        eventManager.dispatch(LifecycleResumedEvent())
+        eventManager.dispatch(ClientResumedEvent())
     }
 
     override fun isLoggedIn(): Boolean {

@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.defaultComponentContext
 import com.hypergonial.chat.model.AndroidSettings
 import com.hypergonial.chat.model.settings
@@ -41,6 +42,9 @@ class MainActivity : ComponentActivity() {
                     showPushNotification = false,
                 )
         )
+        NotifierManager.setLogger {
+            Logger.withTag("NotifierManager").i(it)
+        }
 
         val permissionUtil by permissionUtil()
         permissionUtil.askNotificationPermission()

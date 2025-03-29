@@ -37,11 +37,13 @@ class MessagingService : FirebaseMessagingService() {
             Logger.withTag("NotifierManager").i(it)
         }
 
-        notificationProvider.sendNotification {
-            channelId = message.data["channel_id"]?.toSnowflake()
-            title = message.data["title"] ?: "You got mail!"
-            body = message.data["body"] ?: "No content provided."
-            payloadData = message.data
+        if (message.data["type"] == "notification") {
+            notificationProvider.sendNotification {
+                channelId = message.data["channel_id"]?.toSnowflake()
+                title = message.data["title"] ?: "You got mail!"
+                body = message.data["body"] ?: "No content provided."
+                payloadData = message.data
+            }
         }
     }
 }

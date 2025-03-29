@@ -251,6 +251,7 @@ class DefaultChannelComponent(
         onReadMessages(channelId)
     }
 
+    @Suppress("UnusedParameter")
     private fun onResume(event: LifecycleResumedEvent) {
         client.cache.registerMessageCacheFor(channelId)
     }

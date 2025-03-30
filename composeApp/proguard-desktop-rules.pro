@@ -137,8 +137,8 @@
 -keep class okio.** { *; }
 -keep class coil3.** { *; }
 
-# Markdown also causes issues when optimized
--keep class com.mikepenz.markdown.compose.** { *; }
+# Markdown also causes issues when optimized (or not?)
+#-keep class com.mikepenz.markdown.compose.** { *; }
 
 # Keep dbus & JNA
 -keep class org.freedesktop.dbus.** { *; }

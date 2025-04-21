@@ -357,13 +357,12 @@ fun MainContent(component: MainComponent) {
     SuperDangerConfirmDialog(
         state.pendingDeleteGuild?.id,
         title = AnnotatedString("Delete Guild"),
-        prompt = buildAnnotatedString {
-            append("Are you sure you want to delete ")
-            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                append(state.pendingDeleteGuild?.name ?: "")
-            }
-            append("? This cannot be undone.")
-        },
+        prompt =
+            buildAnnotatedString {
+                append("Are you sure you want to delete ")
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(state.pendingDeleteGuild?.name ?: "") }
+                append("? This cannot be undone.")
+            },
         challengeTarget = state.pendingDeleteGuild?.name ?: "",
         challengeLabel = "Enter Guild name to confirm",
         confirm = AnnotatedString("Delete"),
@@ -374,13 +373,12 @@ fun MainContent(component: MainComponent) {
     DangerConfirmDialog(
         state.pendingLeaveGuild?.id,
         title = AnnotatedString("Leave Guild"),
-        prompt = buildAnnotatedString {
-            append("Are you sure you want to leave ")
-            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                append(state.pendingDeleteGuild?.name ?: "")
-            }
-            append("? You won't be able to rejoin without an invite code.")
-        },
+        prompt =
+            buildAnnotatedString {
+                append("Are you sure you want to leave ")
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(state.pendingDeleteGuild?.name ?: "") }
+                append("? You won't be able to rejoin without an invite code.")
+            },
         confirm = AnnotatedString("Leave"),
         cancel = AnnotatedString("Cancel"),
         onConfirm = { component.onGuildLeaveConfirmed(it) },
@@ -389,13 +387,12 @@ fun MainContent(component: MainComponent) {
     DangerConfirmDialog(
         state.pendingDeleteChannel?.id,
         title = AnnotatedString("Delete Channel"),
-        prompt = buildAnnotatedString {
-            append("Are you sure you want to delete ")
-            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                append("#${state.pendingDeleteChannel?.name}")
-            }
-            append("? This cannot be undone.")
-        },
+        prompt =
+            buildAnnotatedString {
+                append("Are you sure you want to delete ")
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("#${state.pendingDeleteChannel?.name}") }
+                append("? This cannot be undone.")
+            },
         confirm = AnnotatedString("Delete"),
         cancel = AnnotatedString("Cancel"),
         onConfirm = { component.onChannelDeleteConfirmed(it) },

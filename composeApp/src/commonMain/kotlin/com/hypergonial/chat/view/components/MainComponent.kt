@@ -253,7 +253,9 @@ class DefaultMainComponent(
                 is SlotConfig.Channel -> {
                     val selectedChannel = data.value.selectedChannel
                     if (selectedChannel == null) {
-                        logger.w { "Main slot activated with channel config, but no channel is selected. (This is a bug)" }
+                        logger.w {
+                            "Main slot activated with channel config, but no channel is selected. (This is a bug)"
+                        }
                         DefaultFallbackMainComponent(childCtx, ::onChannelCreateClicked)
                     } else {
                         DefaultChannelComponent(

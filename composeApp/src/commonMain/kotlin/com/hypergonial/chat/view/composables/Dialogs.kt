@@ -31,7 +31,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import co.touchlab.kermit.Logger
 
 class AnimatedDialogScope(
     private val coroutineScope: CoroutineScope,
@@ -160,9 +159,7 @@ private fun DialogImpl(
                             } else it
                         },
                 ) {
-                    Box(Modifier.clickable(null, null) { /* Ignore clicks on the content */}) {
-                        content(dialogScope)
-                    }
+                    Box(Modifier.clickable(null, null) { /* Ignore clicks on the content */ }) { content(dialogScope) }
                 }
             }
         }
@@ -229,9 +226,7 @@ private fun PopupImpl(
                             } else it
                         },
                 ) {
-                    Box(Modifier.clickable(null, null) { /* Ignore clicks on the content */}) {
-                        content(dialogScope)
-                    }
+                    Box(Modifier.clickable(null, null) { /* Ignore clicks on the content */ }) { content(dialogScope) }
                 }
             }
         }

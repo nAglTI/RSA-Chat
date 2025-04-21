@@ -62,7 +62,6 @@ import com.hypergonial.chat.view.composables.DangerConfirmDialog
 import com.hypergonial.chat.view.composables.FileDropTarget
 import com.hypergonial.chat.view.composables.MessageList
 import com.hypergonial.chat.view.composables.MessagePreview
-import com.hypergonial.chat.view.composables.MessageWithHeader
 import com.hypergonial.chat.view.composables.TypingIndicator
 import kotlinx.coroutines.launch
 

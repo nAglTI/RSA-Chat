@@ -293,13 +293,14 @@ fun MessageWithoutHeader(component: MessageComponent) {
     }
 }
 
-/** The content of a message in markdown.
+/**
+ * The content of a message in markdown.
  *
  * @param component The message to display the content of.
  * @param modifier The modifier to apply to the content.
  * @param isInteractive Whether the message content should be interactive. If false, the message content will not be
- *  clickable or editable.
- * */
+ *   clickable or editable.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MessageContent(component: MessageComponent, modifier: Modifier = Modifier, isInteractive: Boolean = true) {

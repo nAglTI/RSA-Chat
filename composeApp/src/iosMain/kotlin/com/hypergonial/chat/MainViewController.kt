@@ -46,9 +46,7 @@ fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
 fun MainViewController(): UIViewController {
     val stateKeeper = StateKeeperDispatcher()
     val backDispatcher = BackDispatcher()
-    NotifierManager.setLogger {
-        Logger.withTag("NotifierManager").i(it)
-    }
+    NotifierManager.setLogger { Logger.withTag("NotifierManager").i(it) }
 
     val root =
         DefaultRootComponent(

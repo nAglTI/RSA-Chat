@@ -5,8 +5,8 @@ agp = "8.9.1"
 android-compileSdk = "35"
 android-targetSdk = "35"
 android-minSdk = "28"
-androidx-activityCompose = "1.10.0"
-androidx-core-ktx = "1.15.0"
+androidx-activityCompose = "1.10.1"
+androidx-core-ktx = "1.16.0"
 androidx-espresso-core = "3.6.1"
 androidx-lifecycle = "2.8.4"
 androidx-material = "1.12.0"
@@ -18,8 +18,7 @@ compose-multiplatform = "1.7.3"
 dbusJavaCore = "5.1.0"
 decompose = "3.2.2"
 filekit = "0.8.8"
-firebaseBom = "33.11.0"
-haze = "1.3.0"
+firebaseBom = "33.12.0"
 jnaPlatform = "5.16.0"
 junit = "4.13.2"
 kermit = "2.0.5"
@@ -59,8 +58,6 @@ filekit-compose = { module = "io.github.vinceglb:filekit-compose", version.ref =
 filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
-haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
-haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "haze" }
 instance-keeper = { module = "com.arkivanov.essenty:instance-keeper", version.ref = "essenty" }
 jna-platform = { module = "net.java.dev.jna:jna-platform", version.ref = "jnaPlatform" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }

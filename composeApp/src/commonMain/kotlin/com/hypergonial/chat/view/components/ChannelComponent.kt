@@ -18,8 +18,8 @@ import com.hypergonial.chat.appendMessages
 import com.hypergonial.chat.containAsEffect
 import com.hypergonial.chat.genNonce
 import com.hypergonial.chat.model.Client
-import com.hypergonial.chat.model.DelicateCacheApi
 import com.hypergonial.chat.model.ClientResumedEvent
+import com.hypergonial.chat.model.DelicateCacheApi
 import com.hypergonial.chat.model.LifecycleResumedEvent
 import com.hypergonial.chat.model.MessageCreateEvent
 import com.hypergonial.chat.model.MessageRemoveEvent
@@ -747,13 +747,14 @@ class DefaultChannelComponent(
                 val index = data.value.messageEntries.indexOf(entry)
 
                 // Try the top first, then bottom, or create new entry if needed
-                val nextEntry = data.value.messageEntries.getOrNull(index + 1)
-                    ?: data.value.messageEntries.getOrNull(index - 1)
-                    ?: run {
-                        messageEntryComponent(mutableStateListOf()).also { newEntry ->
-                            data.value.messageEntries.add(index, newEntry)
+                val nextEntry =
+                    data.value.messageEntries.getOrNull(index + 1)
+                        ?: data.value.messageEntries.getOrNull(index - 1)
+                        ?: run {
+                            messageEntryComponent(mutableStateListOf()).also { newEntry ->
+                                data.value.messageEntries.add(index, newEntry)
+                            }
                         }
-                    }
 
                 nextEntry.setTopEndIndicator(entry.data.value.topEndIndicator)
             }
@@ -761,13 +762,14 @@ class DefaultChannelComponent(
                 val index = data.value.messageEntries.indexOf(entry)
 
                 // Try the bottom first, then top, or create new entry if needed
-                val nextEntry = data.value.messageEntries.getOrNull(index - 1)
-                    ?: data.value.messageEntries.getOrNull(index + 1)
-                    ?: run {
-                        messageEntryComponent(mutableStateListOf()).also { newEntry ->
-                            data.value.messageEntries.add(index, newEntry)
+                val nextEntry =
+                    data.value.messageEntries.getOrNull(index - 1)
+                        ?: data.value.messageEntries.getOrNull(index + 1)
+                        ?: run {
+                            messageEntryComponent(mutableStateListOf()).also { newEntry ->
+                                data.value.messageEntries.add(index, newEntry)
+                            }
                         }
-                    }
 
                 nextEntry.setBottomEndIndicator(entry.data.value.bottomEndIndicator)
             }

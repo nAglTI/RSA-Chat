@@ -9,12 +9,12 @@ import kotlin.random.Random
 
 interface NotificationProvider {
     fun sendNotification(builder: NotificationBuilder.() -> Unit)
+
     fun dismissNotification(channelId: Snowflake, id: Int)
+
     fun dismissAllForChannel(channelId: Snowflake) {
         val ids = settings.getNotificationsIn(channelId)
-        ids?.forEach { id ->
-            dismissNotification(channelId, id)
-        }
+        ids?.forEach { id -> dismissNotification(channelId, id) }
     }
 }
 
@@ -29,9 +29,7 @@ class NotificationBuilder {
     var image: NotificationImage? = null
 
     companion object {
-        fun toKMPNotify(
-            builder: NotificationBuilder
-        ): NotifierBuilder.() -> Unit {
+        fun toKMPNotify(builder: NotificationBuilder): NotifierBuilder.() -> Unit {
             return {
                 this.id = builder.id
                 this.title = builder.title

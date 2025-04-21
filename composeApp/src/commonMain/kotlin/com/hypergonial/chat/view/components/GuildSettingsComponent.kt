@@ -9,9 +9,9 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.hypergonial.chat.EffectContainer
 import com.hypergonial.chat.containAsEffect
 import com.hypergonial.chat.model.Client
+import com.hypergonial.chat.model.ClientPausedEvent
 import com.hypergonial.chat.model.GuildRemoveEvent
 import com.hypergonial.chat.model.GuildUpdateEvent
-import com.hypergonial.chat.model.ClientPausedEvent
 import com.hypergonial.chat.model.exceptions.ClientException
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.view.content.GuildSettingsContent

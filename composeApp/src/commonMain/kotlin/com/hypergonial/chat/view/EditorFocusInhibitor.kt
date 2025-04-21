@@ -9,8 +9,8 @@ import kotlinx.coroutines.CompletableDeferred
  * This interface is responsible for registering and releasing the inhibition of editor auto-focus behaviour via global
  * key events.
  *
- * If the user presses a key and no other component is currently using the editor, the main editor will automatically gain
- * focus.
+ * If the user presses a key and no other component is currently using the editor, the main editor will automatically
+ * gain focus.
  *
  * This interface allows components to inhibit this behaviour by acquiring and releasing focus for a given key.
  *
@@ -44,7 +44,9 @@ object NoOpEditorFocusInhibitor : EditorFocusInhibitor {
 
 sealed class InhibitorMessage {
     data class Acquire(val key: String) : InhibitorMessage()
+
     data class Release(val key: String) : InhibitorMessage()
+
     data class Query(val response: CompletableDeferred<Boolean>) : InhibitorMessage()
 }
 
@@ -52,7 +54,7 @@ class EditorFocusInhibitorActor : Actor<InhibitorMessage>() {
     private val focusStates = hashSetOf<String>()
 
     override fun onMessage(message: InhibitorMessage) {
-        when(message) {
+        when (message) {
             is InhibitorMessage.Acquire -> acquire(message.key)
             is InhibitorMessage.Release -> release(message.key)
             is InhibitorMessage.Query -> message.response.complete(isFree())

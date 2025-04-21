@@ -16,7 +16,7 @@ import org.freedesktop.dbus.messages.DBusSignal
 import org.freedesktop.dbus.types.UInt32
 import org.freedesktop.dbus.types.Variant
 
-object DesktopNotificationProvider: NotificationProvider {
+object DesktopNotificationProvider : NotificationProvider {
     override fun sendNotification(builder: NotificationBuilder.() -> Unit) {
         val data = NotificationBuilder().apply(builder)
         val channelId = data.channelId
@@ -43,8 +43,7 @@ object DesktopNotificationProvider: NotificationProvider {
     override fun dismissAllForChannel(channelId: Snowflake) {
         if (platform.platformType != PlatformType.LINUX) {
             super.dismissAllForChannel(channelId)
-        }
-        else {
+        } else {
             val ids = settings.getNotificationsIn(channelId) ?: return
             removeNotificationsViaXDGPortals(ids)
             settings.clearNotificationsIn(channelId)

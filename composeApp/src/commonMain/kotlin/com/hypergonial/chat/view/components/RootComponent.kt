@@ -120,21 +120,13 @@ class DefaultRootComponent(val ctx: ComponentContext) : RootComponent, Component
         // If we are already logged in, connect to the gateway
         scope.launch { if (client.isLoggedIn()) client.connect() }
 
-        ctx.lifecycle.doOnResume {
-            client.eventManager.dispatch(LifecycleResumedEvent())
-        }
+        ctx.lifecycle.doOnResume { client.eventManager.dispatch(LifecycleResumedEvent()) }
 
-        ctx.lifecycle.doOnPause {
-            client.eventManager.dispatch(LifecyclePausedEvent())
-        }
+        ctx.lifecycle.doOnPause { client.eventManager.dispatch(LifecyclePausedEvent()) }
 
-        ctx.lifecycle.doOnDestroy {
-            client.eventManager.dispatch(LifecycleDestroyedEvent())
-        }
+        ctx.lifecycle.doOnDestroy { client.eventManager.dispatch(LifecycleDestroyedEvent()) }
 
-        ctx.lifecycle.doOnStop {
-            client.eventManager.dispatch(LifecycleStoppedEvent())
-        }
+        ctx.lifecycle.doOnStop { client.eventManager.dispatch(LifecycleStoppedEvent()) }
 
         if (platform.needsToSuspendClient()) {
             manageClientLifecycle()

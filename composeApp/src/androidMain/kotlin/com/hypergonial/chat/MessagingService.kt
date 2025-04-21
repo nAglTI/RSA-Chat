@@ -33,9 +33,7 @@ class MessagingService : FirebaseMessagingService() {
                     showPushNotification = false,
                 )
         )
-        NotifierManager.setLogger {
-            Logger.withTag("NotifierManager").i(it)
-        }
+        NotifierManager.setLogger { Logger.withTag("NotifierManager").i(it) }
 
         if (message.data["type"] == "notification") {
             notificationProvider.sendNotification {

@@ -4,15 +4,10 @@ import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.toSnowflake
 import com.mmk.kmpnotifier.notification.PayloadData
 
-data class PushNotificationData(
-    val channelId: Snowflake,
-    val guildId: Snowflake,
-) {
+data class PushNotificationData(val channelId: Snowflake, val guildId: Snowflake) {
     companion object {
         fun fromPayload(payload: PayloadData): PushNotificationData {
-            require(payload["type"]?.toString() == "notification") {
-                "Invalid notification type"
-            }
+            require(payload["type"]?.toString() == "notification") { "Invalid notification type" }
 
             return PushNotificationData(
                 channelId = (payload["channel_id"] as String).toSnowflake(),

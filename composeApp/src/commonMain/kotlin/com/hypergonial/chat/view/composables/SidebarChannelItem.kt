@@ -11,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +42,7 @@ import com.hypergonial.chat.model.settings
  * @param icon The icon to display for the channel.
  * @param onSelect The callback to call when the channel is selected.
  */
+@Suppress("UnusedParameter")
 @Composable
 fun SidebarChannelItem(
     label: String,
@@ -61,11 +61,15 @@ fun SidebarChannelItem(
         isAltMenuActive,
         onDismissRequest = { isAltMenuActive = false },
         altActions = {
+            /*
             if (onEdit != null) {
+
                 item("TODO - Edit", leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = "Edit Icon") }) {
                     onEdit()
                 }
+
             }
+            */
 
             if (onDelete != null) {
                 item("Delete", leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete Icon") }) {

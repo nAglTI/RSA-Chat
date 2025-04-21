@@ -42,9 +42,7 @@ class MainActivity : ComponentActivity() {
                     showPushNotification = false,
                 )
         )
-        NotifierManager.setLogger {
-            Logger.withTag("NotifierManager").i(it)
-        }
+        NotifierManager.setLogger { Logger.withTag("NotifierManager").i(it) }
 
         val permissionUtil by permissionUtil()
         permissionUtil.askNotificationPermission()

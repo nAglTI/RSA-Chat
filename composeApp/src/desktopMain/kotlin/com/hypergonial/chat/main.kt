@@ -2,7 +2,6 @@ package com.hypergonial.chat
 
 import androidx.compose.foundation.LocalContextMenuRepresentation
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -89,7 +88,6 @@ fun main() {
             state = windowState,
             onKeyEvent = { event ->
                 globalKeyEventFlow.send(event)
-
 
                 when (event.key) {
                     Key.ShiftLeft -> DesktopModifierStates.isShiftHeld = event.type == KeyEventType.KeyDown

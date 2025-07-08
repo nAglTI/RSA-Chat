@@ -39,27 +39,27 @@ kotlin {
 
     jvm("desktop")
 
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        moduleName = "composeApp"
-        browser {
-            val rootDirPath = project.rootDir.path
-            val projectDirPath = project.projectDir.path
-            commonWebpackConfig {
-                outputFileName = "composeApp.js"
-                devServer =
-                    (devServer ?: KotlinWebpackConfig.DevServer()).apply {
-                        static =
-                            (static ?: mutableListOf()).apply {
-                                // Serve sources to debug inside browser
-                                add(rootDirPath)
-                                add(projectDirPath)
-                            }
-                    }
-            }
-        }
-        binaries.executable()
-    }
+//    @OptIn(ExperimentalWasmDsl::class)
+//    wasmJs {
+//        moduleName = "composeApp"
+//        browser {
+//            val rootDirPath = project.rootDir.path
+//            val projectDirPath = project.projectDir.path
+//            commonWebpackConfig {
+//                outputFileName = "composeApp.js"
+//                devServer =
+//                    (devServer ?: KotlinWebpackConfig.DevServer()).apply {
+//                        static =
+//                            (static ?: mutableListOf()).apply {
+//                                // Serve sources to debug inside browser
+//                                add(rootDirPath)
+//                                add(projectDirPath)
+//                            }
+//                    }
+//            }
+//        }
+//        binaries.executable()
+//    }
 
     sourceSets {
         val desktopMain by getting
@@ -151,6 +151,11 @@ kotlin {
             api(libs.back.handler)
             // Notifications
             api(libs.kmpnotifier)
+
+            // Cryptography
+            implementation(libs.cryptography.core)
+            implementation(libs.cryptography.provider)
+            implementation(libs.libsodium)
         }
         commonTest.dependencies { implementation(kotlin("test")) }
 
@@ -264,7 +269,7 @@ detekt {
         "src/androidMain/kotlin",
         "src/desktopMain/kotlin",
         "src/iosMain/kotlin",
-        "src/wasmJsMain/kotlin",
+        //"src/wasmJsMain/kotlin",
     )
     basePath = projectDir.absolutePath
 }

@@ -39,6 +39,8 @@ multiplatform-settings = "1.2.0"
 zoomableVersion = "2.0.0"
 foundationAndroid = "1.7.8"
 cryptography-kotlin = "0.5.0"
+datastore = "1.1.7"
+crypto = "1.1.0-alpha06"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
@@ -95,6 +97,7 @@ multiplatform-markdown-renderer-code = { module = "com.mikepenz:multiplatform-ma
 multiplatform-markdown-renderer-coil3 = { module = "com.mikepenz:multiplatform-markdown-renderer-coil3", version.ref = "multiplatformMarkdownRenderer" }
 multiplatform-markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdownRenderer" }
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatform-settings" }
+multiplatform-settings-datastore = { module = "com.russhwolf:multiplatform-settings-datastore", version.ref = "multiplatform-settings" }
 multiplatform-settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatform-settings" }
 state-keeper = { module = "com.arkivanov.essenty:state-keeper", version.ref = "essenty" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref= "slf4j" }
@@ -102,6 +105,8 @@ slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref= "slf4j" }
 androidx-foundation-android = { group = "androidx.compose.foundation", name = "foundation-android", version.ref = "foundationAndroid" }
 cryptography-core = { module = "dev.whyoleg.cryptography:cryptography-core", version.ref = "cryptography-kotlin" }
 cryptography-provider = { module = "dev.whyoleg.cryptography:cryptography-provider-optimal", version.ref = "cryptography-kotlin" }
+datastore-prefs = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "crypto" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

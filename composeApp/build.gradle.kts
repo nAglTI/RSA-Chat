@@ -86,6 +86,8 @@ kotlin {
             implementation(libs.lib.zoomable)
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.messaging)
+            implementation(libs.datastore.prefs)
+            implementation(libs.androidx.security.crypto)
         }
         commonMain.dependencies {
             implementation(kotlin("reflect"))
@@ -107,6 +109,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtime.compose)
             // Settings Handling
             implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.datastore)
             implementation(libs.multiplatform.settings.coroutines)
             // JSON Serialization
             implementation(libs.kotlinx.serialization.json)

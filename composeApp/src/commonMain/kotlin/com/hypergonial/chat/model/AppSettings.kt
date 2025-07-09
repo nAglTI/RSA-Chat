@@ -4,7 +4,9 @@ import com.hypergonial.chat.SettingsExt.getSerializable
 import com.hypergonial.chat.SettingsExt.setSerializable
 import com.hypergonial.chat.model.payloads.Snowflake
 import com.hypergonial.chat.model.payloads.toSnowflake
+import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.Settings
+import com.russhwolf.settings.coroutines.FlowSettings
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.datetime.Instant
@@ -17,6 +19,7 @@ abstract class AppSettings : SynchronizedObject() {
      * It should be used to store insensitive user data, such as API settings.
      */
     protected abstract val userPreferences: Settings
+
     /**
      * The secrets store
      *
@@ -25,6 +28,9 @@ abstract class AppSettings : SynchronizedObject() {
      * Note that not all platforms implement this, in that case, the user preferences store should be used.
      */
     protected abstract val secrets: Settings?
+
+    @OptIn(ExperimentalSettingsApi::class)
+    protected abstract val androidSecrets: FlowSettings?
 
     private var _cachedDevSettings: DevSettings? = null
 
@@ -57,11 +63,7 @@ abstract class AppSettings : SynchronizedObject() {
      * @param value The secret to set
      */
     private fun setSecret(key: String, value: String) {
-        if (secrets == null) {
-            userPreferences.putString(key, value)
-        } else {
-            secrets!!.putString(key, value)
-        }
+        secrets?.putString(key, value) ?: userPreferences.putString(key, value)
     }
 
     /** Clear all settings */
@@ -212,6 +214,16 @@ abstract class AppSettings : SynchronizedObject() {
     /** Clear the last opened guilds and channels */
     fun clearLastOpenedPrefs() {
         userPreferences.remove("LAST_OPENED_PREFS")
+    }
+
+    fun setPrivateKey(key: String) {
+        setSecret(SECRET_KEY_NAME, key)
+    }
+
+    fun getPrivateKey(): String? = getSecret(SECRET_KEY_NAME)
+
+    private companion object {
+        private const val SECRET_KEY_NAME = "pk_set_secured_pref"
     }
 }
 

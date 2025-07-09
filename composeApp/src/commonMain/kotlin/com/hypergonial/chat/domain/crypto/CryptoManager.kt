@@ -21,20 +21,16 @@ object CryptoManager {
 
             val keyGenerator = rsaOaepProvider.keyPairGenerator(keySize = 2048.bits, digest = SHA256)
             val keyDecoder = rsaOaepProvider.publicKeyDecoder(SHA256)
+
             val key = keyGenerator.generateKey()
             val pubKey = key.publicKey
             val privateKey = key.privateKey
             println("private key: ${privateKey.encodeToByteString(RSA.PrivateKey.Format.DER.PKCS1).toByteArray().encodeBase64()}")
-            val encryptTime1 = System.currentTimeMillis()
+
             val ciphertext = pubKey.encryptor().encrypt(plaintext = "jknasdfhnsadfo;jhfTFUIOKNQWEfh 9pif wygn89opfweak 7iotygnasdlm 8ohaeswuli fhm luas,./eilhnerf mkl.uasjhn ;dfkl.jhsZ.k fjeghbwalihgf yuiopghlweasrfg".encodeToByteArray()).encodeBase64()
-            val encryptTime2 = System.currentTimeMillis() - encryptTime1
-            println("Time in ms: $encryptTime2 ms")
             println("encoded str: $ciphertext")
 
-            val decodeTime1 = System.currentTimeMillis()
             println("decoded str: ${privateKey.decryptor().decrypt(ciphertext = ciphertext.decodeBase64Bytes()).decodeToString()}")
-            val decodeTime2 = System.currentTimeMillis() - decodeTime1
-            println("Time in ms: $encryptTime2 ms")
 
             testPrivateDecode(rsaOaepProvider)
         }

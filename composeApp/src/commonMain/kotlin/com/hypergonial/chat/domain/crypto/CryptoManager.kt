@@ -1,6 +1,5 @@
 package com.hypergonial.chat.domain.crypto
 
-import com.ionspin.kotlin.crypto.box.Box
 import dev.whyoleg.cryptography.BinarySize.Companion.bits
 import dev.whyoleg.cryptography.CryptographyProvider
 import dev.whyoleg.cryptography.DelicateCryptographyApi

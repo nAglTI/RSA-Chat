@@ -155,7 +155,6 @@ kotlin {
             // Cryptography
             implementation(libs.cryptography.core)
             implementation(libs.cryptography.provider)
-            implementation(libs.libsodium)
         }
         commonTest.dependencies { implementation(kotlin("test")) }
 

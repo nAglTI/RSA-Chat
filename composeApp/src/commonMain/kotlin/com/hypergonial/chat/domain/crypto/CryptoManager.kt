@@ -1,18 +1,15 @@
 package com.hypergonial.chat.domain.crypto
 
 import com.ionspin.kotlin.crypto.box.Box
-import com.ionspin.kotlin.crypto.util.decodeFromUByteArray
-import com.ionspin.kotlin.crypto.util.encodeToUByteArray
+import dev.whyoleg.cryptography.BinarySize.Companion.bits
 import dev.whyoleg.cryptography.CryptographyProvider
 import dev.whyoleg.cryptography.DelicateCryptographyApi
 import dev.whyoleg.cryptography.algorithms.RSA
 import dev.whyoleg.cryptography.algorithms.SHA256
 import io.ktor.util.*
-import io.ktor.utils.io.charsets.Charsets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 object CryptoManager {
@@ -21,47 +18,40 @@ object CryptoManager {
     fun testCryptoKotlin() {
         CoroutineScope(Dispatchers.Default).launch {
             val provider = CryptographyProvider.Default
-            val rsaPkcs1 = provider.get(RSA.PKCS1)
+            val rsaOaepProvider = provider.get(RSA.OAEP)
 
-            val keyGenerator = rsaPkcs1.keyPairGenerator(digest = SHA256)
+            val keyGenerator = rsaOaepProvider.keyPairGenerator(keySize = 2048.bits, digest = SHA256)
+            val keyDecoder = rsaOaepProvider.publicKeyDecoder(SHA256)
             val key = keyGenerator.generateKey()
             val pubKey = key.publicKey
             val privateKey = key.privateKey
-            println("private key: ${privateKey.encodeToByteString(RSA.PrivateKey.Format.PEM.PKCS1).toByteArray().encodeBase64()}")
-            val ciphertext = pubKey.encryptor().encrypt(plaintext = "RSA_PKCS1".encodeToByteArray()).encodeBase64()
-            println("encoded str - $ciphertext")
+            println("private key: ${privateKey.encodeToByteString(RSA.PrivateKey.Format.DER.PKCS1).toByteArray().encodeBase64()}")
+            val encryptTime1 = System.currentTimeMillis()
+            val ciphertext = pubKey.encryptor().encrypt(plaintext = "jknasdfhnsadfo;jhfTFUIOKNQWEfh 9pif wygn89opfweak 7iotygnasdlm 8ohaeswuli fhm luas,./eilhnerf mkl.uasjhn ;dfkl.jhsZ.k fjeghbwalihgf yuiopghlweasrfg".encodeToByteArray()).encodeBase64()
+            val encryptTime2 = System.currentTimeMillis() - encryptTime1
+            println("Time in ms: $encryptTime2 ms")
+            println("encoded str: $ciphertext")
 
-            println("decoded str - ${privateKey.decryptor().decrypt(ciphertext = ciphertext.decodeBase64Bytes()).decodeToString()}")
+            val decodeTime1 = System.currentTimeMillis()
+            println("decoded str: ${privateKey.decryptor().decrypt(ciphertext = ciphertext.decodeBase64Bytes()).decodeToString()}")
+            val decodeTime2 = System.currentTimeMillis() - decodeTime1
+            println("Time in ms: $encryptTime2 ms")
+
+            testPrivateDecode(rsaOaepProvider)
         }
     }
 
     @OptIn(ExperimentalUnsignedTypes::class, ExperimentalEncodingApi::class)
-    fun testLibsodium() {
+    fun testPrivateDecode(provider: RSA.OAEP) {
         CoroutineScope(Dispatchers.Default).launch {
-            val (publicKey, secretKey) = Box.keypair()
-            val message = "LIBSODIUM_KAL".encodeToUByteArray()
-            val ciphertext = Box.seal(message, publicKey).asByteArray().encodeBase64()
-            val decrypted = Box.sealOpen(ciphertext.decodeBase64Bytes().asUByteArray(), publicKey, secretKey)
-            println(publicKey)
-            println(secretKey)
-            println(ciphertext)
-            println(decrypted.decodeFromUByteArray())
-
-            val privKey = "MIIEpQIBAAKCAQEAuNSQEFAeywy7Id5wnheEXB8uF/TWb5pvpQos+LMAZW2/thKgjHFv/8xyKKscfiD3Cvwyq98NMmH9z0mSZrwJk8nN/0HsvOS3Ye04Ae7D3Ihl41rlg8UGTjx2hvAl/RHkJG8LmLRHVqZim8Eh2aUQsOfcqwprq7ajdaWxXLgcOPnEdgO3UasOjpdochMrScu92w0D3GRCiOfQN3WhAJ6eZur9/sKWnZJj2nPnzH/j95tk2GH+GS9bJQ/RqlMjDQlc+wdNAYz4pyTcBL3+KLr1pw5ElsQNnULjQbUU3+6ghKWUsTHCKYp4e8pIxGvSGS2tt15ranqQI05cqUFbw8zROwIDAQABAoIBAEWrIc50VNcWqmbe0LZWiPasbhRrnnSc0t5z0nXACzMwRiYcKVYm4B+ccZ9wuCG2zUffvj3YqsHF/ASpZ7y/viBt3e8Ma27cC1+nKghYdo1nAHjNZ1ve5TySP98nIDqfBs7Q6J8bvRQlTWAGUXsXZA46p4v1NpaYFk8fMJaRc1np7sCOsDXgJ9wNwNo0oQDOlXHA9Rz1tXVvjzer1V/MZ8g7mar2wvXPsEN17ctSptCGVMhgzoI+q40bSePCIn2ffl0p7JGo64OJBWApdzAbePBqc/rgPnvta/iYpxlvqEPLc4Ol5r+WOYiiawLxCkBayLGjhueQjve4vse0BcfaFmkCgYEAw5FmlSq5kWZTNp7PkfQEUgaAZwU3tJnHyDmAhlTcWeTINgHBHLwb3biGHTSvwCVAJG6UcqfeBiRvEtlSzqCfqxknoUk0OLGiHJMlSefsZGtII42WbkizP0JD+fXdhmfWi/0GWDfheIWi7mUZhEnpiuo3Q1B0BYUFPWGRQFPqu08CgYEA8fG/6heaJBWLU/jd51AgAKQeRyi+c86i9l9RgFDwVgPwtSm9JyK7x6WHLvz+bjd3xIkf3tWG8/GfsDmDVnJh1vm3XG0Fwp4c8QeCzaBhCgGh/8b3SOu/4chTBi/qrb2jB22XrFXcg33b9GVE9vEh5/SKdfLL3tDRs+yD6fGxYFUCgYEAlksel9I+zBPkLVy8zkDGNTdT5FgpKDzqQOCX+iQrN1ZP2tlcTDXwAGP3hWhhDHxUH+tvX/HL+dJ0Hfsv3SWprzbkstlsLYmtuOIITRTUIZQk21XLXrO2NQ466VTeypTwV6K7Bn7jYtjojubZRkX7GcvHbo7cqwVAMpzRoKsdAJcCgYEAxJ0awpePkcdYRFM3sWRxvVOhr14y91VzJRfs2YPs61mkYPScXJNjWijwJIVAFj1JPRPaLHIFi3RNux3h13x4egTQt3F5fuCS0GS0LXopocIV7g+4oS/D7S2oGp0R70Lum3i6CzhzTQAYoREy7CKk1STq6FL4zgeQgtCvmovpA0kCgYEAwM0r6IbQdxGPtCv0wp+kvZEj9cHYkQ6yk178NSzpw8TLPlWAhuaBaBMOUscXE+KOElbEdAVR31B+IvR8DaUsjEp4GGh2ouyFgSi194BMhPmu9piWyfBcDZNNeSdgwB969eiOx0CmleOyVeJoVqboNMmPTRPV3+vqIX80e03jtWE="
+            val privKey = "MIIEowIBAAKCAQEA2tCCVlCHUNn9CM/a9s50fLBl8D4rbjWcZ7l0VeTIIeHRSCfozzRCEePg/wS+qPOpF+ASjoYSPlLVNUoS3NOYXWSVZUAeyJyis5cP9TgOQsJ4cooc9gXOEI4Q40rD8ElXcfEo7iJfyDgVFzmbYNyOqp+ZpJjlgfu7fwHoLO74HI1mOi+/rm53e8i917C9okn/KLgPg1UylmZB0sdtQ/eDLhtfPtfo8r27Lfw5z1htn8yUx9ssSv5GTFzEZGjh/Q34YX6rqKYRn4BVyJE6mohRBgWptkvqQDPck99A+X+kifjdywBD9/+JHJcOF0SvytGqd/JcGTqt+VGaL+8IX5Hg8wIDAQABAoIBAAXytBBPmRYQDupN6ChcXVtEWkkJD5or1+gT6P8qvGv7XPqGpzP2ujMNTEDyapJiKT8OZsK8D0PlcYlEzbV2BQbI5Ky/bPbMFzoliZgDYZPcAHUwnu/rIXpeukPLdP8Tp05gHVo30f251IzwknI0HKaztvP7+gUqCCNANIUAK/tuqatgF4KD3omLlRghQK0p/r22UHQqxbWpiPIyyUEXnX28GGKuSLog1GgQWSgm+vEs7ijU9ZmjzGdLxozI2fJh2TUE5kxKoba1zq6sNZgGIQlEjQK6L+hEZ7x8sGoD6bZUav9Bn5xYhVyYBau2jq41uZFsqeEflHQDYXMY2jQFWvECgYEA3fhXgBU/t6GnUPScDryUPs1RiV849bSOcSHLOhIUuEDqcBXm3fc3sFmANR3aW9z2rznzf32VNUyc9AcfJZ25P0G0EEAeqiHYH8BUe4j0dg5bytS/e47YwQmgDg7pZFCHPQqi+l1HLTfHnnCHzosTdGWvheQ5ysNwN/4fYCqlANECgYEA/FxR1ZraPy6JXyIdZ6JvIwxuC1pTAUGnu3ZSkej6NCLHTE8kJCR4PgCQP4m9bVjNzSjeDpNMdsvZIIo1TBwb8vtrk4ybhXmPAd9McXAHF+kjLz2hm9Ilb3nN1aBRvtw8e/B8fUTE5x8rOMvZ7CG5NrJPAewU/pJf6n8T8V4oloMCgYEAhE67GUWRLUvWB5NGUiJl2ulXaKKxuQNexGB4WqzcXNeU5iqn6japoxw2J3Mb7RXQlLHeSmf4wERiabK1Bh71hJcNVYJixNZXlNV3hgskbBoy7LvTRzrmSGoMVVTeGUVG10O30bQ38OQGwJIi4SJU/lR+Qzi+mfXUtgtreE7y+4ECgYAyKpgKAnKIRNQCGWIHC/9T1FC76QS/JzIUzfy0DMBQROmhfcoNdUKB8NK8DsGdTx36PrmF5Do7E2LiWRcnPh9AOkK0Xis8aWHIWX90vXRriGj6JyJNO4U9l9UXNnuJmXZcnP3iWR1bZJLPA5cancmX2fJiy2+Q+8AdeY2ZWcJvyQKBgEvJGBU0IwogFpvou0f0t+xnYk3rYSOwyHlODVYES4++SwPff+sz97lulgiGqKweFcXryzIPWzaa1J4CTcDJuNdpy/oLHb11CMCNcS5GBQ9IHeTpFWG1wmglL2S5YtkL27NY5+DCKvQS5t3KPwvjmeKWF0CHeuHmQ4puVvg/NgCQ"
             val privKeyBytes: ByteArray = privKey.decodeBase64Bytes()
-            val pubKey = "MIIBCgKCAQEAuNSQEFAeywy7Id5wnheEXB8uF/TWb5pvpQos+LMAZW2/thKgjHFv/8xyKKscfiD3Cvwyq98NMmH9z0mSZrwJk8nN/0HsvOS3Ye04Ae7D3Ihl41rlg8UGTjx2hvAl/RHkJG8LmLRHVqZim8Eh2aUQsOfcqwprq7ajdaWxXLgcOPnEdgO3UasOjpdochMrScu92w0D3GRCiOfQN3WhAJ6eZur9/sKWnZJj2nPnzH/j95tk2GH+GS9bJQ/RqlMjDQlc+wdNAYz4pyTcBL3+KLr1pw5ElsQNnULjQbUU3+6ghKWUsTHCKYp4e8pIxGvSGS2tt15ranqQI05cqUFbw8zROwIDAQAB"
-            val pubKeyBytes: ByteArray = pubKey.decodeBase64Bytes()
 
-            val importPrivKey: UByteArray = privKeyBytes.toUByteArray()
-            val importPubKey: UByteArray = pubKeyBytes.toUByteArray()
+            val importPrivKey = provider.privateKeyDecoder(SHA256)
+            val privateKeyObj = importPrivKey.decodeFromByteArray(RSA.PrivateKey.Format.DER.PKCS1, privKeyBytes)
+            val ciphertext = "q6lrhU1ua6ghUMDPUo4lYEZaj1eAtk8fKuMNv1gB34Bm4SDFRZGLA9JkXnJ/1Z/6e1xltYfxPyTYxeydLYXB+VjIW8ZgZCWanxIZj7JBPdwwwVTFqSlU8EpjtwqZv00eguvdL2Xh6YRETBeFSpvBNC91W6ZviXmhxvzAAFAyzQy5dIYlzu4ymZvHgF6Bzbmitsezoi3/Wf8OJmDvy6Mm3cminlyrtcs7UrFhfkYRi6JnKhCQ6XfA04xiV4AcDzaoK+45VXlC+R8VycHO9RoJKc5eVtW6g3LbkH+ZyAzWrSKI6f6CcGwYJpU9bCzOREhLqaWQbNk7W8L+xzy7wVQIjw=="
 
-            val decodeSan = Box.sealOpen(
-                ciphertext = "NI9yzD86f4LfUyicRGHtxpIcTWfnNstGkwMklxae+IY2VQwpx4qlgrsxzVyOyYWXqfpQKgci0p/yeFxYFbD/lZVsjiDzEgbbh977eaiYipKRapkB/Ex+RJ+m7fAIy0X1hyd7re1A1sGr2IMZ92gZ8/MlWWkAPdJaEMRc4qfrYzYAPxKfB1B2Q9auVz5DUSSawqhs71dMnouwtBb8rkN7MvOWGovsdOQbjgWiNWY4Bc5WmRQafUZRdNWN5ufk2S+PZf0GTJo/+liVqPbwYS+7HywnslO1FZifT860SnMvwn7dfjqdZRE8IoTgEOQNfi3A0bQgCFaLE/q4yHTX1jQwuA==".decodeBase64Bytes().asUByteArray(),
-                recipientsPublicKey = importPubKey,
-                recipientsSecretKey = importPrivKey
-            )
-
-            println("DECODE SANYA - $decodeSan")
+            println("decoded str SANYA: ${privateKeyObj.decryptor().decrypt(ciphertext = ciphertext.decodeBase64Bytes()).decodeToString()}")
         }
     }
 }

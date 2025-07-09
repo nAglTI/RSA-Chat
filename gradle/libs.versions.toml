@@ -39,7 +39,6 @@ multiplatform-settings = "1.2.0"
 zoomableVersion = "2.0.0"
 foundationAndroid = "1.7.8"
 cryptography-kotlin = "0.5.0"
-libsodium = "0.9.2"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
@@ -103,7 +102,6 @@ slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref= "slf4j" }
 androidx-foundation-android = { group = "androidx.compose.foundation", name = "foundation-android", version.ref = "foundationAndroid" }
 cryptography-core = { module = "dev.whyoleg.cryptography:cryptography-core", version.ref = "cryptography-kotlin" }
 cryptography-provider = { module = "dev.whyoleg.cryptography:cryptography-provider-optimal", version.ref = "cryptography-kotlin" }
-libsodium = { module = "com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings", version.ref = "libsodium" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

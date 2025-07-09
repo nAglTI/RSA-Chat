@@ -9,25 +9,15 @@ import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.stack.Children
-import com.hypergonial.chat.domain.crypto.CryptoManager.testLibsodium
+import com.hypergonial.chat.domain.crypto.CryptoManager
 import com.hypergonial.chat.view.ChatTheme
 import com.hypergonial.chat.view.components.RootComponent
-import com.ionspin.kotlin.crypto.LibsodiumInitializer
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 val LocalUsingDarkTheme = compositionLocalOf { false }
 
 @Composable
 fun App(root: RootComponent) {
-    CoroutineScope(Dispatchers.Default).launch {
-        LibsodiumInitializer.initialize()
-    }
-
-    LibsodiumInitializer.initializeWithCallback {
-        testLibsodium()
-    }
+    CryptoManager.testCryptoKotlin()
     setSingletonImageLoaderFactory { context ->
         // Fetches images on IO dispatcher by default
         ImageLoader.Builder(context).crossfade(true).build()

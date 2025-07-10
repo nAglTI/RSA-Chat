@@ -9,6 +9,7 @@ import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.hypergonial.chat.domain.crypto.CryptoManager
 import com.hypergonial.chat.view.ChatTheme
 import com.hypergonial.chat.view.components.RootComponent
 
@@ -16,6 +17,7 @@ val LocalUsingDarkTheme = compositionLocalOf { false }
 
 @Composable
 fun App(root: RootComponent) {
+    CryptoManager.testCryptoKotlin()
     setSingletonImageLoaderFactory { context ->
         // Fetches images on IO dispatcher by default
         ImageLoader.Builder(context).crossfade(true).build()

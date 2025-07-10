@@ -39,27 +39,27 @@ kotlin {
 
     jvm("desktop")
 
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        moduleName = "composeApp"
-        browser {
-            val rootDirPath = project.rootDir.path
-            val projectDirPath = project.projectDir.path
-            commonWebpackConfig {
-                outputFileName = "composeApp.js"
-                devServer =
-                    (devServer ?: KotlinWebpackConfig.DevServer()).apply {
-                        static =
-                            (static ?: mutableListOf()).apply {
-                                // Serve sources to debug inside browser
-                                add(rootDirPath)
-                                add(projectDirPath)
-                            }
-                    }
-            }
-        }
-        binaries.executable()
-    }
+//    @OptIn(ExperimentalWasmDsl::class)
+//    wasmJs {
+//        moduleName = "composeApp"
+//        browser {
+//            val rootDirPath = project.rootDir.path
+//            val projectDirPath = project.projectDir.path
+//            commonWebpackConfig {
+//                outputFileName = "composeApp.js"
+//                devServer =
+//                    (devServer ?: KotlinWebpackConfig.DevServer()).apply {
+//                        static =
+//                            (static ?: mutableListOf()).apply {
+//                                // Serve sources to debug inside browser
+//                                add(rootDirPath)
+//                                add(projectDirPath)
+//                            }
+//                    }
+//            }
+//        }
+//        binaries.executable()
+//    }
 
     sourceSets {
         val desktopMain by getting
@@ -86,6 +86,8 @@ kotlin {
             implementation(libs.lib.zoomable)
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.messaging)
+            implementation(libs.datastore.prefs)
+            implementation(libs.androidx.security.crypto)
         }
         commonMain.dependencies {
             implementation(kotlin("reflect"))
@@ -107,6 +109,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtime.compose)
             // Settings Handling
             implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.datastore)
             implementation(libs.multiplatform.settings.coroutines)
             // JSON Serialization
             implementation(libs.kotlinx.serialization.json)
@@ -151,6 +154,10 @@ kotlin {
             api(libs.back.handler)
             // Notifications
             api(libs.kmpnotifier)
+
+            // Cryptography
+            implementation(libs.cryptography.core)
+            implementation(libs.cryptography.provider)
         }
         commonTest.dependencies { implementation(kotlin("test")) }
 
@@ -264,7 +271,7 @@ detekt {
         "src/androidMain/kotlin",
         "src/desktopMain/kotlin",
         "src/iosMain/kotlin",
-        "src/wasmJsMain/kotlin",
+        //"src/wasmJsMain/kotlin",
     )
     basePath = projectDir.absolutePath
 }

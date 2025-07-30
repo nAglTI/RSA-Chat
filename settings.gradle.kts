@@ -1,4 +1,4 @@
-rootProject.name = "Chat"
+rootProject.name = "RSA-KMP"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

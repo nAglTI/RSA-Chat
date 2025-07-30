@@ -27,7 +27,7 @@ class SecuredSettings(
 
     override suspend fun keys(): Set<String> = securedDataStore.keys()
     override suspend fun size(): Int = securedDataStore.size()
-    override suspend fun clear(): Unit = keys().forEach { remove(it) }
+    override suspend fun clear(): Unit = securedDataStore.clearAllPreference()
 
     override suspend fun remove(key: String) {
         securedDataStore.removePreference(stringSetPreferencesKey(key))

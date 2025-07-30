@@ -1,14 +1,11 @@
 package com.hypergonial.chat.model
 
-import android.content.Context
 import android.content.SharedPreferences
-import android.preference.PreferenceDataStore
 import com.hypergonial.chat.data.SecuredDataStore
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SharedPreferencesSettings
 import com.russhwolf.settings.coroutines.FlowSettings
-import com.russhwolf.settings.datastore.DataStoreSettings
 
 @OptIn(ExperimentalSettingsApi::class)
 class AndroidSettings : AppSettings() {
@@ -24,14 +21,14 @@ class AndroidSettings : AppSettings() {
             potentiallyPendingUserPrefs = value
         }
 
-    override val secrets: Settings? = null // TODO: secured prefs
+    override val secrets: Settings? = null
 
     override var androidSecrets: FlowSettings
         get() {
             if (potentiallyPendingSecrets != null) {
                 return potentiallyPendingSecrets!!
             } else {
-                error("User preferences not initialized")
+                error("Android secrets not initialized")
             }
         }
         set(value) {

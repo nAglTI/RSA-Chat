@@ -107,6 +107,8 @@ kotlin {
             implementation(libs.adaptive.navigation)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
+            // DI
+            implementation(libs.koin.core)
             // Settings Handling
             implementation(libs.multiplatform.settings)
             implementation(libs.multiplatform.settings.datastore)

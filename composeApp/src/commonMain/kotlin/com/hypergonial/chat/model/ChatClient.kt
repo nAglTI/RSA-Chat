@@ -1,104 +1,35 @@
 package com.hypergonial.chat.model
 
 import co.touchlab.kermit.Logger
+import com.hypergonial.chat.data.auth.AuthManager
+import com.hypergonial.chat.data.remote.ChatApiService
+import com.hypergonial.chat.data.remote.server_updates.RealtimeUpdatesProvider
 import com.hypergonial.chat.genSessionId
-import com.hypergonial.chat.model.exceptions.ClientException
-import com.hypergonial.chat.model.exceptions.InvalidPayloadException
-import com.hypergonial.chat.model.exceptions.NotFoundException
-import com.hypergonial.chat.model.exceptions.RequestTimeoutException
-import com.hypergonial.chat.model.exceptions.ResumeFailureException
-import com.hypergonial.chat.model.exceptions.TransportException
-import com.hypergonial.chat.model.exceptions.UnknownFailureException
-import com.hypergonial.chat.model.exceptions.getApiException
-import com.hypergonial.chat.model.payloads.Channel
-import com.hypergonial.chat.model.payloads.Guild
-import com.hypergonial.chat.model.payloads.Member
-import com.hypergonial.chat.model.payloads.Message
-import com.hypergonial.chat.model.payloads.Snowflake
-import com.hypergonial.chat.model.payloads.User
+import com.hypergonial.chat.model.exceptions.*
+import com.hypergonial.chat.model.payloads.*
 import com.hypergonial.chat.model.payloads.fcm.PushNotificationData
-import com.hypergonial.chat.model.payloads.gateway.EventConvertible
-import com.hypergonial.chat.model.payloads.gateway.GatewayMessage
-import com.hypergonial.chat.model.payloads.gateway.Heartbeat
-import com.hypergonial.chat.model.payloads.gateway.HeartbeatAck
-import com.hypergonial.chat.model.payloads.gateway.Hello
-import com.hypergonial.chat.model.payloads.gateway.Identify
-import com.hypergonial.chat.model.payloads.gateway.MessageCreate
-import com.hypergonial.chat.model.payloads.gateway.Ready
-import com.hypergonial.chat.model.payloads.gateway.StartTyping
-import com.hypergonial.chat.model.payloads.gateway.TypingStart
-import com.hypergonial.chat.model.payloads.rest.AuthResponse
-import com.hypergonial.chat.model.payloads.rest.ChannelCreateRequest
-import com.hypergonial.chat.model.payloads.rest.GuildCreateRequest
-import com.hypergonial.chat.model.payloads.rest.GuildUpdateRequest
-import com.hypergonial.chat.model.payloads.rest.MessageCreateRequest
-import com.hypergonial.chat.model.payloads.rest.MessageUpdateRequest
-import com.hypergonial.chat.model.payloads.rest.UpdateFCMTokenRequest
-import com.hypergonial.chat.model.payloads.rest.UserRegisterRequest
-import com.hypergonial.chat.model.payloads.rest.UserUpdateRequest
+import com.hypergonial.chat.model.payloads.gateway.*
+import com.hypergonial.chat.model.payloads.rest.*
 import com.hypergonial.chat.platform
 import com.mmk.kmpnotifier.notification.NotifierManager
 import com.mmk.kmpnotifier.notification.PayloadData
 import io.github.vinceglb.filekit.core.PlatformFile
-import io.ktor.client.call.NoTransformationFoundException
-import io.ktor.client.call.body
-import io.ktor.client.network.sockets.ConnectTimeoutException
-import io.ktor.client.network.sockets.SocketTimeoutException
-import io.ktor.client.plugins.ClientRequestException
-import io.ktor.client.plugins.HttpRequestRetry
-import io.ktor.client.plugins.HttpRequestTimeoutException
-import io.ktor.client.plugins.HttpResponseValidator
-import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.plugins.ServerResponseException
-import io.ktor.client.plugins.UserAgent
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.plugins.onUpload
-import io.ktor.client.plugins.timeout
-import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
-import io.ktor.client.plugins.websocket.WebSockets
-import io.ktor.client.plugins.websocket.receiveDeserialized
-import io.ktor.client.plugins.websocket.sendSerialized
-import io.ktor.client.plugins.websocket.webSocket
-import io.ktor.client.request.basicAuth
-import io.ktor.client.request.bearerAuth
-import io.ktor.client.request.delete
-import io.ktor.client.request.forms.FormPart
-import io.ktor.client.request.forms.formData
-import io.ktor.client.request.forms.submitFormWithBinaryData
-import io.ktor.client.request.get
-import io.ktor.client.request.parameter
-import io.ktor.client.request.patch
-import io.ktor.client.request.post
-import io.ktor.client.request.put
-import io.ktor.client.request.setBody
-import io.ktor.client.request.url
-import io.ktor.client.statement.bodyAsText
-import io.ktor.client.statement.request
-import io.ktor.http.ContentType
-import io.ktor.http.Headers
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
-import io.ktor.http.quote
-import io.ktor.serialization.WebsocketDeserializeException
-import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.websocket.CloseReason
-import io.ktor.websocket.Frame
-import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.channels.Channel as QueueChannel
+import io.ktor.client.call.*
+import io.ktor.client.network.sockets.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.websocket.*
+import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.serialization.*
+import io.ktor.serialization.kotlinx.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.websocket.*
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
-import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.io.IOException
@@ -106,6 +37,9 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.channels.Channel as QueueChannel
 
 /**
  * The primary implementation of a client that connects to the chat backend
@@ -117,12 +51,19 @@ import kotlinx.serialization.serializer
  * @param maxReconnectAttempts The maximum number of reconnection attempts before the client gives up
  */
 @OptIn(InternalEventManagerApi::class)
-class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int = 3) : Client {
+class ChatClient(
+    override val maxReconnectAttempts: Int = 3,
+    private val apiService: ChatApiService,
+    private val authManager: AuthManager,
+    private val realtime: RealtimeUpdatesProvider,
+    override val cache: Cache,
+    override val eventManager: EventManager
+) : Client {
     /** The bearer token used for authentication */
-    private var token: Secret<String>? = settings.getToken()?.let { Secret(it) }
+    private var token: Secret<String>? = runBlocking { settings.getToken()?.let { Secret(it) } } // FIXME: remove this later
     private var lastTokenRefresh: Instant = settings.getLastTokenRefresh()
 
-    private var _scope = scope
+    private var _scope = CoroutineScope(Dispatchers.IO)
     private var _isSuspended = false
     private var _reconnectAttempts = 0
 
@@ -173,9 +114,6 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
      */
     private val initialGuildIds: HashSet<Snowflake> = HashSet()
     /** The event manager that is used to dispatch events */
-    override val eventManager = EventManager()
-    /** The cache that is used to store entities received through the gateway */
-    override val cache = Cache()
 
     /** The main http client used for API requests */
     private val http = platformHttpClient {
@@ -183,7 +121,6 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             json(
                 Json {
                     ignoreUnknownKeys = true
-                    encodeDefaults = false
                 }
             )
         }
@@ -785,7 +722,9 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
             settings.clearUserPreferences()
         }
 
-        settings.setToken(resp.token.expose())
+        scope.launch { // TODO: remove unused code (almost all of this class)
+            settings.setToken(resp.token.expose())
+        }
         settings.setLastTokenRefresh(lastTokenRefresh)
         settings.setLastLoggedInAs(resp.userId)
 
@@ -1013,17 +952,20 @@ class ChatClient(scope: CoroutineScope, override val maxReconnectAttempts: Int =
     }
 
     override fun reloadConfig() {
-        config = settings.getDevSettings()
-        token = settings.getToken()?.let { Secret(it) }
+        scope.launch {
+            config = settings.getDevSettings()
+            token = settings.getToken()?.let { Secret(it) }
+        }
     }
 
     override fun logout() {
         closeGateway()
         token = null
         cache.clear()
-        settings.removeToken()
 
         scope.launch {
+            settings.removeToken()
+
             if (platform.isMobile()) {
                 NotifierManager.getPushNotifier().deleteMyToken()
                 settings.clearFCMSettings()

@@ -9,9 +9,13 @@ import com.russhwolf.settings.Settings
 import com.russhwolf.settings.coroutines.FlowSettings
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
 
 /** The base class for implementing a persistent settings store for the application */
+@OptIn(ExperimentalSettingsApi::class)
 abstract class AppSettings : SynchronizedObject() {
     /**
      * The user preferences store
@@ -29,7 +33,6 @@ abstract class AppSettings : SynchronizedObject() {
      */
     protected abstract val secrets: Settings?
 
-    @OptIn(ExperimentalSettingsApi::class)
     protected abstract val androidSecrets: FlowSettings?
 
     private var _cachedDevSettings: DevSettings? = null
@@ -45,13 +48,10 @@ abstract class AppSettings : SynchronizedObject() {
      * @param key The key to get the secret for
      * @return The secret or null if it does not exist
      */
-    private fun getSecret(key: String): String? {
-        val value =
-            if (secrets == null) {
-                userPreferences.getStringOrNull(key)
-            } else {
-                secrets!!.getStringOrNull(key)
-            }
+    private suspend fun getSecret(key: String): String? {
+        val value = secrets?.getStringOrNull(key)
+            ?: androidSecrets?.getStringOrNull(key)
+            ?: userPreferences.getStringOrNull(key)
 
         return if (value.isNullOrEmpty()) null else value
     }
@@ -62,14 +62,17 @@ abstract class AppSettings : SynchronizedObject() {
      * @param key The key to set the secret for
      * @param value The secret to set
      */
-    private fun setSecret(key: String, value: String) {
-        secrets?.putString(key, value) ?: userPreferences.putString(key, value)
+    private suspend fun setSecret(key: String, value: String) { // TODO: use android secrets
+        secrets?.putString(key, value)
+            ?: androidSecrets?.putString(key, value)
+            ?: userPreferences.putString(key, value)
     }
 
     /** Clear all settings */
     fun clear() {
         userPreferences.clear()
         secrets?.clear()
+        TODO("android suspended clear()")
     }
 
     /** Clear all settings specific to the current user */
@@ -77,22 +80,23 @@ abstract class AppSettings : SynchronizedObject() {
         clearLastOpenedPrefs()
     }
 
+    // TODO: mb impl local coroutine scope + job with IO
     /**
      * Get the current user's token
      *
      * @return The token or null if no one is currently authenticated
      */
-    fun getToken(): String? = getSecret("TOKEN")
+    suspend fun getToken(): String? = withContext(Dispatchers.IO) { getSecret("TOKEN") }
 
     /**
      * Set the current user's token
      *
      * @param token The token to set
      */
-    fun setToken(token: String) = setSecret("TOKEN", token)
+    suspend fun setToken(token: String) = withContext(Dispatchers.IO) { setSecret("TOKEN", token) }
 
     /** Remove the current user's token, effectively logging them out */
-    fun removeToken() = setSecret("TOKEN", "")
+    suspend fun removeToken() = withContext(Dispatchers.IO) { setSecret("TOKEN", "") }
 
     /** Get the last time the token was refreshed */
     fun getLastTokenRefresh(): Instant = userPreferences.getSerializable("TOKEN_REFRESH") ?: Instant.DISTANT_PAST
@@ -216,16 +220,17 @@ abstract class AppSettings : SynchronizedObject() {
         userPreferences.remove("LAST_OPENED_PREFS")
     }
 
-    fun setPrivateKey(key: String) {
+    suspend fun setPrivateKey(key: String) = withContext(Dispatchers.IO) {
         setSecret(SECRET_KEY_NAME, key)
     }
 
-    fun getPrivateKey(): String? = getSecret(SECRET_KEY_NAME)
+    suspend fun getPrivateKey(): String? = withContext(Dispatchers.IO) { getSecret(SECRET_KEY_NAME) }
 
     private companion object {
         private const val SECRET_KEY_NAME = "pk_set_secured_pref"
     }
 }
 
+// TODO: mb there is other way to handle property
 /** The persistent settings store for this platform */
 expect val settings: AppSettings
